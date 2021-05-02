@@ -79,9 +79,8 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 //
 // Note the whole URL path is used as the identifier to enqueue (and
 // push to. This probably necessitates stripping the URL prefix before
-// using. Note we simply forward to a PushHandlerFunc to handle the push
-// notification. This means if there are HTTP errors those relate to
-// enqueuing and if there are JSON errors, see the PushHandlerFunc.
+// using. Also note we expose Go errors to the output as this is meant
+// for "API" users.
 func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		b, err := ReadAllAndReplaceBody(r)
