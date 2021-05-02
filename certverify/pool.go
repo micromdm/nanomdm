@@ -1,4 +1,4 @@
-package main
+package certverify
 
 import (
 	"crypto/x509"
@@ -6,12 +6,12 @@ import (
 )
 
 // Verifier is a simple certificate verifier
-type Verifier struct {
+type PoolVerifier struct {
 	verifyOpts x509.VerifyOptions
 }
 
-// NewVerifier creates a new Verifier
-func NewVerifier(rootsPEM []byte, keyUsages ...x509.ExtKeyUsage) (*Verifier, error) {
+// NewPoolVerifier creates a new Verifier
+func NewPoolVerifier(rootsPEM []byte, keyUsages ...x509.ExtKeyUsage) (*PoolVerifier, error) {
 	opts := x509.VerifyOptions{
 		KeyUsages: keyUsages,
 		Roots:     x509.NewCertPool(),
@@ -19,13 +19,13 @@ func NewVerifier(rootsPEM []byte, keyUsages ...x509.ExtKeyUsage) (*Verifier, err
 	if len(rootsPEM) == 0 || !opts.Roots.AppendCertsFromPEM(rootsPEM) {
 		return nil, errors.New("could not append root CA(s)")
 	}
-	return &Verifier{
+	return &PoolVerifier{
 		verifyOpts: opts,
 	}, nil
 }
 
 // Verify performs certificate verification
-func (v *Verifier) Verify(cert *x509.Certificate) error {
+func (v *PoolVerifier) Verify(cert *x509.Certificate) error {
 	if cert == nil {
 		return errors.New("missing MDM certificate")
 	}

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/jessepeterson/nanomdm/certverify"
 	mdmhttp "github.com/jessepeterson/nanomdm/http"
 	"github.com/jessepeterson/nanomdm/log"
 	stdlogadapter "github.com/jessepeterson/nanomdm/log/stdlog"
@@ -71,7 +72,7 @@ func main() {
 	if err != nil {
 		stdlog.Fatal(err)
 	}
-	verifier, err := NewVerifier(caPEM, x509.ExtKeyUsageClientAuth)
+	verifier, err := certverify.NewPoolVerifier(caPEM, x509.ExtKeyUsageClientAuth)
 	if err != nil {
 		stdlog.Fatal(err)
 	}
