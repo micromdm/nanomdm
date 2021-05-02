@@ -157,7 +157,10 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 }
 
 // StorePushCertHandlerFunc reads a PEM-encoded certificate and private
-// key from the HTTP body and saves it to storage.
+// key from the HTTP body and saves it to storage. This effectively
+// enables us to do something like:
+// "% cat push.pem push.key | curl -T - http://api.example.com/" to
+// upload our push certs.
 func StorePushCertHandlerFunc(storage storage.PushCertStore, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		b, err := ReadAllAndReplaceBody(r)
