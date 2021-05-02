@@ -1,0 +1,229 @@
+package http
+
+import (
+	"bytes"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/jessepeterson/nanomdm/cryptoutil"
+	"github.com/jessepeterson/nanomdm/log"
+	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/jessepeterson/nanomdm/push"
+	"github.com/jessepeterson/nanomdm/storage"
+)
+
+// enrolledAPIResult is a per-enrollment API result.
+type enrolledAPIResult struct {
+	PushError    string `json:"push_error,omitempty"`
+	PushResult   string `json:"push_result,omitempty"`
+	CommandError string `json:"command_error,omitempty"`
+}
+
+// enrolledAPIResults is a map of enrollments to a per-enrollment API result.
+type enrolledAPIResults map[string]*enrolledAPIResult
+
+// apiResult is the JSON reply returned from either pushing or queuing commands.
+type apiResult struct {
+	Status       enrolledAPIResults `json:"status,omitempty"`
+	NoPush       bool               `json:"no_push,omitempty"`
+	PushError    string             `json:"push_error,omitempty"`
+	CommandError string             `json:"command_error,omitempty"`
+	CommandUUID  string             `json:"command_uuid,omitempty"`
+}
+
+// PushHandlerFunc sends APNs push notifications to MDM enrollments.
+//
+// Note the whole URL path is used as the identifier to push to. This
+// probably necessitates stripping the URL prefix before using. Also
+// note we expose Go errors to the output as this is meant for "API"
+// users.
+func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ids := strings.Split(r.URL.Path, ",")
+		output := apiResult{
+			Status: make(enrolledAPIResults),
+		}
+		pushResp, err := pusher.Push(r.Context(), ids)
+		if err != nil {
+			logger.Info("msg", "push", "err", err)
+			output.PushError = err.Error()
+		}
+		logger.Debug("msg", "push", "count", len(pushResp))
+		for id, resp := range pushResp {
+			output.Status[id] = &enrolledAPIResult{
+				PushResult: resp.Id,
+			}
+			if resp.Err != nil {
+				output.Status[id].PushError = resp.Err.Error()
+			}
+		}
+		json, err := json.MarshalIndent(output, "", "\t")
+		if err != nil {
+			logger.Info("msg", "marshal json", "err", err)
+		}
+		w.Header().Set("Content-type", "application/json")
+		_, err = w.Write(json)
+		if err != nil {
+			logger.Info("msg", "writing body", "err", err)
+		}
+	}
+}
+
+// RawCommandEnqueueHandler enqueues a raw MDM command plist and sends
+// push notifications to MDM enrollments.
+//
+// Note the whole URL path is used as the identifier to enqueue (and
+// push to. This probably necessitates stripping the URL prefix before
+// using. Note we simply forward to a PushHandlerFunc to handle the push
+// notification. This means if there are HTTP errors those relate to
+// enqueuing and if there are JSON errors, see the PushHandlerFunc.
+func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Pusher, logger log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		b, err := ReadAllAndReplaceBody(r)
+		if err != nil {
+			logger.Info("msg", "reading body", "err", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		command, err := mdm.DecodeCommand(b)
+		if err != nil {
+			logger.Info("msg", "decoding command", "err", err)
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		ids := strings.Split(r.URL.Path, ",")
+		nopush := r.URL.Query().Get("nopush") != ""
+		output := apiResult{
+			Status:      make(enrolledAPIResults),
+			NoPush:      nopush,
+			CommandUUID: command.CommandUUID,
+		}
+		idErrs, err := enqueuer.EnqueueCommand(r.Context(), ids, command)
+		if err != nil {
+			logger.Info("msg", "enqueue command", "err", err)
+			output.CommandError = err.Error()
+		}
+		pushResp := make(map[string]*push.Response)
+		if !nopush {
+			pushResp, err = pusher.Push(r.Context(), ids)
+			if err != nil {
+				logger.Info("msg", "push", "err", err)
+				output.PushError = err.Error()
+			}
+		}
+		// loop through our command errors, if any, and add to output
+		for id, err := range idErrs {
+			if err != nil {
+				output.Status[id] = &enrolledAPIResult{
+					CommandError: err.Error(),
+				}
+			}
+		}
+		// loop through our push errors, if any, and add to output
+		for id, resp := range pushResp {
+			if _, ok := output.Status[id]; ok {
+				output.Status[id].PushResult = resp.Id
+			} else {
+				output.Status[id] = &enrolledAPIResult{
+					PushResult: resp.Id,
+				}
+			}
+			if resp.Err != nil {
+				output.Status[id].PushError = resp.Err.Error()
+			}
+		}
+		logger.Debug(
+			"msg", "enqueued command",
+			"command_uuid", command.CommandUUID,
+			"request_type", command.Command.RequestType,
+			"id_count", len(ids),
+			"id_first", ids[0],
+		)
+		logger.Debug("msg", "push", "count", len(pushResp))
+		json, err := json.MarshalIndent(output, "", "\t")
+		if err != nil {
+			logger.Info("msg", "marshal json", "err", err)
+		}
+		w.Header().Set("Content-type", "application/json")
+		_, err = w.Write(json)
+		if err != nil {
+			logger.Info("msg", "writing body", "err", err)
+		}
+	}
+}
+
+// StorePushCertHandlerFunc reads a PEM-encoded certificate and private
+// key from the HTTP body and saves it to storage.
+func StorePushCertHandlerFunc(storage storage.PushCertStore, logger log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		b, err := ReadAllAndReplaceBody(r)
+		if err != nil {
+			logger.Info("msg", "reading body", "err", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		// if the PEM blocks are mushed together with no newline then add one
+		b = bytes.ReplaceAll(b, []byte("----------"), []byte("-----\n-----"))
+		var pemCert []byte
+		var pemKey []byte
+		var topic string
+		var block *pem.Block
+		for {
+			block, b = pem.Decode(b)
+			if block == nil {
+				break
+			}
+			switch block.Type {
+			case "CERTIFICATE":
+				pemCert = pem.EncodeToMemory(block)
+				cert, err := x509.ParseCertificate(block.Bytes)
+				if err == nil {
+					topic, err = cryptoutil.TopicFromCert(cert)
+				}
+			case "RSA PRIVATE KEY", "PRIVATE KEY":
+				pemKey = pem.EncodeToMemory(block)
+			default:
+				err = fmt.Errorf("unrecognized PEM type: %q", block.Type)
+			}
+			if err != nil {
+				break
+			}
+		}
+		if err == nil {
+			if len(pemCert) == 0 {
+				err = errors.New("cert not found")
+			} else if len(pemKey) == 0 {
+				err = errors.New("private key not found")
+			}
+		}
+		if err == nil {
+			err = storage.StorePushCert(r.Context(), pemCert, pemKey)
+		}
+		output := &struct {
+			Error string `json:"error,omitempty"`
+			Topic string `json:"topic,omitempty"`
+		}{
+			Topic: topic,
+		}
+		if err != nil {
+			logger.Info("msg", "store push cert", "err", err)
+			output.Error = err.Error()
+		} else {
+			logger.Info("msg", "stored push cert", "topic", topic)
+		}
+		json, err := json.MarshalIndent(output, "", "\t")
+		if err != nil {
+			logger.Info("msg", "marshal json", "err", err)
+		}
+		w.Header().Set("Content-type", "application/json")
+		_, err = w.Write(json)
+		if err != nil {
+			logger.Info("msg", "writing body", "err", err)
+		}
+	}
+}
