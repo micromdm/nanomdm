@@ -99,10 +99,6 @@ func main() {
 		mdmService = dump.New(mdmService, os.Stdout)
 	}
 
-	// create our push provider and push service
-	pushProviderFactory := buford.NewPushProviderFactory()
-	pushService := pushsvc.New(mdmStorage, mdmStorage, pushProviderFactory, logger)
-
 	mux := http.NewServeMux()
 
 	// register 'core' MDM HTTP handler
@@ -137,6 +133,10 @@ func main() {
 
 	if *flAPIKey != "" {
 		const apiUsername = "nanomdm"
+
+		// create our push provider and push service
+		pushProviderFactory := buford.NewPushProviderFactory()
+		pushService := pushsvc.New(mdmStorage, mdmStorage, pushProviderFactory, logger)
 
 		// register API handler for push cert storage/upload.
 		var pushCertHandler http.Handler
