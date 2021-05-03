@@ -48,10 +48,10 @@ func nullEmptyString(s string) sql.NullString {
 }
 
 func (s *MySQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
-	if r.Certificate == nil {
-		return ErrNoCert
+	var pemCert []byte
+	if r.Certificate != nil {
+		pemCert = cryptoutil.PEMCertificate(r.Certificate.Raw)
 	}
-	pemCert := cryptoutil.PEMCertificate(r.Certificate.Raw)
 	exists, err := s.queryRowContextRowExists(
 		r.Context,
 		`SELECT COUNT(*) FROM devices WHERE id = ?`,

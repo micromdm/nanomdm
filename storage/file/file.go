@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/jessepeterson/nanomdm/cryptoutil"
 	"github.com/jessepeterson/nanomdm/mdm"
 )
 
@@ -15,6 +16,7 @@ const (
 	TokenUpdateFilename  = "TokenUpdate.plist"
 	UnlockTokenFilename  = "UnlockToken.dat"
 	SerialNumberFilename = "SerialNumber.txt"
+	CertFilename         = "Cert.pem"
 
 	CertAuthFilename             = "CertAuth.sha256.txt"
 	CertAuthAssociationsFilename = "CertAuth.txt"
@@ -75,6 +77,11 @@ func (e *enrollment) readFile(name string) ([]byte, error) {
 // StoreAuthenticate stores the Authenticate message
 func (s *FileStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
 	e := s.newEnrollment(r.ID)
+	if r.Certificate != nil {
+		if err := e.writeFile(CertFilename, cryptoutil.PEMCertificate(r.Certificate.Raw)); err != nil {
+			return err
+		}
+	}
 	// A nice-to-have even though it's duplicated in msg
 	if msg.SerialNumber != "" {
 		err := e.writeFile(SerialNumberFilename, []byte(msg.SerialNumber))
