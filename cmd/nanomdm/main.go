@@ -55,6 +55,7 @@ func main() {
 
 		flMDMEndpoint = flag.String("endpoint-mdm", "/mdm", "HTTP endpoint for MDM commands")
 		flCIEndpoint  = flag.String("endpoint-checkin", "", "HTTP endpoint for MDM check-ins")
+		flMigEndpoint = flag.String("endpoint-checkin-migration", "", "HTTP endpoint for migration MDM check-ins")
 	)
 	flag.Parse()
 
@@ -89,8 +90,10 @@ func main() {
 	}
 
 	// create 'core' MDM service
+	nano := nanomdm.New(mdmStorage, logger)
+
 	var mdmService service.CheckinAndCommandService
-	mdmService = nanomdm.New(mdmStorage, logger)
+	mdmService = nano
 	if *flWebhook != "" {
 		webhookService := microwebhook.New(*flWebhook)
 		mdmService = multi.New(logger, mdmService, webhookService)
@@ -162,6 +165,13 @@ func main() {
 		enqueueHandler = http.StripPrefix(enqueuePrefix, enqueueHandler)
 		enqueueHandler = basicAuth(enqueueHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(enqueuePrefix, enqueueHandler)
+
+		if *flMigEndpoint != "" {
+			var migHandler http.Handler
+			migHandler = mdmhttp.CheckinHandlerFunc(nano, logger.With("handler", "migration"))
+			migHandler = basicAuth(migHandler, apiUsername, *flAPIKey, "nanomdm")
+			mux.Handle(*flMigEndpoint, migHandler)
+		}
 	}
 
 	mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
