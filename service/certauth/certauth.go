@@ -49,7 +49,9 @@ type CertAuth struct {
 	// allowRetroactive allows cert-hash associations to happen in
 	// requests other than the Authenticate Check-in message. If this is
 	// true then you can effectively add cert-hash associations to
-	// existing enrollments and not just new enrollments.
+	// existing enrollments and not just new enrollments. However,
+	// if the enrollment has an existing association we explicitly
+	// disallow re-association.
 	allowRetroactive bool
 
 	// warnOnly won't return an error when we find a cert auth problem
