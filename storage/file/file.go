@@ -64,7 +64,7 @@ func (e *enrollment) writeFile(name string, bytes []byte) error {
 	if err := e.mkdir(); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(e.dirPrefix(name), bytes, 0755)
+	return ioutil.WriteFile(e.dirPrefix(name), bytes, 0644)
 }
 
 func (e *enrollment) readFile(name string) ([]byte, error) {
