@@ -64,6 +64,10 @@ func main() {
 		return
 	}
 
+	if *flMDMEndpoint == "" && *flCIEndpoint == "" && *flAPIKey == "" {
+		stdlog.Fatal("nothing for server to do")
+	}
+
 	logger := stdlogadapter.New(stdlog.Default(), *flDebug)
 
 	if *flRootsPath == "" {
@@ -92,47 +96,51 @@ func main() {
 	// create 'core' MDM service
 	nano := nanomdm.New(mdmStorage, logger)
 
-	var mdmService service.CheckinAndCommandService
-	mdmService = nano
-	if *flWebhook != "" {
-		webhookService := microwebhook.New(*flWebhook)
-		mdmService = multi.New(logger, mdmService, webhookService)
-	}
-	mdmService = certauth.NewCertAuthMiddleware(mdmService, mdmStorage, logger)
-	if *flDump {
-		mdmService = dump.New(mdmService, os.Stdout)
-	}
-
 	mux := http.NewServeMux()
 
-	// register 'core' MDM HTTP handler
-	var mdmHandler http.Handler
-	if *flCIEndpoint == "" {
-		// if we don't specify a separate check-in handler, do it all
-		// in the MDM endpoint
-		mdmHandler = mdmhttp.CheckinAndCommandHandlerFunc(mdmService, logger)
-	} else {
-		mdmHandler = mdmhttp.CommandAndReportResultsHandlerFunc(mdmService, logger)
-	}
-	mdmHandler = mdmhttp.CertVerifyMiddleware(mdmHandler, verifier, logger)
-	if *flCertHeader != "" {
-		mdmHandler = mdmhttp.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger)
-	} else {
-		mdmHandler = mdmhttp.CertExtractMdmSignatureMiddleware(mdmHandler, logger)
-	}
-	mux.Handle(*flMDMEndpoint, mdmHandler)
-
-	if *flCIEndpoint != "" {
-		// if we specified a separate check-in handler, set it up
-		var checkinHandler http.Handler
-		checkinHandler = mdmhttp.CheckinHandlerFunc(mdmService, logger)
-		checkinHandler = mdmhttp.CertVerifyMiddleware(checkinHandler, verifier, logger)
-		if *flCertHeader != "" {
-			checkinHandler = mdmhttp.CertExtractPEMHeaderMiddleware(checkinHandler, *flCertHeader, logger)
-		} else {
-			checkinHandler = mdmhttp.CertExtractMdmSignatureMiddleware(checkinHandler, logger)
+	if *flMDMEndpoint != "" || *flCIEndpoint != "" {
+		var mdmService service.CheckinAndCommandService
+		mdmService = nano
+		if *flWebhook != "" {
+			webhookService := microwebhook.New(*flWebhook)
+			mdmService = multi.New(logger, mdmService, webhookService)
 		}
-		mux.Handle(*flCIEndpoint, checkinHandler)
+		mdmService = certauth.NewCertAuthMiddleware(mdmService, mdmStorage, logger)
+		if *flDump {
+			mdmService = dump.New(mdmService, os.Stdout)
+		}
+
+		if *flMDMEndpoint != "" {
+			// register 'core' MDM HTTP handler
+			var mdmHandler http.Handler
+			if *flCIEndpoint == "" {
+				// if we don't specify a separate check-in handler, do it all
+				// in the MDM endpoint
+				mdmHandler = mdmhttp.CheckinAndCommandHandlerFunc(mdmService, logger)
+			} else {
+				mdmHandler = mdmhttp.CommandAndReportResultsHandlerFunc(mdmService, logger)
+			}
+			mdmHandler = mdmhttp.CertVerifyMiddleware(mdmHandler, verifier, logger)
+			if *flCertHeader != "" {
+				mdmHandler = mdmhttp.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger)
+			} else {
+				mdmHandler = mdmhttp.CertExtractMdmSignatureMiddleware(mdmHandler, logger)
+			}
+			mux.Handle(*flMDMEndpoint, mdmHandler)
+		}
+
+		if *flCIEndpoint != "" {
+			// if we specified a separate check-in handler, set it up
+			var checkinHandler http.Handler
+			checkinHandler = mdmhttp.CheckinHandlerFunc(mdmService, logger)
+			checkinHandler = mdmhttp.CertVerifyMiddleware(checkinHandler, verifier, logger)
+			if *flCertHeader != "" {
+				checkinHandler = mdmhttp.CertExtractPEMHeaderMiddleware(checkinHandler, *flCertHeader, logger)
+			} else {
+				checkinHandler = mdmhttp.CertExtractMdmSignatureMiddleware(checkinHandler, logger)
+			}
+			mux.Handle(*flCIEndpoint, checkinHandler)
+		}
 	}
 
 	if *flAPIKey != "" {
@@ -167,6 +175,13 @@ func main() {
 		mux.Handle(enqueuePrefix, enqueueHandler)
 
 		if *flMigEndpoint != "" {
+			// setup a "migration" handler that takes Check-In messages
+			// without bothering with certificate auth or other
+			// middleware.
+			//
+			// if the source MDM can put together enough of an
+			// authenticate and tokenupdate message to effectively
+			// generate "enrollments" then
 			var migHandler http.Handler
 			migHandler = mdmhttp.CheckinHandlerFunc(nano, logger.With("handler", "migration"))
 			migHandler = basicAuth(migHandler, apiUsername, *flAPIKey, "nanomdm")
