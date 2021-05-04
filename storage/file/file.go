@@ -16,7 +16,7 @@ const (
 	TokenUpdateFilename  = "TokenUpdate.plist"
 	UnlockTokenFilename  = "UnlockToken.dat"
 	SerialNumberFilename = "SerialNumber.txt"
-	CertFilename         = "Cert.pem"
+	IdentityCertFilename = "Identity.pem"
 
 	CertAuthFilename             = "CertAuth.sha256.txt"
 	CertAuthAssociationsFilename = "CertAuth.txt"
@@ -78,7 +78,7 @@ func (e *enrollment) readFile(name string) ([]byte, error) {
 func (s *FileStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
 	e := s.newEnrollment(r.ID)
 	if r.Certificate != nil {
-		if err := e.writeFile(CertFilename, cryptoutil.PEMCertificate(r.Certificate.Raw)); err != nil {
+		if err := e.writeFile(IdentityCertFilename, cryptoutil.PEMCertificate(r.Certificate.Raw)); err != nil {
 			return err
 		}
 	}
