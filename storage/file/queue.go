@@ -84,7 +84,6 @@ func (q *queue) getNext() (*mdm.Command, error) {
 		return mdm.DecodeCommand(raw)
 	}
 	return nil, nil
-
 }
 
 // EnqueueCommand writes the command to disk in the queue directory
@@ -137,19 +136,29 @@ func (s *FileStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm
 }
 
 func (s *FileStorage) ClearQueue(r *mdm.Request) error {
+	if r.ParentID != "" {
+		return errors.New("can only clear queue for device channel")
+	}
+	// assemble list of IDs for which to clear the queue
 	e := s.newEnrollment(r.ID)
-	dest := e.newQueue(subInactive)
-	for _, q := range []*queue{e.newQueue(subQueue), e.newQueue(subNotNow)} {
-		raw, err := q.getNext()
-		for raw != nil && err == nil {
-			err = q.move(raw.CommandUUID, dest)
+	clearIds := e.listSubEnrollments()
+	clearIds = append(clearIds, r.ID)
+	// clear the queue for all of the ids
+	for _, id := range clearIds {
+		e := s.newEnrollment(id)
+		dest := e.newQueue(subInactive)
+		for _, q := range []*queue{e.newQueue(subQueue), e.newQueue(subNotNow)} {
+			raw, err := q.getNext()
+			for raw != nil && err == nil {
+				err = q.move(raw.CommandUUID, dest)
+				if err != nil {
+					return err
+				}
+				raw, err = q.getNext()
+			}
 			if err != nil {
 				return err
 			}
-			raw, err = q.getNext()
-		}
-		if err != nil {
-			return err
 		}
 	}
 	return nil

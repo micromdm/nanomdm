@@ -20,6 +20,11 @@ const (
 
 	CertAuthFilename             = "CertAuth.sha256.txt"
 	CertAuthAssociationsFilename = "CertAuth.txt"
+
+	// The associations for "sub"-enrollments (that is: user-channel
+	// enrollments to device-channel enrollments) are stored in this
+	// directory under the device's directory.
+	SubEnrollmentPathname = "SubEnrollments"
 )
 
 // FileStorage implements filesystem-based storage for MDM services
@@ -74,6 +79,33 @@ func (e *enrollment) readFile(name string) ([]byte, error) {
 	return ioutil.ReadFile(e.dirPrefix(name))
 }
 
+// assocSubEnrollment writes an empty file of the sub (user) enrollment for tracking.
+func (e *enrollment) assocSubEnrollment(id string) error {
+	subPath := e.dirPrefix(SubEnrollmentPathname)
+	if err := os.MkdirAll(subPath, 0755); err != nil {
+		return err
+	}
+	f, err := os.Create(path.Join(subPath, id))
+	if err != nil {
+		return err
+	}
+	return f.Close()
+}
+
+// listSubEnrollments returns an array of the sub-enrollment IDs
+func (e *enrollment) listSubEnrollments() (ids []string) {
+	entries, err := os.ReadDir(e.dirPrefix(SubEnrollmentPathname))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	for _, entry := range entries {
+		if len(entry.Name()) > 10 {
+			ids = append(ids, entry.Name())
+		}
+	}
+	return
+}
+
 // StoreAuthenticate stores the Authenticate message
 func (s *FileStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
 	e := s.newEnrollment(r.ID)
@@ -99,6 +131,12 @@ func (s *FileStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) err
 	// TokenUpdates do not contain it and it gets overwritten
 	if len(msg.UnlockToken) > 0 {
 		if err := e.writeFile(UnlockTokenFilename, msg.UnlockToken); err != nil {
+			return err
+		}
+	}
+	if r.ParentID != "" {
+		parentEnrollment := s.newEnrollment(r.ParentID)
+		if err := parentEnrollment.assocSubEnrollment(r.ID); err != nil {
 			return err
 		}
 	}
