@@ -31,15 +31,6 @@ import (
 // overridden by -ldflags -X
 var version = "unknown"
 
-// AllStorage represents all the required storage by NanoMDM
-type AllStorage interface {
-	storage.ServiceStore
-	storage.PushStore
-	storage.PushCertStore
-	storage.CommandEnqueuer
-	storage.CertAuthStore
-}
-
 func main() {
 	var (
 		flDSN        = flag.String("dsn", "", "SQL data source name (connection string)")
@@ -82,7 +73,7 @@ func main() {
 		stdlog.Fatal(err)
 	}
 
-	var mdmStorage AllStorage
+	var mdmStorage storage.AllStorage
 	// select between our storage repositories
 	if *flDSN != "" {
 		mdmStorage, err = mysql.New(*flDSN, logger)
