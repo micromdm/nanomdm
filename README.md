@@ -16,7 +16,6 @@ NanoMDM is a minimalist [Apple MDM server](https://support.apple.com/business/en
 If you've used [MicroMDM](https://github.com/micromdm/micromdm) before you might be interested to know what NanoMDM does *not* include:
 
 - TLS. You'll need to provide your own reverse proxy that terminates TLS (an MDM protocol requirement). [ssl-proxy](https://github.com/suyashkumar/ssl-proxy) may be a quick & easy development solution.
-- SCEP. Spin up your own [scep](https://github.com/micromdm/scep) server. Or bring your own.
 - ADE (DEP) access. While ADE/DEP *enrollments* are supported there is no DEP API access.
 - Enrollment. You'll need to create and serve your own enrollment profiles.
 - Blueprints. No 'automatic' command sending.
@@ -24,11 +23,17 @@ If you've used [MicroMDM](https://github.com/micromdm/micromdm) before you might
   - The `micro2nano` project provides an API translation layer.
 - VPP.
 
+These features are not currently included, but integrated support for them is either being considered or is planned:
+
+- SCEP. Spin up your own [scep](https://github.com/micromdm/scep) server. Or bring your own.
+- Enrollment APIs. No ability, yet, to inspect enrollment details or state.
+  - This is partly mitigated by the fact that both the file and mysql storage backends are 'easy' to inspect and query.
+
 # Architecture Overview
 
 NanoMDM, at its core, is a thin composable layer between HTTP handlers and a set of storage abstractions.
 
 - The "front-end" is a set of standard Golang HTTP handlers that handle MDM and API requests. The core MDM handlers adapt the requests to the service layer. These handlers exist in the `http` package.
-- The service layer is a composable set of interfaces that process and handle MDM requests. The service layer dispatches to the storage layer. These services exist under the `service` package.
+- The service layer is a composable interface for processing and handling MDM requests. The main NanoMDM service dispatches to the storage layer. These services exist under the `service` package.
 - The storage layer is a set of interfaces and implementations that store & retrieve MDM enrollment and command data. These exist under the `storage` package.
 
