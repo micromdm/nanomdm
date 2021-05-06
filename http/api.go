@@ -137,7 +137,7 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			}
 		}
 		logger.Debug(
-			"msg", "enqueued command",
+			"msg", "enqueue",
 			"command_uuid", command.CommandUUID,
 			"request_type", command.Command.RequestType,
 			"id_count", len(ids),
