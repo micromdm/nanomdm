@@ -46,7 +46,7 @@ func CheckinHandlerFunc(service service.Checkin, logger log.Logger) http.Handler
 				err = fmt.Errorf("checkout: %w", err)
 			}
 		default:
-			logger.Info("msg", "unrecognized check-in message type")
+			logger.Info("err", mdm.ErrUnrecognizedMessageType)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
