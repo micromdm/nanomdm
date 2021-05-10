@@ -1,4 +1,4 @@
-package stdlog
+package stdlogfmt
 
 import (
 	stdlog "log"

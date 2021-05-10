@@ -14,7 +14,7 @@ import (
 	"github.com/jessepeterson/nanomdm/certverify"
 	mdmhttp "github.com/jessepeterson/nanomdm/http"
 	"github.com/jessepeterson/nanomdm/log"
-	stdlogadapter "github.com/jessepeterson/nanomdm/log/stdlog"
+	"github.com/jessepeterson/nanomdm/log/stdlogfmt"
 	"github.com/jessepeterson/nanomdm/push/buford"
 	pushsvc "github.com/jessepeterson/nanomdm/push/service"
 	"github.com/jessepeterson/nanomdm/service"
@@ -59,7 +59,7 @@ func main() {
 		stdlog.Fatal("nothing for server to do")
 	}
 
-	logger := stdlogadapter.New(stdlog.Default(), *flDebug)
+	logger := stdlogfmt.New(stdlog.Default(), *flDebug)
 
 	if *flRootsPath == "" {
 		stdlog.Fatal("must supply CA cert path flag")
