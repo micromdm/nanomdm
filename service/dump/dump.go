@@ -35,6 +35,11 @@ func (svc *Dumper) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 	return svc.next.TokenUpdate(r, m)
 }
 
+func (svc *Dumper) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
+	svc.file.Write(m.Raw)
+	return svc.next.CheckOut(r, m)
+}
+
 func (svc *Dumper) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	svc.file.Write(results.Raw)
 	cmd, err := svc.next.CommandAndReportResults(r, results)

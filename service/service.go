@@ -10,6 +10,7 @@ import (
 type Checkin interface {
 	Authenticate(*mdm.Request, *mdm.Authenticate) error
 	TokenUpdate(*mdm.Request, *mdm.TokenUpdate) error
+	CheckOut(*mdm.Request, *mdm.CheckOut) error
 }
 
 // CommandAndReportResults represents the command report and next-command request.

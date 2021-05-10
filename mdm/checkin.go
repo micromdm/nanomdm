@@ -37,6 +37,14 @@ type TokenUpdate struct {
 	Raw         []byte // Original TokenUpdate XML plist
 }
 
+// CheckOut is a representation of a "CheckOut" check-in message type.
+// See https://developer.apple.com/documentation/devicemanagement/checkoutrequest
+type CheckOut struct {
+	Enrollment
+	MessageType
+	Raw []byte // Original CheckOut XML plist
+}
+
 // newCheckinMessageForType returns a pointer to a check-in struct for MessageType t
 func newCheckinMessageForType(t string, raw []byte) interface{} {
 	switch t {
@@ -44,6 +52,8 @@ func newCheckinMessageForType(t string, raw []byte) interface{} {
 		return &Authenticate{Raw: raw}
 	case "TokenUpdate":
 		return &TokenUpdate{Raw: raw}
+	case "CheckOut":
+		return &CheckOut{Raw: raw}
 	default:
 		return nil
 	}

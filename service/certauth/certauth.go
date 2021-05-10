@@ -216,6 +216,16 @@ func (s *CertAuth) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 	return s.next.TokenUpdate(r, m)
 }
 
+func (s *CertAuth) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
+	req := r.Clone()
+	req.EnrollID = s.normalizer(&m.Enrollment)
+	err := s.validateAssociateExistingEnrollment(req)
+	if err != nil {
+		return fmt.Errorf("cert auth: existing enrollment: %w", err)
+	}
+	return s.next.CheckOut(r, m)
+}
+
 func (s *CertAuth) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	req := r.Clone()
 	req.EnrollID = s.normalizer(&results.Enrollment)

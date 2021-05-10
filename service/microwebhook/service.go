@@ -46,6 +46,19 @@ func (w *MicroWebhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 	return postWebhookEvent(r.Context, w.client, w.url, ev)
 }
 
+func (w *MicroWebhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
+	ev := &Event{
+		Topic:     "mdm.CheckOut",
+		CreatedAt: time.Now(),
+		CheckinEvent: &CheckinEvent{
+			UDID:         m.UDID,
+			EnrollmentID: m.EnrollmentID,
+			RawPayload:   m.Raw,
+		},
+	}
+	return postWebhookEvent(r.Context, w.client, w.url, ev)
+}
+
 func (w *MicroWebhook) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	ev := &Event{
 		Topic:     "mdm.Connect",

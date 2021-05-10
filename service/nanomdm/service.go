@@ -90,6 +90,19 @@ func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {
 	return s.store.StoreTokenUpdate(r, message)
 }
 
+func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
+	if err := s.updateEnrollmentID(r, &message.Enrollment); err != nil {
+		return err
+	}
+	s.logger.Info(
+		"msg", "CheckOut",
+		"id", r.ID,
+		"type", r.Type,
+	)
+	// disable an enrollment upon checkout
+	return s.store.Disable(r)
+}
+
 func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	if err := s.updateEnrollmentID(r, &results.Enrollment); err != nil {
 		return nil, err

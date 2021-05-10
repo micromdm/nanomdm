@@ -61,6 +61,20 @@ func (ms *MultiService) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 	return err
 }
 
+func (ms *MultiService) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
+	err := ms.svcs[0].CheckOut(r, m)
+	rc := RequestWithContext(r, context.Background())
+	for i, svc := range ms.svcs[1:] {
+		go func(n int, svc service.CheckinAndCommandService) {
+			err := svc.CheckOut(rc, m)
+			if err != nil {
+				ms.logger.Info("msg", "multi service", "service", n, "err", err)
+			}
+		}(i+1, svc)
+	}
+	return err
+}
+
 func (ms *MultiService) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	cmd, err := ms.svcs[0].CommandAndReportResults(r, results)
 	rc := RequestWithContext(r, context.Background())

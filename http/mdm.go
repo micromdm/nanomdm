@@ -40,6 +40,11 @@ func CheckinHandlerFunc(service service.Checkin, logger log.Logger) http.Handler
 			if err != nil {
 				err = fmt.Errorf("tokenupdate: %w", err)
 			}
+		case *mdm.CheckOut:
+			err = service.CheckOut(mdmReq, message)
+			if err != nil {
+				err = fmt.Errorf("checkout: %w", err)
+			}
 		default:
 			logger.Info("msg", "unrecognized check-in message type")
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
