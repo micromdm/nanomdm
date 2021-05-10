@@ -76,7 +76,7 @@ func main() {
 	var mdmStorage storage.AllStorage
 	// select between our storage repositories
 	if *flDSN != "" {
-		mdmStorage, err = mysql.New(*flDSN, logger)
+		mdmStorage, err = mysql.New(*flDSN, logger.With("storage", "mysql"))
 	} else {
 		mdmStorage, err = file.New(*flFileDBPath)
 	}
@@ -85,7 +85,7 @@ func main() {
 	}
 
 	// create 'core' MDM service
-	nano := nanomdm.New(mdmStorage, logger)
+	nano := nanomdm.New(mdmStorage, logger.With("service", "nanomdm"))
 
 	mux := http.NewServeMux()
 
@@ -94,9 +94,9 @@ func main() {
 		mdmService = nano
 		if *flWebhook != "" {
 			webhookService := microwebhook.New(*flWebhook)
-			mdmService = multi.New(logger, mdmService, webhookService)
+			mdmService = multi.New(logger.With("service", "multi"), mdmService, webhookService)
 		}
-		mdmService = certauth.NewCertAuthMiddleware(mdmService, mdmStorage, logger)
+		mdmService = certauth.NewCertAuthMiddleware(mdmService, mdmStorage, logger.With("service", "certauth"))
 		if *flDump {
 			mdmService = dump.New(mdmService, os.Stdout)
 		}
@@ -107,15 +107,15 @@ func main() {
 			if *flCIEndpoint == "" {
 				// if we don't specify a separate check-in handler, do it all
 				// in the MDM endpoint
-				mdmHandler = mdmhttp.CheckinAndCommandHandlerFunc(mdmService, logger)
+				mdmHandler = mdmhttp.CheckinAndCommandHandlerFunc(mdmService, logger.With("handler", "checkin-command"))
 			} else {
-				mdmHandler = mdmhttp.CommandAndReportResultsHandlerFunc(mdmService, logger)
+				mdmHandler = mdmhttp.CommandAndReportResultsHandlerFunc(mdmService, logger.With("handler", "command"))
 			}
-			mdmHandler = mdmhttp.CertVerifyMiddleware(mdmHandler, verifier, logger)
+			mdmHandler = mdmhttp.CertVerifyMiddleware(mdmHandler, verifier, logger.With("handler", "cert-verify"))
 			if *flCertHeader != "" {
-				mdmHandler = mdmhttp.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger)
+				mdmHandler = mdmhttp.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger.With("handler", "cert-extract"))
 			} else {
-				mdmHandler = mdmhttp.CertExtractMdmSignatureMiddleware(mdmHandler, logger)
+				mdmHandler = mdmhttp.CertExtractMdmSignatureMiddleware(mdmHandler, logger.With("handler", "cert-extract"))
 			}
 			mux.Handle(*flMDMEndpoint, mdmHandler)
 		}
@@ -123,12 +123,12 @@ func main() {
 		if *flCIEndpoint != "" {
 			// if we specified a separate check-in handler, set it up
 			var checkinHandler http.Handler
-			checkinHandler = mdmhttp.CheckinHandlerFunc(mdmService, logger)
-			checkinHandler = mdmhttp.CertVerifyMiddleware(checkinHandler, verifier, logger)
+			checkinHandler = mdmhttp.CheckinHandlerFunc(mdmService, logger.With("handler", "checkin"))
+			checkinHandler = mdmhttp.CertVerifyMiddleware(checkinHandler, verifier, logger.With("handler", "cert-verify"))
 			if *flCertHeader != "" {
-				checkinHandler = mdmhttp.CertExtractPEMHeaderMiddleware(checkinHandler, *flCertHeader, logger)
+				checkinHandler = mdmhttp.CertExtractPEMHeaderMiddleware(checkinHandler, *flCertHeader, logger.With("handler", "cert-extract"))
 			} else {
-				checkinHandler = mdmhttp.CertExtractMdmSignatureMiddleware(checkinHandler, logger)
+				checkinHandler = mdmhttp.CertExtractMdmSignatureMiddleware(checkinHandler, logger.With("handler", "cert-extract"))
 			}
 			mux.Handle(*flCIEndpoint, checkinHandler)
 		}
@@ -139,11 +139,11 @@ func main() {
 
 		// create our push provider and push service
 		pushProviderFactory := buford.NewPushProviderFactory()
-		pushService := pushsvc.New(mdmStorage, mdmStorage, pushProviderFactory, logger)
+		pushService := pushsvc.New(mdmStorage, mdmStorage, pushProviderFactory, logger.With("service", "push"))
 
 		// register API handler for push cert storage/upload.
 		var pushCertHandler http.Handler
-		pushCertHandler = mdmhttp.StorePushCertHandlerFunc(mdmStorage, logger)
+		pushCertHandler = mdmhttp.StorePushCertHandlerFunc(mdmStorage, logger.With("handler", "store-cert"))
 		pushCertHandler = basicAuth(pushCertHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle("/v1/pushcert", pushCertHandler)
 
@@ -151,7 +151,7 @@ func main() {
 		// we strip the prefix to use the path as an id.
 		const pushPrefix = "/v1/push/"
 		var pushHandler http.Handler
-		pushHandler = mdmhttp.PushHandlerFunc(pushService, logger)
+		pushHandler = mdmhttp.PushHandlerFunc(pushService, logger.With("handler", "push"))
 		pushHandler = http.StripPrefix(pushPrefix, pushHandler)
 		pushHandler = basicAuth(pushHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(pushPrefix, pushHandler)
@@ -160,7 +160,7 @@ func main() {
 		// we strip the prefix to use the path as an id.
 		const enqueuePrefix = "/v1/enqueue/"
 		var enqueueHandler http.Handler
-		enqueueHandler = mdmhttp.RawCommandEnqueueHandler(mdmStorage, pushService, logger)
+		enqueueHandler = mdmhttp.RawCommandEnqueueHandler(mdmStorage, pushService, logger.With("handler", "enqueue"))
 		enqueueHandler = http.StripPrefix(enqueuePrefix, enqueueHandler)
 		enqueueHandler = basicAuth(enqueueHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(enqueuePrefix, enqueueHandler)
