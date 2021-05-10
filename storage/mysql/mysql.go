@@ -159,7 +159,7 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 	if exists {
 		_, err = s.db.ExecContext(
 			r.Context,
-			`UPDATE enrollments SET device_id = ?, user_id = ?, type = ?, topic = ?, push_magic = ?, token = ? WHERE id = ?;`,
+			`UPDATE enrollments SET device_id = ?, user_id = ?, type = ?, topic = ?, push_magic = ?, token = ?, enabled = 1 WHERE id = ?;`,
 			deviceId,
 			nullEmptyString(userId),
 			r.Type.String(),
@@ -181,5 +181,17 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 			msg.Token,
 		)
 	}
+	return err
+}
+
+func (s *MySQLStorage) Disable(r *mdm.Request) error {
+	if r.ParentID != "" {
+		return errors.New("can only disable a device channel")
+	}
+	_, err := s.db.ExecContext(
+		r.Context,
+		`UPDATE enrollments SET enabled = 0 WHERE device_id = ? AND enabled = 1;`,
+		r.ID,
+	)
 	return err
 }

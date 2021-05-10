@@ -67,7 +67,15 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 	if err := s.store.StoreAuthenticate(r, message); err != nil {
 		return err
 	}
-	return s.store.ClearQueue(r)
+	// clear the command queue for any enrollment or sub-enrollment
+	// this prevents queued commands still being queued after device
+	// unenrollment
+	if err := s.store.ClearQueue(r); err != nil {
+		return err
+	}
+	// then disable the enrollment or any sub-enrollment (because an
+	// enrollment is only valid after a tokenupdate)
+	return s.store.Disable(r)
 }
 
 func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {

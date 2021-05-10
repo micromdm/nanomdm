@@ -102,7 +102,7 @@ func (s *MySQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*md
 
 func (s *MySQLStorage) ClearQueue(r *mdm.Request) error {
 	if r.ParentID != "" {
-		return errors.New("can only clear queue for device channel")
+		return errors.New("can only clear a device channel queue")
 	}
 	// Because we're joining on and WHERE-ing by the enrollments table
 	// this will clear (mark inactive) the queue of not only this

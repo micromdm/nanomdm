@@ -13,6 +13,7 @@ import (
 type CheckinStore interface {
 	StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error
 	StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error
+	Disable(r *mdm.Request) error
 }
 
 // CommandAndReportResultsStore stores and retrieves MDM command queue data.

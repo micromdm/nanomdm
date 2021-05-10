@@ -32,11 +32,23 @@ func (ms *MultiAllStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authentica
 	}
 	return finalErr
 }
+
 func (ms *MultiAllStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
 	finalErr := ms.stores[0].StoreTokenUpdate(r, msg)
 	for n, storage := range ms.stores[1:] {
 		if err := storage.StoreTokenUpdate(r, msg); err != nil {
 			ms.logger.Info("method", "StoreTokenUpdate", "service", n+1, "err", err)
+			continue
+		}
+	}
+	return finalErr
+}
+
+func (ms *MultiAllStorage) Disable(r *mdm.Request) error {
+	finalErr := ms.stores[0].Disable(r)
+	for n, storage := range ms.stores[1:] {
+		if err := storage.Disable(r); err != nil {
+			ms.logger.Info("method", "Disable", "service", n+1, "err", err)
 			continue
 		}
 	}

@@ -17,6 +17,7 @@ const (
 	UnlockTokenFilename  = "UnlockToken.dat"
 	SerialNumberFilename = "SerialNumber.txt"
 	IdentityCertFilename = "Identity.pem"
+	DisabledFilename     = "Disabled"
 
 	CertAuthFilename             = "CertAuth.sha256.txt"
 	CertAuthAssociationsFilename = "CertAuth.txt"
@@ -106,6 +107,10 @@ func (e *enrollment) listSubEnrollments() (ids []string) {
 	return
 }
 
+func (e *enrollment) removeSubEnrollments() error {
+	return os.RemoveAll(e.dirPrefix(SubEnrollmentPathname))
+}
+
 // StoreAuthenticate stores the Authenticate message
 func (s *FileStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
 	e := s.newEnrollment(r.ID)
@@ -140,5 +145,31 @@ func (s *FileStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) err
 			return err
 		}
 	}
-	return e.writeFile(TokenUpdateFilename, []byte(msg.Raw))
+	if err := e.writeFile(TokenUpdateFilename, []byte(msg.Raw)); err != nil {
+		return err
+	}
+	// delete the disabled flag to let signify this enrollment is enabled
+	if err := os.Remove(e.dirPrefix(DisabledFilename)); err != nil && !errors.Is(err, os.ErrExist) {
+		return err
+	}
+	return nil
+}
+
+func (s *FileStorage) Disable(r *mdm.Request) error {
+	if r.ParentID != "" {
+		return errors.New("can only disable a device channel")
+	}
+	// assemble list of IDs for which to disable
+	e := s.newEnrollment(r.ID)
+	disableIDs := e.listSubEnrollments()
+	disableIDs = append(disableIDs, r.ID)
+	// disable all of the ids
+	for _, id := range disableIDs {
+		e := s.newEnrollment(id)
+		// write zero-byte disabled marker
+		if err := e.writeFile(DisabledFilename, nil); err != nil {
+			return err
+		}
+	}
+	return e.removeSubEnrollments()
 }

@@ -137,7 +137,7 @@ func (s *FileStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm
 
 func (s *FileStorage) ClearQueue(r *mdm.Request) error {
 	if r.ParentID != "" {
-		return errors.New("can only clear queue for device channel")
+		return errors.New("can only clear a device channel queue")
 	}
 	// assemble list of IDs for which to clear the queue
 	e := s.newEnrollment(r.ID)
