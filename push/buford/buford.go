@@ -5,6 +5,7 @@ package buford
 import (
 	"crypto/tls"
 	"errors"
+	"time"
 
 	bufordpush "github.com/RobotsAndPencils/buford/push"
 	"github.com/jessepeterson/nanomdm/mdm"
@@ -13,7 +14,8 @@ import (
 
 // bufordFactory instantiates new buford Services to satisfy the PushProviderFactory interface.
 type bufordFactory struct {
-	workers uint
+	workers    uint
+	expiration time.Time
 }
 
 // NewPushProviderFactory creates a new instance that can spawn buford Services
@@ -29,22 +31,27 @@ func (f *bufordFactory) NewPushProvider(cert *tls.Certificate) (push.PushProvide
 	if err != nil {
 		return nil, err
 	}
-	return &bufordPushProvider{
+	prov := &bufordPushProvider{
 		service: bufordpush.NewService(client, bufordpush.Production),
 		workers: f.workers,
-	}, err
+	}
+	if !f.expiration.IsZero() {
+		prov.headers = &bufordpush.Headers{Expiration: f.expiration}
+	}
+	return prov, err
 }
 
 // bufordPushProvider wraps a buford Service to satisfy the PushProvider interface.
 type bufordPushProvider struct {
 	service *bufordpush.Service
+	headers *bufordpush.Headers
 	workers uint
 }
 
 func (c *bufordPushProvider) pushSingle(pushInfo *mdm.Push) *push.Response {
 	resp := new(push.Response)
 	payload := []byte(`{"mdm":"` + pushInfo.PushMagic + `"}`)
-	resp.Id, resp.Err = c.service.Push(pushInfo.Token.String(), nil, payload)
+	resp.Id, resp.Err = c.service.Push(pushInfo.Token.String(), c.headers, payload)
 	return resp
 }
 
@@ -57,7 +64,7 @@ func (c *bufordPushProvider) pushMulti(pushInfos []*mdm.Push) map[string]*push.R
 	defer queue.Close()
 	for _, push := range pushInfos {
 		payload := []byte(`{"mdm":"` + push.PushMagic + `"}`)
-		go queue.Push(push.Token.String(), nil, payload)
+		go queue.Push(push.Token.String(), c.headers, payload)
 	}
 	responses := make(map[string]*push.Response)
 	for range pushInfos {
