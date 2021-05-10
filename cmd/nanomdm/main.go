@@ -76,7 +76,7 @@ func main() {
 	var mdmStorage storage.AllStorage
 	// select between our storage repositories
 	if *flDSN != "" {
-		mdmStorage, err = mysql.New(*flDSN, logger.With("storage", "mysql"))
+		mdmStorage, err = mysql.New(*flDSN, logger)
 	} else {
 		mdmStorage, err = file.New(*flFileDBPath)
 	}
@@ -186,7 +186,7 @@ func main() {
 	})
 
 	logger.Info("msg", "starting server", "listen", *flListen)
-	http.ListenAndServe(*flListen, simpleLog(mux, logger))
+	http.ListenAndServe(*flListen, simpleLog(mux, logger.With("handler", "log")))
 }
 
 func basicAuth(next http.Handler, username, password, realm string) http.HandlerFunc {
