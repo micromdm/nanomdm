@@ -53,6 +53,7 @@ func (l *Logger) With(args ...interface{}) log.Logger {
 	newLogger := &Logger{
 		stdLogger: l.stdLogger,
 		context:   l.context,
+		logDebug:  l.logDebug,
 	}
 	newLogger.context = append(newLogger.context, args...)
 	return newLogger
