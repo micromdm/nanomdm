@@ -45,26 +45,18 @@ func (s *MySQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte
 	if err != nil {
 		return err
 	}
-	exists, err := s.queryRowContextRowExists(
-		ctx,
-		`SELECT COUNT(*) FROM push_certs WHERE topic = ?`,
-		topic,
+	_, err = s.db.ExecContext(
+		ctx, `
+INSERT INTO push_certs
+    (topic, cert_pem, key_pem, stale_token)
+VALUES
+    (?, ?, ?, 0)
+ON DUPLICATE KEY
+UPDATE
+    cert_pem = VALUES(cert_pem),
+    key_pem = VALUES(key_pem),
+    stale_token = stale_token + 1;`,
+		topic, pemCert, pemKey,
 	)
-	if err != nil {
-		return err
-	}
-	if exists {
-		_, err = s.db.ExecContext(
-			ctx,
-			`UPDATE push_certs SET cert_pem = ?, key_pem = ?, stale_token = stale_token + 1 WHERE topic = ?`,
-			pemCert, pemKey, topic,
-		)
-	} else {
-		_, err = s.db.ExecContext(
-			ctx,
-			`INSERT INTO push_certs (topic, cert_pem, key_pem, stale_token) VALUES (?, ?, ?, 0)`,
-			topic, pemCert, pemKey,
-		)
-	}
 	return err
 }

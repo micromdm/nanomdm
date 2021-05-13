@@ -9,7 +9,7 @@ import (
 	"github.com/jessepeterson/nanomdm/mdm"
 )
 
-func enqueue(tx *sql.Tx, ctx context.Context, ids []string, cmd *mdm.Command) error {
+func enqueue(ctx context.Context, tx *sql.Tx, ids []string, cmd *mdm.Command) error {
 	if len(ids) < 1 {
 		return errors.New("no id(s) supplied to queue command to")
 	}
@@ -36,7 +36,7 @@ func (m *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 	if err != nil {
 		return nil, err
 	}
-	if err = enqueue(tx, ctx, ids, cmd); err != nil {
+	if err = enqueue(ctx, tx, ids, cmd); err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
 			return nil, fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
 		}
@@ -50,33 +50,21 @@ func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 		// TODO: store LastSeen?
 		return nil
 	}
-	exists, err := s.queryRowContextRowExists(
-		r.Context,
-		`SELECT COUNT(*) FROM command_results WHERE id = ? AND command_uuid = ?`,
-		r.ID, result.CommandUUID,
+	_, err := s.db.ExecContext(
+		r.Context, `
+INSERT INTO command_results
+    (id, command_uuid, status, result)
+VALUES
+    (?, ?, ?, ?)
+ON DUPLICATE KEY
+UPDATE
+    status = VALUES(status),
+    result = VALUES(result);`,
+		r.ID,
+		result.CommandUUID,
+		result.Status,
+		result.Raw,
 	)
-	if err != nil {
-		return err
-	}
-	if exists {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`UPDATE command_results SET status = ?, result = ? WHERE id = ? AND command_uuid = ?;`,
-			result.Status,
-			result.Raw,
-			r.ID,
-			result.CommandUUID,
-		)
-	} else {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`INSERT INTO command_results (id, command_uuid, status, result) VALUES (?, ?, ?, ?);`,
-			r.ID,
-			result.CommandUUID,
-			result.Status,
-			result.Raw,
-		)
-	}
 	return err
 }
 

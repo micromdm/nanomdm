@@ -1,6 +1,7 @@
 package mdm
 
 import (
+	"errors"
 	"strconv"
 )
 
@@ -49,6 +50,19 @@ type ResolvedEnrollment struct {
 	DeviceChannelID string
 	UserChannelID   string
 	IsUserChannel   bool
+}
+
+func (resolved *ResolvedEnrollment) Validate() error {
+	if resolved == nil {
+		return errors.New("nil resolved enrollment")
+	}
+	if resolved.DeviceChannelID == "" {
+		return errors.New("empty device channel id")
+	}
+	if !resolved.Type.Valid() {
+		return errors.New("invalid resolved type")
+	}
+	return nil
 }
 
 // Resolved assembles a ResolvedEnrollment from an Enrollment

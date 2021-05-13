@@ -2,7 +2,6 @@
 package mysql
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 
@@ -32,13 +31,6 @@ func New(conn string, logger log.Logger) (*MySQLStorage, error) {
 	return &MySQLStorage{db: db, logger: logger}, nil
 }
 
-// Executes SQL statements that return a single COUNT(*) of rows.
-func (s *MySQLStorage) queryRowContextRowExists(ctx context.Context, query string, args ...interface{}) (bool, error) {
-	var ct int
-	err := s.db.QueryRowContext(ctx, query, args...).Scan(&ct)
-	return ct > 0, err
-}
-
 // nullEmptyString returns a NULL string if s is empty.
 func nullEmptyString(s string) sql.NullString {
 	return sql.NullString{
@@ -52,29 +44,20 @@ func (s *MySQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 	if r.Certificate != nil {
 		pemCert = cryptoutil.PEMCertificate(r.Certificate.Raw)
 	}
-	exists, err := s.queryRowContextRowExists(
-		r.Context,
-		`SELECT COUNT(*) FROM devices WHERE id = ?`,
-		r.ID,
+	_, err := s.db.ExecContext(
+		r.Context, `
+INSERT INTO devices
+    (id, identity_cert, serial_number, authenticate, authenticate_at)
+VALUES
+    (?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON DUPLICATE KEY
+UPDATE
+    identity_cert = VALUES(identity_cert),
+    serial_number = VALUES(serial_number),
+    authenticate = VALUES(authenticate),
+    authenticate_at = CURRENT_TIMESTAMP;`,
+		r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
 	)
-	if err != nil {
-		return err
-	}
-	if exists {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`UPDATE devices SET identity_cert = ?, serial_number = ?, authenticate = ?, authenticate_at = CURRENT_TIMESTAMP WHERE id = ?;`,
-			pemCert, nullEmptyString(msg.SerialNumber), msg.Raw, r.ID,
-		)
-	} else {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`INSERT INTO devices (id, identity_cert, serial_number, authenticate, authenticate_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP);`,
-			r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
-		)
-	}
-	// TODO: Clear/disable existing queued commands
-	// TODO: Clear/disable existing user enrollments
 	return err
 }
 
@@ -98,46 +81,36 @@ func (s *MySQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 	if len(msg.UnlockToken) > 0 {
 		s.logger.Info("msg", "Unlock Token on user channel not stored")
 	}
-	exists, err := s.queryRowContextRowExists(
-		r.Context,
-		`SELECT COUNT(*) FROM users WHERE id = ?`,
+	_, err := s.db.ExecContext(
+		r.Context, `
+INSERT INTO users
+    (id, device_id, user_short_name, user_long_name, token_update, token_update_at)
+VALUES
+    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON DUPLICATE KEY
+UPDATE
+    device_id = VALUES(device_id),
+    user_short_name = VALUES(user_short_name),
+    user_long_name = VALUES(user_long_name),
+    token_update = VALUES(token_update),
+    token_update_at = CURRENT_TIMESTAMP;`,
 		r.ID,
+		r.ParentID,
+		nullEmptyString(msg.UserShortName),
+		nullEmptyString(msg.UserLongName),
+		msg.Raw,
 	)
-	if err != nil {
-		return err
-	}
-	if exists {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`UPDATE users SET device_id = ?, user_short_name = ?, user_long_name = ?, token_update = ?, token_update_at = CURRENT_TIMESTAMP WHERE id = ?;`,
-			r.ParentID,
-			nullEmptyString(msg.UserShortName),
-			nullEmptyString(msg.UserLongName),
-			msg.Raw,
-			r.ID,
-		)
-	} else {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`INSERT INTO users (id, device_id, user_short_name, user_long_name, token_update, token_update_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP);`,
-			r.ID,
-			r.ParentID,
-			nullEmptyString(msg.UserShortName),
-			nullEmptyString(msg.UserLongName),
-			msg.Raw,
-		)
-	}
 	return err
-}
-
-func isUserChannel(e *mdm.Enrollment) bool {
-	return e.Resolved().IsUserChannel
 }
 
 func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
 	var err error
 	var deviceId, userId string
-	if isUserChannel(&msg.Enrollment) {
+	resolved := (&msg.Enrollment).Resolved()
+	if err = resolved.Validate(); err != nil {
+		return err
+	}
+	if resolved.IsUserChannel {
 		deviceId = r.ParentID
 		userId = r.ID
 		err = s.storeUserTokenUpdate(r, msg)
@@ -148,39 +121,29 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 	if err != nil {
 		return err
 	}
-	exists, err := s.queryRowContextRowExists(
-		r.Context,
-		`SELECT COUNT(*) FROM enrollments WHERE id = ?`,
+	_, err = s.db.ExecContext(
+		r.Context, `
+INSERT INTO enrollments
+	(id, device_id, user_id, type, topic, push_magic, token)
+VALUES
+	(?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY
+UPDATE
+    device_id = VALUES(device_id),
+    user_id = VALUES(user_id),
+    type = VALUES(type),
+    topic = VALUES(topic),
+    push_magic = VALUES(push_magic),
+    token = VALUES(token),
+	enabled = 1;`,
 		r.ID,
+		deviceId,
+		nullEmptyString(userId),
+		r.Type.String(),
+		msg.Topic,
+		msg.PushMagic,
+		msg.Token,
 	)
-	if err != nil {
-		return err
-	}
-	if exists {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`UPDATE enrollments SET device_id = ?, user_id = ?, type = ?, topic = ?, push_magic = ?, token = ?, enabled = 1 WHERE id = ?;`,
-			deviceId,
-			nullEmptyString(userId),
-			r.Type.String(),
-			msg.Topic,
-			msg.PushMagic,
-			msg.Token,
-			r.ID,
-		)
-	} else {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`INSERT INTO enrollments (id, device_id, user_id, type, topic, push_magic, token) VALUES (?, ?, ?, ?, ?, ?, ?);`,
-			r.ID,
-			deviceId,
-			nullEmptyString(userId),
-			r.Type.String(),
-			msg.Topic,
-			msg.PushMagic,
-			msg.Token,
-		)
-	}
 	return err
 }
 

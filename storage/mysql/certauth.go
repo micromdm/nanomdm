@@ -1,10 +1,18 @@
 package mysql
 
 import (
+	"context"
 	"strings"
 
 	"github.com/jessepeterson/nanomdm/mdm"
 )
+
+// Executes SQL statements that return a single COUNT(*) of rows.
+func (s *MySQLStorage) queryRowContextRowExists(ctx context.Context, query string, args ...interface{}) (bool, error) {
+	var ct int
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(&ct)
+	return ct > 0, err
+}
 
 func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
 	return s.queryRowContextRowExists(
@@ -31,23 +39,13 @@ func (s *MySQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, 
 }
 
 func (s *MySQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
-	exists, err := s.EnrollmentHasCertHash(r, hash)
-	if err != nil {
-		return err
-	}
-	if exists {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`UPDATE cert_auth_associations SET sha256 = ? WHERE id = ?`,
-			hash, r.ID,
-		)
-
-	} else {
-		_, err = s.db.ExecContext(
-			r.Context,
-			`INSERT INTO cert_auth_associations (id, sha256) VALUES (?, ?)`,
-			r.ID, strings.ToLower(hash),
-		)
-	}
+	_, err := s.db.ExecContext(
+		r.Context, `
+INSERT INTO cert_auth_associations (id, sha256) VALUES (?, ?)
+ON DUPLICATE KEY
+UPDATE sha256 = VALUES(sha256);`,
+		r.ID,
+		strings.ToLower(hash),
+	)
 	return err
 }
