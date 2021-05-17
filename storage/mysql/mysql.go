@@ -49,12 +49,12 @@ func (s *MySQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 INSERT INTO devices
     (id, identity_cert, serial_number, authenticate, authenticate_at)
 VALUES
-    (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    (?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
 ON DUPLICATE KEY
 UPDATE
-    identity_cert = VALUES(identity_cert),
-    serial_number = VALUES(serial_number),
-    authenticate = VALUES(authenticate),
+    identity_cert = new.identity_cert,
+    serial_number = new.serial_number,
+    authenticate = new.authenticate,
     authenticate_at = CURRENT_TIMESTAMP;`,
 		r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
 	)
@@ -86,13 +86,13 @@ func (s *MySQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, token_update, token_update_at)
 VALUES
-    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
 ON DUPLICATE KEY
 UPDATE
-    device_id = VALUES(device_id),
-    user_short_name = VALUES(user_short_name),
-    user_long_name = VALUES(user_long_name),
-    token_update = VALUES(token_update),
+    device_id = new.device_id,
+    user_short_name = new.user_short_name,
+    user_long_name = new.user_long_name,
+    token_update = new.token_update,
     token_update_at = CURRENT_TIMESTAMP;`,
 		r.ID,
 		r.ParentID,
@@ -126,15 +126,15 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 INSERT INTO enrollments
 	(id, device_id, user_id, type, topic, push_magic, token)
 VALUES
-	(?, ?, ?, ?, ?, ?, ?)
+	(?, ?, ?, ?, ?, ?, ?) AS new
 ON DUPLICATE KEY
 UPDATE
-    device_id = VALUES(device_id),
-    user_id = VALUES(user_id),
-    type = VALUES(type),
-    topic = VALUES(topic),
-    push_magic = VALUES(push_magic),
-    token = VALUES(token),
+    device_id = new.device_id,
+    user_id = new.user_id,
+    type = new.type,
+    topic = new.topic,
+    push_magic = new.push_magic,
+    token = new.token,
 	enabled = 1;`,
 		r.ID,
 		deviceId,

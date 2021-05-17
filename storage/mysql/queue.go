@@ -55,11 +55,11 @@ func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 INSERT INTO command_results
     (id, command_uuid, status, result)
 VALUES
-    (?, ?, ?, ?)
+    (?, ?, ?, ?) AS new
 ON DUPLICATE KEY
 UPDATE
-    status = VALUES(status),
-    result = VALUES(result);`,
+    status = new.status,
+    result = new.result;`,
 		r.ID,
 		result.CommandUUID,
 		result.Status,

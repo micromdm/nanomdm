@@ -41,9 +41,9 @@ func (s *MySQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, 
 func (s *MySQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
 	_, err := s.db.ExecContext(
 		r.Context, `
-INSERT INTO cert_auth_associations (id, sha256) VALUES (?, ?)
+INSERT INTO cert_auth_associations (id, sha256) VALUES (?, ?) AS new
 ON DUPLICATE KEY
-UPDATE sha256 = VALUES(sha256);`,
+UPDATE sha256 = new.sha256;`,
 		r.ID,
 		strings.ToLower(hash),
 	)

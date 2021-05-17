@@ -50,11 +50,11 @@ func (s *MySQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte
 INSERT INTO push_certs
     (topic, cert_pem, key_pem, stale_token)
 VALUES
-    (?, ?, ?, 0)
+    (?, ?, ?, 0) AS new
 ON DUPLICATE KEY
 UPDATE
-    cert_pem = VALUES(cert_pem),
-    key_pem = VALUES(key_pem),
+    cert_pem = new.cert_pem,
+    key_pem = new.key_pem,
     stale_token = stale_token + 1;`,
 		topic, pemCert, pemKey,
 	)
