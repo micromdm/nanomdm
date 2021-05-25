@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/jessepeterson/nanomdm/certverify"
+	"github.com/jessepeterson/nanomdm/cmd/cli"
 	mdmhttp "github.com/jessepeterson/nanomdm/http"
 	"github.com/jessepeterson/nanomdm/log"
 	"github.com/jessepeterson/nanomdm/log/stdlogfmt"
@@ -23,18 +24,16 @@ import (
 	"github.com/jessepeterson/nanomdm/service/microwebhook"
 	"github.com/jessepeterson/nanomdm/service/multi"
 	"github.com/jessepeterson/nanomdm/service/nanomdm"
-	"github.com/jessepeterson/nanomdm/storage"
-	"github.com/jessepeterson/nanomdm/storage/file"
-	"github.com/jessepeterson/nanomdm/storage/mysql"
 )
 
 // overridden by -ldflags -X
 var version = "unknown"
 
 func main() {
+	cliStorage := cli.NewStorage()
+	flag.Var(&cliStorage.Storage, "storage", "name of storage system")
+	flag.Var(&cliStorage.DSN, "dsn", "data source name (e.g. connection string or path)")
 	var (
-		flDSN        = flag.String("dsn", "", "SQL data source name (connection string)")
-		flFileDBPath = flag.String("db", "db", "Path of file storage directory (if used)")
 		flListen     = flag.String("listen", ":9000", "HTTP listen address")
 		flAPIKey     = flag.String("api", "", "API key for API endpoints")
 		flVersion    = flag.Bool("version", false, "print version")
@@ -74,13 +73,7 @@ func main() {
 		stdlog.Fatal(err)
 	}
 
-	var mdmStorage storage.AllStorage
-	// select between our storage repositories
-	if *flDSN != "" {
-		mdmStorage, err = mysql.New(*flDSN, logger)
-	} else {
-		mdmStorage, err = file.New(*flFileDBPath)
-	}
+	mdmStorage, err := cliStorage.Parse(logger)
 	if err != nil {
 		stdlog.Fatal(err)
 	}
