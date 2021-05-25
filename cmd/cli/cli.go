@@ -48,7 +48,6 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 		logger.Info(
 			"msg", "storage setup",
 			"storage", storage,
-			"dsn", dsn,
 		)
 		switch storage {
 		case "file":
