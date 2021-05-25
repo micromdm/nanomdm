@@ -34,6 +34,7 @@ type apiResult struct {
 	PushError    string             `json:"push_error,omitempty"`
 	CommandError string             `json:"command_error,omitempty"`
 	CommandUUID  string             `json:"command_uuid,omitempty"`
+	RequestType  string             `json:"request_type,omitempty"`
 }
 
 // PushHandlerFunc sends APNs push notifications to MDM enrollments.
@@ -101,6 +102,7 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			Status:      make(enrolledAPIResults),
 			NoPush:      nopush,
 			CommandUUID: command.CommandUUID,
+			RequestType: command.Command.RequestType,
 		}
 		idErrs, err := enqueuer.EnqueueCommand(r.Context(), ids, command)
 		if err != nil {
