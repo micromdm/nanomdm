@@ -47,6 +47,7 @@ func main() {
 		flMDMEndpoint = flag.String("endpoint-mdm", "/mdm", "HTTP endpoint for MDM commands")
 		flCIEndpoint  = flag.String("endpoint-checkin", "", "HTTP endpoint for MDM check-ins")
 		flMigEndpoint = flag.String("endpoint-checkin-migration", "", "HTTP endpoint for migration MDM check-ins")
+		flRetro       = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
 	)
 	flag.Parse()
 
@@ -96,7 +97,11 @@ func main() {
 			webhookService := microwebhook.New(*flWebhook)
 			mdmService = multi.New(logger.With("service", "multi"), mdmService, webhookService)
 		}
-		mdmService = certauth.NewCertAuthMiddleware(mdmService, mdmStorage, logger.With("service", "certauth"))
+		certAuthOpts := []certauth.Option{certauth.WithLogger(logger.With("service", "certauth"))}
+		if *flRetro {
+			certAuthOpts = append(certAuthOpts, certauth.WithAllowRetroactive())
+		}
+		mdmService = certauth.New(mdmService, mdmStorage, certAuthOpts...)
 		if *flDump {
 			mdmService = dump.New(mdmService, os.Stdout)
 		}

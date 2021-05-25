@@ -1,5 +1,8 @@
 package log
 
+// Pacakge log is embedded (not imported) from:
+// https://github.com/jessepeterson/go-log
+
 // Logger is a generic logging interface to a structured, leveled, nest-able logger
 type Logger interface {
 	// Info logs using the info level

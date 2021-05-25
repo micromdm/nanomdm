@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"errors"
-	"fmt"
 
 	"github.com/jessepeterson/nanomdm/log"
 	"github.com/jessepeterson/nanomdm/mdm"
@@ -64,13 +63,36 @@ type CertAuth struct {
 	warnOnly bool
 }
 
-func NewCertAuthMiddleware(next service.CheckinAndCommandService, storage storage.CertAuthStore, logger log.Logger) *CertAuth {
-	return &CertAuth{
+type Option func(*CertAuth)
+
+func WithLogger(logger log.Logger) Option {
+	return func(certAuth *CertAuth) {
+		certAuth.logger = logger
+	}
+}
+
+func WithAllowRetroactive() Option {
+	return func(certAuth *CertAuth) {
+		certAuth.allowRetroactive = true
+	}
+}
+
+// New creates a new certificate authorization middleware service. It
+// will forward requests to next or return errors for failing authentication.
+func New(next service.CheckinAndCommandService, storage storage.CertAuthStore, opts ...Option) *CertAuth {
+	certAuth := &CertAuth{
 		next:       next,
-		logger:     logger,
+		logger:     log.NopLogger,
 		normalizer: normalize,
 		storage:    storage,
 	}
+	for _, opt := range opts {
+		opt(certAuth)
+	}
+	if certAuth.allowRetroactive {
+		certAuth.logger.Info("msg", "allowing retroactive associations")
+	}
+	return certAuth
 }
 
 func hashCert(cert *x509.Certificate) string {
@@ -195,42 +217,4 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 		"hash", hash,
 	)
 	return nil
-}
-
-func (s *CertAuth) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
-	req := r.Clone()
-	req.EnrollID = s.normalizer(&m.Enrollment)
-	if err := s.associateNewEnrollment(req); err != nil {
-		return fmt.Errorf("cert auth: new enrollment: %w", err)
-	}
-	return s.next.Authenticate(r, m)
-}
-
-func (s *CertAuth) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
-	req := r.Clone()
-	req.EnrollID = s.normalizer(&m.Enrollment)
-	err := s.validateAssociateExistingEnrollment(req)
-	if err != nil {
-		return fmt.Errorf("cert auth: existing enrollment: %w", err)
-	}
-	return s.next.TokenUpdate(r, m)
-}
-
-func (s *CertAuth) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
-	req := r.Clone()
-	req.EnrollID = s.normalizer(&m.Enrollment)
-	err := s.validateAssociateExistingEnrollment(req)
-	if err != nil {
-		return fmt.Errorf("cert auth: existing enrollment: %w", err)
-	}
-	return s.next.CheckOut(r, m)
-}
-
-func (s *CertAuth) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
-	req := r.Clone()
-	req.EnrollID = s.normalizer(&results.Enrollment)
-	if err := s.validateAssociateExistingEnrollment(req); err != nil {
-		return nil, fmt.Errorf("cert auth: existing enrollment: %w", err)
-	}
-	return s.next.CommandAndReportResults(r, results)
 }
