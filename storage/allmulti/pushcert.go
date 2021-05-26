@@ -9,7 +9,7 @@ func (ms *MultiAllStorage) IsPushCertStale(ctx context.Context, topic string, st
 	finalStale, finalErr := ms.stores[0].IsPushCertStale(ctx, topic, staleToken)
 	for n, storage := range ms.stores[1:] {
 		if _, err := storage.IsPushCertStale(ctx, topic, staleToken); err != nil {
-			ms.logger.Info("method", "IsPushCertStale", "service", n+1, "err", err)
+			ms.logger.Info("method", "IsPushCertStale", "storage", n+1, "err", err)
 			continue
 		}
 	}
@@ -20,7 +20,7 @@ func (ms *MultiAllStorage) RetrievePushCert(ctx context.Context, topic string) (
 	finalCert, finalToken, finalErr := ms.stores[0].RetrievePushCert(ctx, topic)
 	for n, storage := range ms.stores[1:] {
 		if _, _, err := storage.RetrievePushCert(ctx, topic); err != nil {
-			ms.logger.Info("method", "RetrievePushCert", "service", n+1, "err", err)
+			ms.logger.Info("method", "RetrievePushCert", "storage", n+1, "err", err)
 			continue
 		}
 	}
@@ -31,7 +31,7 @@ func (ms *MultiAllStorage) StorePushCert(ctx context.Context, pemCert, pemKey []
 	finalErr := ms.stores[0].StorePushCert(ctx, pemCert, pemKey)
 	for n, storage := range ms.stores[1:] {
 		if err := storage.StorePushCert(ctx, pemCert, pemKey); err != nil {
-			ms.logger.Info("method", "StorePushCert", "service", n+1, "err", err)
+			ms.logger.Info("method", "StorePushCert", "storage", n+1, "err", err)
 			continue
 		}
 	}

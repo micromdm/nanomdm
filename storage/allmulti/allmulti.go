@@ -26,7 +26,7 @@ func (ms *MultiAllStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authentica
 	finalErr := ms.stores[0].StoreAuthenticate(r, msg)
 	for n, storage := range ms.stores[1:] {
 		if err := storage.StoreAuthenticate(r, msg); err != nil {
-			ms.logger.Info("method", "StoreAuthenticate", "service", n+1, "err", err)
+			ms.logger.Info("method", "StoreAuthenticate", "storage", n+1, "err", err)
 			continue
 		}
 	}
@@ -37,7 +37,7 @@ func (ms *MultiAllStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 	finalErr := ms.stores[0].StoreTokenUpdate(r, msg)
 	for n, storage := range ms.stores[1:] {
 		if err := storage.StoreTokenUpdate(r, msg); err != nil {
-			ms.logger.Info("method", "StoreTokenUpdate", "service", n+1, "err", err)
+			ms.logger.Info("method", "StoreTokenUpdate", "storage", n+1, "err", err)
 			continue
 		}
 	}
@@ -48,7 +48,7 @@ func (ms *MultiAllStorage) Disable(r *mdm.Request) error {
 	finalErr := ms.stores[0].Disable(r)
 	for n, storage := range ms.stores[1:] {
 		if err := storage.Disable(r); err != nil {
-			ms.logger.Info("method", "Disable", "service", n+1, "err", err)
+			ms.logger.Info("method", "Disable", "storage", n+1, "err", err)
 			continue
 		}
 	}
