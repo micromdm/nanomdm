@@ -38,7 +38,6 @@ func (s *MySQLStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[
 			return nil, err
 		}
 		// convert from hex
-		s.logger.Debug("token", token)
 		if err := push.Token.SetString(token); err != nil {
 			return nil, err
 		}
