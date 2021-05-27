@@ -54,15 +54,19 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 			logger.Info("msg", "push", "err", err)
 			output.PushError = err.Error()
 		}
-		logger.Debug("msg", "push", "count", len(pushResp))
+		var ct, errCt int
 		for id, resp := range pushResp {
 			output.Status[id] = &enrolledAPIResult{
 				PushResult: resp.Id,
 			}
 			if resp.Err != nil {
 				output.Status[id].PushError = resp.Err.Error()
+				errCt += 1
+			} else {
+				ct += 1
 			}
 		}
+		logger.Debug("msg", "push", "count", ct, "errs", errCt)
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
 			logger.Info("msg", "marshal json", "err", err)
