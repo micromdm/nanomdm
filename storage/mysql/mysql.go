@@ -142,7 +142,7 @@ UPDATE
 		r.Type.String(),
 		msg.Topic,
 		msg.PushMagic,
-		msg.Token,
+		msg.Token.String(),
 	)
 	return err
 }

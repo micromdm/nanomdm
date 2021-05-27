@@ -23,7 +23,7 @@ func (s *MySQLStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[
 	}
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT id, topic, push_magic, token FROM enrollments WHERE id IN (`+qs+`)`,
+		`SELECT id, topic, push_magic, token_hex FROM enrollments WHERE id IN (`+qs+`)`,
 		args...,
 	)
 	if err != nil {
@@ -33,8 +33,13 @@ func (s *MySQLStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[
 	pushInfos := make(map[string]*mdm.Push)
 	for rows.Next() {
 		push := new(mdm.Push)
-		var id string
-		if err := rows.Scan(&id, &push.Topic, &push.PushMagic, &push.Token); err != nil {
+		var id, token string
+		if err := rows.Scan(&id, &push.Topic, &push.PushMagic, &token); err != nil {
+			return nil, err
+		}
+		// convert from hex
+		s.logger.Debug("token", token)
+		if err := push.Token.SetString(token); err != nil {
 			return nil, err
 		}
 		pushInfos[id] = push
