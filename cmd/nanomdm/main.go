@@ -29,6 +29,16 @@ import (
 // overridden by -ldflags -X
 var version = "unknown"
 
+const (
+	endpointMDM     = "/mdm"
+	endpointCheckin = "/checkin"
+
+	endpointAPIPushCert  = "/v1/pushcert"
+	endpointAPIPush      = "/v1/push/"
+	endpointAPIEnqueue   = "/v1/enqueue/"
+	endpointAPIMigration = "/migration"
+)
+
 func main() {
 	cliStorage := cli.NewStorage()
 	flag.Var(&cliStorage.Storage, "storage", "name of storage system")
@@ -42,11 +52,10 @@ func main() {
 		flCertHeader = flag.String("cert-header", "", "HTTP header containing URL-escaped TLS client certificate")
 		flDebug      = flag.Bool("debug", false, "log debug messages")
 		flDump       = flag.Bool("dump", false, "dump MDM requests and responses to stdout")
-
-		flMDMEndpoint = flag.String("endpoint-mdm", "/mdm", "HTTP endpoint for MDM commands")
-		flCIEndpoint  = flag.String("endpoint-checkin", "", "HTTP endpoint for MDM check-ins")
-		flMigEndpoint = flag.String("endpoint-checkin-migration", "", "HTTP endpoint for migration MDM check-ins")
-		flRetro       = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
+		flDisableMDM = flag.Bool("mdm", false, "disable MDM HTTP endpoint")
+		flCheckin    = flag.Bool("checkin", false, "enable separate HTTP endpoint for MDM check-ins")
+		flMigration  = flag.Bool("migration", false, "HTTP endpoint for enrollment migrations")
+		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
 	)
 	flag.Parse()
 
@@ -55,7 +64,7 @@ func main() {
 		return
 	}
 
-	if *flMDMEndpoint == "" && *flCIEndpoint == "" && *flAPIKey == "" {
+	if *flDisableMDM && *flAPIKey == "" {
 		stdlog.Fatal("nothing for server to do")
 	}
 
@@ -83,7 +92,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	if *flMDMEndpoint != "" || *flCIEndpoint != "" {
+	if !*flDisableMDM {
 		var mdmService service.CheckinAndCommandService
 		mdmService = nano
 		if *flWebhook != "" {
@@ -99,26 +108,24 @@ func main() {
 			mdmService = dump.New(mdmService, os.Stdout)
 		}
 
-		if *flMDMEndpoint != "" {
-			// register 'core' MDM HTTP handler
-			var mdmHandler http.Handler
-			if *flCIEndpoint == "" {
-				// if we don't specify a separate check-in handler, do it all
-				// in the MDM endpoint
-				mdmHandler = mdmhttp.CheckinAndCommandHandlerFunc(mdmService, logger.With("handler", "checkin-command"))
-			} else {
-				mdmHandler = mdmhttp.CommandAndReportResultsHandlerFunc(mdmService, logger.With("handler", "command"))
-			}
-			mdmHandler = mdmhttp.CertVerifyMiddleware(mdmHandler, verifier, logger.With("handler", "cert-verify"))
-			if *flCertHeader != "" {
-				mdmHandler = mdmhttp.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger.With("handler", "cert-extract"))
-			} else {
-				mdmHandler = mdmhttp.CertExtractMdmSignatureMiddleware(mdmHandler, logger.With("handler", "cert-extract"))
-			}
-			mux.Handle(*flMDMEndpoint, mdmHandler)
+		// register 'core' MDM HTTP handler
+		var mdmHandler http.Handler
+		if *flCheckin {
+			// if we use the check-in handler then only handle commands
+			mdmHandler = mdmhttp.CommandAndReportResultsHandlerFunc(mdmService, logger.With("handler", "command"))
+		} else {
+			// if we don't use a check-in handler then do both
+			mdmHandler = mdmhttp.CheckinAndCommandHandlerFunc(mdmService, logger.With("handler", "checkin-command"))
 		}
+		mdmHandler = mdmhttp.CertVerifyMiddleware(mdmHandler, verifier, logger.With("handler", "cert-verify"))
+		if *flCertHeader != "" {
+			mdmHandler = mdmhttp.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger.With("handler", "cert-extract"))
+		} else {
+			mdmHandler = mdmhttp.CertExtractMdmSignatureMiddleware(mdmHandler, logger.With("handler", "cert-extract"))
+		}
+		mux.Handle(endpointMDM, mdmHandler)
 
-		if *flCIEndpoint != "" {
+		if *flCheckin {
 			// if we specified a separate check-in handler, set it up
 			var checkinHandler http.Handler
 			checkinHandler = mdmhttp.CheckinHandlerFunc(mdmService, logger.With("handler", "checkin"))
@@ -128,7 +135,7 @@ func main() {
 			} else {
 				checkinHandler = mdmhttp.CertExtractMdmSignatureMiddleware(checkinHandler, logger.With("handler", "cert-extract"))
 			}
-			mux.Handle(*flCIEndpoint, checkinHandler)
+			mux.Handle(endpointCheckin, checkinHandler)
 		}
 	}
 
@@ -143,38 +150,37 @@ func main() {
 		var pushCertHandler http.Handler
 		pushCertHandler = mdmhttp.StorePushCertHandlerFunc(mdmStorage, logger.With("handler", "store-cert"))
 		pushCertHandler = basicAuth(pushCertHandler, apiUsername, *flAPIKey, "nanomdm")
-		mux.Handle("/v1/pushcert", pushCertHandler)
+		mux.Handle(endpointAPIPushCert, pushCertHandler)
 
 		// register API handler for push notifications.
 		// we strip the prefix to use the path as an id.
-		const pushPrefix = "/v1/push/"
 		var pushHandler http.Handler
 		pushHandler = mdmhttp.PushHandlerFunc(pushService, logger.With("handler", "push"))
-		pushHandler = http.StripPrefix(pushPrefix, pushHandler)
+		pushHandler = http.StripPrefix(endpointAPIPush, pushHandler)
 		pushHandler = basicAuth(pushHandler, apiUsername, *flAPIKey, "nanomdm")
-		mux.Handle(pushPrefix, pushHandler)
+		mux.Handle(endpointAPIPush, pushHandler)
 
 		// register API handler for new command queueing.
 		// we strip the prefix to use the path as an id.
-		const enqueuePrefix = "/v1/enqueue/"
 		var enqueueHandler http.Handler
 		enqueueHandler = mdmhttp.RawCommandEnqueueHandler(mdmStorage, pushService, logger.With("handler", "enqueue"))
-		enqueueHandler = http.StripPrefix(enqueuePrefix, enqueueHandler)
+		enqueueHandler = http.StripPrefix(endpointAPIEnqueue, enqueueHandler)
 		enqueueHandler = basicAuth(enqueueHandler, apiUsername, *flAPIKey, "nanomdm")
-		mux.Handle(enqueuePrefix, enqueueHandler)
+		mux.Handle(endpointAPIEnqueue, enqueueHandler)
 
-		if *flMigEndpoint != "" {
+		if *flMigration {
 			// setup a "migration" handler that takes Check-In messages
 			// without bothering with certificate auth or other
 			// middleware.
 			//
 			// if the source MDM can put together enough of an
 			// authenticate and tokenupdate message to effectively
-			// generate "enrollments" then
+			// generate "enrollments" then this effively allows us to
+			// migrate MDM enrollments between servers.
 			var migHandler http.Handler
 			migHandler = mdmhttp.CheckinHandlerFunc(nano, logger.With("handler", "migration"))
 			migHandler = basicAuth(migHandler, apiUsername, *flAPIKey, "nanomdm")
-			mux.Handle(*flMigEndpoint, migHandler)
+			mux.Handle(endpointAPIMigration, migHandler)
 		}
 	}
 
