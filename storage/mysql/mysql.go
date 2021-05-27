@@ -124,7 +124,7 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 	_, err = s.db.ExecContext(
 		r.Context, `
 INSERT INTO enrollments
-	(id, device_id, user_id, type, topic, push_magic, token)
+	(id, device_id, user_id, type, topic, push_magic, token_hex)
 VALUES
 	(?, ?, ?, ?, ?, ?, ?) AS new
 ON DUPLICATE KEY
@@ -134,7 +134,7 @@ UPDATE
     type = new.type,
     topic = new.topic,
     push_magic = new.push_magic,
-    token = new.token,
+    token_hex = new.token_hex,
 	enabled = 1;`,
 		r.ID,
 		deviceId,
