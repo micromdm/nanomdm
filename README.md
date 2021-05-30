@@ -4,7 +4,7 @@ NanoMDM is a minimalist [Apple MDM server](https://support.apple.com/business/en
 
 ## Getting started & Documentation
 
-- [Quickstart](docs/quickstart.md)
+- [Quickstart](docs/quickstart.md)  
 A quick guide to get NanoMDM up and running using ngrok.
 
 ## Features
