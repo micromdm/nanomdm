@@ -27,7 +27,7 @@ func enqueue(ctx context.Context, tx *sql.Tx, ids []string, cmd *mdm.Command) er
 		query += `, (?, ?)`
 		args = append(args, id, cmd.CommandUUID)
 	}
-	_, err = tx.ExecContext(ctx, query, args...)
+	_, err = tx.ExecContext(ctx, query+";", args...)
 	return err
 }
 

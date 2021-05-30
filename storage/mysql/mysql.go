@@ -69,7 +69,7 @@ func (s *MySQLStorage) storeDeviceTokenUpdate(r *mdm.Request, msg *mdm.TokenUpda
 		query += `, unlock_token = ?, unlock_token_at = CURRENT_TIMESTAMP`
 		args = append(args, msg.UnlockToken)
 	}
-	query += ` WHERE id = ?;`
+	query += ` WHERE id = ? LIMIT 1;`
 	args = append(args, r.ID)
 	_, err := s.db.ExecContext(r.Context, query, args...)
 	return err
