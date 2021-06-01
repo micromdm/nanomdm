@@ -149,7 +149,7 @@ This concatenates the certificate and private key PEM files with `cat` and then 
 
 ## Configure enrollment profile
 
-We'll need to author our enrollment profile for devices to know how to enroll in this MDM service. You can take a copy of the [example profile provided with NanoMDM]().
+We'll need to author our enrollment profile for devices to know how to enroll in this MDM service. You can take a copy of the [example profile provided with NanoMDM](enroll.mobileconfig).
 
 Make sure your enrollment profile contains the correct values for the SCEP payload URL as well as the MDM server URL. These will be from ngrok, above, If you followed this guide's instructions then those values would as follows. We also need to provide the SCEP challenge and MDM topic; also be from above. **Your values will be different, do not just copy/paste these values**:
 
