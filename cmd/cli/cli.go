@@ -72,7 +72,7 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 	if len(mdmStorage) == 1 {
 		return mdmStorage[0], nil
 	}
-	logger.Info("msg", "storage setup", "storage", "multi-storage")
+	logger.Info("msg", "storage setup", "storage", "multi-storage", "count", len(mdmStorage))
 	return allmulti.New(
 		logger.With("component", "multi-storage"),
 		mdmStorage...,
