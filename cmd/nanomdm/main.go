@@ -93,8 +93,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	if !*flDisableMDM {
-		var mdmService service.CheckinAndCommandService
-		mdmService = nano
+		var mdmService service.CheckinAndCommandService = nano
 		if *flWebhook != "" {
 			webhookService := microwebhook.New(*flWebhook)
 			mdmService = multi.New(logger.With("service", "multi"), mdmService, webhookService)
