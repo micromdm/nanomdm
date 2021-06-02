@@ -9,16 +9,24 @@ import (
 	"github.com/jessepeterson/nanomdm/storage"
 )
 
+// Service is the main NanoMDM service which dispatches to storage.
 type Service struct {
 	logger     log.Logger
 	normalizer func(e *mdm.Enrollment) *mdm.EnrollID
 	store      storage.ServiceStore
 }
 
-// normalize generates an EnrollID from an Enrollment. Importantly
-// we define what both device- and user-channel unique identifiers look
-// like. Note ParentID field needs to contain what the same identifier
-// for a non-user-channel type be for ID.
+// normalize generates enrollment IDs that are used by other
+// services and the storage backend. Enrollment IDs need not
+// necessarily be related to the UDID, UserIDs, or other identifiers
+// sent in the request, but by convention that is what this normalizer
+// uses.
+//
+// Device enrollments are identified by the UDID or EnrollmentID. User
+// enrollments are then appended after a colon (":"). Note that the
+// storage backends depend on the ParentID field matching a device
+// enrollment so that the "parent" (device) enrollment can be
+// referenced.
 func normalize(e *mdm.Enrollment) *mdm.EnrollID {
 	r := e.Resolved()
 	if r == nil {
@@ -35,6 +43,7 @@ func normalize(e *mdm.Enrollment) *mdm.EnrollID {
 	return eid
 }
 
+// New returns a new NanoMDM main service.
 func New(store storage.ServiceStore, logger log.Logger) *Service {
 	return &Service{
 		store:      store,
@@ -43,7 +52,7 @@ func New(store storage.ServiceStore, logger log.Logger) *Service {
 	}
 }
 
-func (s *Service) updateEnrollmentID(r *mdm.Request, e *mdm.Enrollment) error {
+func (s *Service) updateEnrollID(r *mdm.Request, e *mdm.Enrollment) error {
 	if r.EnrollID != nil && r.ID != "" {
 		s.logger.Debug("msg", "overwriting enrollment id")
 	}
@@ -51,8 +60,9 @@ func (s *Service) updateEnrollmentID(r *mdm.Request, e *mdm.Enrollment) error {
 	return r.EnrollID.Validate()
 }
 
+// Authenticate Check-in message implementation.
 func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error {
-	if err := s.updateEnrollmentID(r, &message.Enrollment); err != nil {
+	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
 	logs := []interface{}{
@@ -67,19 +77,20 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 	if err := s.store.StoreAuthenticate(r, message); err != nil {
 		return err
 	}
-	// clear the command queue for any enrollment or sub-enrollment
+	// clear the command queue for any enrollment or sub-enrollment.
 	// this prevents queued commands still being queued after device
-	// unenrollment
+	// unenrollment.
 	if err := s.store.ClearQueue(r); err != nil {
 		return err
 	}
-	// then disable the enrollment or any sub-enrollment (because an
+	// then, disable the enrollment or any sub-enrollment (because an
 	// enrollment is only valid after a tokenupdate)
 	return s.store.Disable(r)
 }
 
+// TokenUpdate Check-in message implementation.
 func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {
-	if err := s.updateEnrollmentID(r, &message.Enrollment); err != nil {
+	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
 	s.logger.Info(
@@ -90,8 +101,9 @@ func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {
 	return s.store.StoreTokenUpdate(r, message)
 }
 
+// CheckOut Check-in message implementation.
 func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
-	if err := s.updateEnrollmentID(r, &message.Enrollment); err != nil {
+	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
 	s.logger.Info(
@@ -99,12 +111,12 @@ func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
 		"id", r.ID,
 		"type", r.Type,
 	)
-	// disable an enrollment upon checkout
 	return s.store.Disable(r)
 }
 
+// CommandAndReportResults command report and next-command request implementation.
 func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
-	if err := s.updateEnrollmentID(r, &results.Enrollment); err != nil {
+	if err := s.updateEnrollID(r, &results.Enrollment); err != nil {
 		return nil, err
 	}
 	logs := []interface{}{
