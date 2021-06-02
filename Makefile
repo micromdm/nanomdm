@@ -9,6 +9,8 @@ NANOMDM=\
 
 my: nanomdm-$(OSARCH)
 
+docker: nanomdm-linux-amd64
+
 $(NANOMDM): cmd/nanomdm
 	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$(subst .exe,,$@))) go build $(LDFLAGS) -o $@ ./$<
 
@@ -28,4 +30,4 @@ release: $(foreach bin,$(NANOMDM),$(subst .exe,,$(bin))-$(VERSION).zip)
 test:
 	go test -v -cover -race ./...
 
-.PHONY: my $(NANOMDM) clean release test
+.PHONY: my docker $(NANOMDM) clean release test
