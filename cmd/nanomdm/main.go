@@ -52,7 +52,7 @@ func main() {
 		flCertHeader = flag.String("cert-header", "", "HTTP header containing URL-escaped TLS client certificate")
 		flDebug      = flag.Bool("debug", false, "log debug messages")
 		flDump       = flag.Bool("dump", false, "dump MDM requests and responses to stdout")
-		flDisableMDM = flag.Bool("mdm", false, "disable MDM HTTP endpoint")
+		flDisableMDM = flag.Bool("disable-mdm", false, "disable MDM HTTP endpoint")
 		flCheckin    = flag.Bool("checkin", false, "enable separate HTTP endpoint for MDM check-ins")
 		flMigration  = flag.Bool("migration", false, "HTTP endpoint for enrollment migrations")
 		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
