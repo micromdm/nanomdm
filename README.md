@@ -7,6 +7,9 @@ NanoMDM is a minimalist [Apple MDM server](https://support.apple.com/business/en
 - [Quickstart](docs/quickstart.md)  
 A quick guide to get NanoMDM up and running using ngrok.
 
+- [Operations Guide](docs/operations-guide.md)  
+A brief overview of the various command-line switches and HTTP endpoints and APIs available to NanoMDM.
+
 ## Features
 
 - Horizontal scaling: zero/minimal local state. Persistence in storage layers. MySQL backend provided in the box.
