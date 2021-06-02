@@ -8,7 +8,7 @@ This guide is intended to get NanoMDM *working* and *does not represent best pra
 
 ## Requirements
 
-- You'll need an MDM push certificate and private key. Documentaton on how to attain one is out of scope for this document. You may refer to [MicroMDM's documentation](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/quickstart.md#configure-an-apns-certificate) for further information, but this guide assumes you have one at the ready. Note this is the _push_ certificate and _not_ the initial step of an _MDM CSR/vendor_ certificate.
+- You'll need an MDM push certificate and private key. Documentation on how to attain one is out of scope for this document. You may refer to [MicroMDM's documentation](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/quickstart.md#configure-an-apns-certificate) for further information, but this guide assumes you have one at the ready. Note this is the _push_ certificate and _not_ the initial step of an _MDM CSR/vendor_ certificate.
 - A posix-ish computer with a set of normal command-line tools available: `cat`, `curl`, Python 3, etc.
 - Direct internet access (i.e. not proxied or outbound firewalled)
 
@@ -63,7 +63,7 @@ Forwarding                    https://fd2a766cc645.ngrok.io -> http://localhost:
 [snip]
 ```
 
-The "8080"  is the listen address (port) of the  runing SCEP server, above. Note the URLs in the "Forwarding" section here (in our case here `https://fd2a766cc645.ngrok.io`). These are the public ngrok URLs that the SCEP service can be accessed using. You'll need this later.
+The "8080"  is the listen address (port) of the  running SCEP server, above. Note the URLs in the "Forwarding" section here (in our case here `https://fd2a766cc645.ngrok.io`). These are the public ngrok URLs that the SCEP service can be accessed using. You'll need this later.
 
 *Note: the default (free) ngrok time limit is 2 hours. Your proxy connection (and URL) will end after that time. You may start another proxy/tunnel but note that your URLs will change each time.*
 
