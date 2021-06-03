@@ -225,8 +225,6 @@ $ ./tools/cmdr.py -r | curl -T - -u nanomdm:nanomm 'http://127.0.0.1:9000/v1/enq
 	},
 	"command_uuid": "9b7c63eb-14b4-4739-96b0-750a5c967371",
 	"request_type": "ProvisioningProfileList"
-100   715  100   331    0   384   1767   2050 --:--:-- --:--:-- --:--:--  2053
-* Connection #0 to host ::1 left intact
 }
 ```
 
