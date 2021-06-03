@@ -58,12 +58,12 @@ Session Expires               1 hour, 59 minutes
 Version                       2.3.40
 Region                        United States (us)
 Web Interface                 http://127.0.0.1:4040
-Forwarding                    http://fd2a766cc645.ngrok.io -> http://localhost:8080
-Forwarding                    https://fd2a766cc645.ngrok.io -> http://localhost:8080
+Forwarding                    http://scep-fd2a766cc645.ngrok.io -> http://localhost:8080
+Forwarding                    https://scep-fd2a766cc645.ngrok.io -> http://localhost:8080
 [snip]
 ```
 
-The "8080"  is the listen address (port) of the  running SCEP server, above. Note the URLs in the "Forwarding" section here (in our case here `https://fd2a766cc645.ngrok.io`). These are the public ngrok URLs that the SCEP service can be accessed using. You'll need this later.
+The "8080"  is the listen address (port) of the  running SCEP server, above. Note the URLs in the "Forwarding" section here (in our case here `https://scep-fd2a766cc645.ngrok.io`). These are the public ngrok URLs that the SCEP service can be accessed using. You'll need this later. We added a `scep-` prefix to make it easier to reference in the rest of the documentation.
 
 *Note: the default (free) ngrok time limit is 2 hours. Your proxy connection (and URL) will end after that time. You may start another proxy/tunnel but note that your URLs will change each time.*
 
@@ -74,7 +74,7 @@ The "8080"  is the listen address (port) of the  running SCEP server, above. Not
 Get a copy of your server's CA certificate. If you deployed the above SCEP server you can do this to save the CA:
 
 ```
-$ curl 'https://fd2a766cc645.ngrok.io/scep?operation=GetCACert' | openssl x509 -inform DER > ca.pem 
+$ curl 'https://scep-fd2a766cc645.ngrok.io/scep?operation=GetCACert' | openssl x509 -inform DER > ca.pem 
 ```
 
 This requests the CA certificate from the SCEP server, converts it into a PEM file and saves it to `ca.pem`.
@@ -110,6 +110,8 @@ By default the file storage backend will write enrollment data into a directory 
 
 ### Run (another) ngrok for NanoMDM
 
+The free version of ngrok might only allow you to run one instance. You can configure [multiple tunnels](https://ngrok.com/docs#multiple-tunnels) and start them with a command like `ngrok start scep nanomdm`.
+
 ```
 $ ./ngrok http 9000
 ngrok by @inconshreveable  (Ctrl+C to quit)
@@ -119,12 +121,12 @@ Session Expires               1 hour, 59 minutes
 Version                       2.3.40
 Region                        United States (us)
 Web Interface                 http://127.0.0.1:4041
-Forwarding                    http://625ae9460120.ngrok.io -> http://localhost:9000
-Forwarding                    https://625ae9460120.ngrok.io -> http://localhost:9000
+Forwarding                    http://nanomdm-625ae9460120.ngrok.io -> http://localhost:9000
+Forwarding                    https://nanomdm-625ae9460120.ngrok.io -> http://localhost:9000
 [snip]
 ```
 
-The "9000" is the listen address (port) of the running NanoMDM server. Again, take note of the "forwarding" addresses.
+The "9000" is the listen address (port) of the running NanoMDM server. Again, take note of the "forwarding" addresses. We added a `nanomdm-` prefix to make it easier to reference in the rest of the documentation.
 
 ### Upload Push Certificate
 
@@ -153,9 +155,9 @@ We'll need to author our enrollment profile for devices to know how to enroll in
 
 Make sure your enrollment profile contains the correct values for the SCEP payload URL as well as the MDM server URL. These will be from ngrok, above, If you followed this guide's instructions then those values would as follows. We also need to provide the SCEP challenge and MDM topic; also be from above. **Your values will be different, do not just copy/paste these values**:
 
-* `URL` (in SCEP payload): `https://fd2a766cc645.ngrok.io/scep`
+* `URL` (in SCEP payload): `https://scep-fd2a766cc645.ngrok.io/scep`
 * `Challenge` (in SCEP payload): `nanomdm`
-* `ServerURL` (in MDM payload): `https://625ae9460120.ngrok.io/mdm` (note the trailing `/mdm` here)
+* `ServerURL` (in MDM payload): `https://nanomdm-625ae9460120.ngrok.io/mdm` (note the trailing `/mdm` here)
 * `Topic`  (in MDM payload): `com.apple.mgmt.External.e3b8ceac-1f18-2c8e-8a63-dd17d99435d9`
 
 ## Enroll your machine!
