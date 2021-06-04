@@ -128,7 +128,7 @@ CREATE TABLE commands (
 
     CHECK (command_uuid != ''),
     CHECK (request_type != ''),
-    CHECK (SUBSTRING(command FROM 1 FOR 5) = '<?xml'),
+    CHECK (SUBSTRING(command FROM 1 FOR 5) = '<?xml')
 );
 
 
@@ -166,7 +166,7 @@ CREATE TABLE command_results (
     -- capture results in the case they're malformed.
     CHECK (status != ''),
     INDEX (status),
-    CHECK (SUBSTRING(result FROM 1 FOR 5) = '<?xml'),
+    CHECK (SUBSTRING(result FROM 1 FOR 5) = '<?xml')
 );
 
 
