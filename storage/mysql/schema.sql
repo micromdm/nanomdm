@@ -107,7 +107,7 @@ CREATE TABLE enrollments (
 
     CHECK (topic != ''),
     CHECK (push_magic != ''),
-    CHECK (LENGTH(token) > 0)
+    CHECK (token_hex != '')
 );
 
 
