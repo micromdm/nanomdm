@@ -284,3 +284,12 @@ The URL of the NanoMDM migration endpoint. For example "http://127.0.0.1:9000/mi
 * print version
 
 Print version and exit.
+
+## Example usage
+
+```bash
+$ ./nano2nano-darwin-amd64 -storage file -dsn db -url 'http://127.0.0.1:9010/migration' -key nanomdm -debug
+2021/06/04 14:29:54 level=info msg=storage setup storage=file
+2021/06/04 14:29:54 level=info checkin=Authenticate device_id=99385AF6-44CB-5621-A678-A321F4D9A2C8 type=Device
+2021/06/04 14:29:54 level=info checkin=TokenUpdate device_id=99385AF6-44CB-5621-A678-A321F4D9A2C8 type=Device
+```
