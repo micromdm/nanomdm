@@ -15,7 +15,7 @@ A brief overview of the various command-line switches and HTTP endpoints and API
 - Horizontal scaling: zero/minimal local state. Persistence in storage layers. MySQL backend provided in the box.
 - Multiple APNs topics: potentially multi-tenant.
 - Multi-command targeting: send the same command (or pushes) to multiple enrollments without individually queuing commands.
-- Migration endpoint: allow migrating MDM enrollments from (supported) MDM servers
+- Migration endpoint: allow migrating MDM enrollments between storage backends or (supported) MDM servers
 - Otherwise we share many features between MicroMDM and NanoMDM, such as:
   - A MicroMDM-emulating HTTP webhook/callback.
   - Enrollment-certificate authorization

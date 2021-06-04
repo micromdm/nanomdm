@@ -253,7 +253,7 @@ The `nano2nano` tool extracts migration enrollment data from a given storage bac
 
 *Note:* Enrollment migration is **lossy**. It is not intended to bring over all data related to an enrollment — just the absolute bare minimum of data to support a migrated device being able to operate with MDM. For example previous commands & responses and even inventory data will be missing.
 
-*Note: There are some edge cases around enrollment migration. One such case is iOS unlock tokens. If the latest `TokenUpdate` did not contain the enroll-time unlock token for iOS then this information is probably lost in the migration. Again this feature is only meant to migrate the absolute minimum of information to allow for a device to be sent APNs push requests and have an operational command-queue.
+*Note:* There are some edge cases around enrollment migration. One such case is iOS unlock tokens. If the latest `TokenUpdate` did not contain the enroll-time unlock token for iOS then this information is probably lost in the migration. Again this feature is only meant to migrate the absolute minimum of information to allow for a device to be sent APNs push requests and have an operational command-queue.
 
 ## Switches
 
