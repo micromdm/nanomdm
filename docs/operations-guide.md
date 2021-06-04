@@ -246,3 +246,41 @@ Of course the device won't check-in to retrieve this command, it will just sit i
 * Endpoint: `/migration`
 
 The migration endpoint (as talked about above under the `-migration` switch) is an API endpoint that allows sending raw `TokenUpdate` and `Authenticate` messages to establish an enrollment — in particular the APNs push topic, token, and push magic. This endpoint bypasses certificate validation and certificate authentication (though still requires API HTTP authentication). In this way we enable a way to "migrate" MDM enrollments from another MDM. This is how the `llorne` tool of [the micro2nano project](https://github.com/micromdm/micro2nano) works, for example.
+
+# Enrollment Migration (nano2nano)
+
+The `nano2nano` tool extracts migration enrollment data from a given storage backend and sends it to a NanoMDM migration endpoint. In this way you can effectively migrate between database backends. For example if you started with a `file` backend you could migrate to a `mysql` backend and vice versa. Note that MDM servers must have *exactly* the same server URL for migrations to operate.
+
+*Note:* Enrollment migration is **lossy**. It is not intended to bring over all data related to an enrollment — just the absolute bare minimum of data to support a migrated device being able to operate with MDM. For example previous commands & responses and even inventory data will be missing.
+
+*Note: There are some edge cases around enrollment migration. One such case is iOS unlock tokens. If the latest `TokenUpdate` did not contain the enroll-time unlock token for iOS then this information is probably lost in the migration. Again this feature is only meant to migrate the absolute minimum of information to allow for a device to be sent APNs push requests and have an operational command-queue.
+
+## Switches
+
+### -debug
+
+* log debug messages
+
+Enable additional debug logging.
+
+### -storage & -dsn
+
+See the "-storage & -dsn" section, above, for NanoMDM. The syntax and capabilities are the same.
+
+### -key string
+
+* NanoMDM API Key
+
+The NanoMDM API key used to authenticate to the migration endpoint.
+
+### -url string
+
+* NanoMDM migration URL
+
+The URL of the NanoMDM migration endpoint. For example "http://127.0.0.1:9000/migration".
+
+### -version
+
+* print version
+
+Print version and exit.

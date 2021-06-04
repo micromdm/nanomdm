@@ -80,6 +80,16 @@ func (e *enrollment) readFile(name string) ([]byte, error) {
 	return ioutil.ReadFile(e.dirPrefix(name))
 }
 
+func (e *enrollment) fileExists(name string) (bool, error) {
+	if _, err := os.Stat(e.dirPrefix(name)); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 // assocSubEnrollment writes an empty file of the sub (user) enrollment for tracking.
 func (e *enrollment) assocSubEnrollment(id string) error {
 	subPath := e.dirPrefix(SubEnrollmentPathname)
@@ -149,7 +159,7 @@ func (s *FileStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) err
 		return err
 	}
 	// delete the disabled flag to let signify this enrollment is enabled
-	if err := os.Remove(e.dirPrefix(DisabledFilename)); err != nil && !errors.Is(err, os.ErrExist) {
+	if err := os.Remove(e.dirPrefix(DisabledFilename)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	return nil

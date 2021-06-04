@@ -7,11 +7,19 @@ NANOMDM=\
 	nanomdm-darwin-arm64 \
 	nanomdm-linux-amd64
 
-my: nanomdm-$(OSARCH)
+NANO2NANO=\
+	nano2nano-darwin-amd64 \
+	nano2nano-darwin-arm64 \
+	nano2nano-linux-amd64
 
-docker: nanomdm-linux-amd64
+my: nanomdm-$(OSARCH) nano2nano-$(OSARCH)
+
+docker: nanomdm-linux-amd64 nano2nano-linux-amd64
 
 $(NANOMDM): cmd/nanomdm
+	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$(subst .exe,,$@))) go build $(LDFLAGS) -o $@ ./$<
+
+$(NANO2NANO): cmd/nano2nano
 	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$(subst .exe,,$@))) go build $(LDFLAGS) -o $@ ./$<
 
 %-$(VERSION).zip: %.exe
@@ -23,11 +31,13 @@ $(NANOMDM): cmd/nanomdm
 	zip $@ $<
 
 clean:
-	rm -f nanomdm-*
+	rm -f nanomdm-* nano2nano-*
 
-release: $(foreach bin,$(NANOMDM),$(subst .exe,,$(bin))-$(VERSION).zip)
+release: \
+	$(foreach bin,$(NANOMDM),$(subst .exe,,$(bin))-$(VERSION).zip) \
+	$(foreach bin,$(NANO2NANO),$(subst .exe,,$(bin))-$(VERSION).zip)
 
 test:
 	go test -v -cover -race ./...
 
-.PHONY: my docker $(NANOMDM) clean release test
+.PHONY: my docker $(NANOMDM) $(NANO2NANO) clean release test

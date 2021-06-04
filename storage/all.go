@@ -7,4 +7,5 @@ type AllStorage interface {
 	PushCertStore
 	CommandEnqueuer
 	CertAuthStore
+	StoreMigrator
 }
