@@ -37,6 +37,7 @@ const (
 	endpointAPIPush      = "/v1/push/"
 	endpointAPIEnqueue   = "/v1/enqueue/"
 	endpointAPIMigration = "/migration"
+	endpointAPIVersion   = "/version"
 )
 
 func main() {
@@ -183,7 +184,7 @@ func main() {
 		}
 	}
 
-	mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(endpointAPIVersion, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"version":"` + version + `"}`))
 	})
