@@ -247,6 +247,12 @@ Of course the device won't check-in to retrieve this command, it will just sit i
 
 The migration endpoint (as talked about above under the `-migration` switch) is an API endpoint that allows sending raw `TokenUpdate` and `Authenticate` messages to establish an enrollment — in particular the APNs push topic, token, and push magic. This endpoint bypasses certificate validation and certificate authentication (though still requires API HTTP authentication). In this way we enable a way to "migrate" MDM enrollments from another MDM. This is how the `llorne` tool of [the micro2nano project](https://github.com/micromdm/micro2nano) works, for example.
 
+### Version
+
+* Endpoint: `/version`
+
+Returns a JSON response with the version of the running NanoMDM server.
+
 # Enrollment Migration (nano2nano)
 
 The `nano2nano` tool extracts migration enrollment data from a given storage backend and sends it to a NanoMDM migration endpoint. In this way you can effectively migrate between database backends. For example if you started with a `file` backend you could migrate to a `mysql` backend and vice versa. Note that MDM servers must have *exactly* the same server URL for migrations to operate.
