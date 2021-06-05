@@ -1,5 +1,7 @@
 # NanoMDM
 
+[![Go](https://github.com/micromdm/nanomdm/workflows/Go/badge.svg)](https://github.com/micromdm/nanomdm/actions)
+
 NanoMDM is a minimalist [Apple MDM server](https://support.apple.com/business/enrollment-deployment) heavily inspired by MicroMDM.
 
 ## Getting started & Documentation
