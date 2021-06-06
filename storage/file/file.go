@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/jessepeterson/nanomdm/cryptoutil"
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/cryptoutil"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 const (

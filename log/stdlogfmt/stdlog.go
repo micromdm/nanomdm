@@ -4,7 +4,7 @@ import (
 	stdlog "log"
 	"strings"
 
-	"github.com/jessepeterson/nanomdm/log"
+	"github.com/micromdm/nanomdm/log"
 )
 
 // Logger wraps a standard library logger and adapts it to pkg/log.

@@ -6,7 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 // CheckinStore stores MDM check-in data.

@@ -10,11 +10,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jessepeterson/nanomdm/cryptoutil"
-	"github.com/jessepeterson/nanomdm/log"
-	"github.com/jessepeterson/nanomdm/mdm"
-	"github.com/jessepeterson/nanomdm/push"
-	"github.com/jessepeterson/nanomdm/storage"
+	"github.com/micromdm/nanomdm/cryptoutil"
+	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/push"
+	"github.com/micromdm/nanomdm/storage"
 )
 
 // enrolledAPIResult is a per-enrollment API result.

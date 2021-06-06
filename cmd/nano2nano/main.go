@@ -10,9 +10,9 @@ import (
 	stdlog "log"
 	"net/http"
 
-	"github.com/jessepeterson/nanomdm/cmd/cli"
-	"github.com/jessepeterson/nanomdm/log/stdlogfmt"
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/cmd/cli"
+	"github.com/micromdm/nanomdm/log/stdlogfmt"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 // overridden by -ldflags -X

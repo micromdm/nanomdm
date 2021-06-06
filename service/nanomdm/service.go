@@ -4,9 +4,9 @@ package nanomdm
 import (
 	"fmt"
 
-	"github.com/jessepeterson/nanomdm/log"
-	"github.com/jessepeterson/nanomdm/mdm"
-	"github.com/jessepeterson/nanomdm/storage"
+	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage"
 )
 
 // Service is the main NanoMDM service which dispatches to storage.

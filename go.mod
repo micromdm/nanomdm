@@ -1,4 +1,4 @@
-module github.com/jessepeterson/nanomdm
+module github.com/micromdm/nanomdm
 
 go 1.15
 

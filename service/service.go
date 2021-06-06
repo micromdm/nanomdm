@@ -2,7 +2,7 @@
 package service
 
 import (
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 // Checkin represents the various check-in requests.

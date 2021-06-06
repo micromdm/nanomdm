@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/jessepeterson/nanomdm/cryptoutil"
-	"github.com/jessepeterson/nanomdm/log"
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/cryptoutil"
+	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/mdm"
 
 	_ "github.com/go-sql-driver/mysql"
 )

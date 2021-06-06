@@ -3,7 +3,7 @@ package mysql
 import (
 	"context"
 
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 func (s *MySQLStorage) RetrieveMigrationCheckins(ctx context.Context, c chan<- interface{}) error {

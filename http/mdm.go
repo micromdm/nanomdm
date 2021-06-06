@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jessepeterson/nanomdm/log"
-	"github.com/jessepeterson/nanomdm/mdm"
-	"github.com/jessepeterson/nanomdm/service"
+	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/service"
 )
 
 // CheckinHandlerFunc decodes an MDM check-in request and adapts it to service.

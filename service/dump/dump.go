@@ -4,8 +4,8 @@ package dump
 import (
 	"os"
 
-	"github.com/jessepeterson/nanomdm/mdm"
-	"github.com/jessepeterson/nanomdm/service"
+	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/service"
 )
 
 // Dumper is a service middleware that dumps MDM requests and responses

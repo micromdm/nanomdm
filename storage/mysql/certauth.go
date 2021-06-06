@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 // Executes SQL statements that return a single COUNT(*) of rows.

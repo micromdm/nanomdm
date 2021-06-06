@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 func sendCheckinMessage(e *enrollment, filename string, c chan<- interface{}) {

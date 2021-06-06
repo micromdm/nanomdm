@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jessepeterson/nanomdm/log"
-	"github.com/jessepeterson/nanomdm/storage"
-	"github.com/jessepeterson/nanomdm/storage/allmulti"
-	"github.com/jessepeterson/nanomdm/storage/file"
-	"github.com/jessepeterson/nanomdm/storage/mysql"
+	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/storage"
+	"github.com/micromdm/nanomdm/storage/allmulti"
+	"github.com/micromdm/nanomdm/storage/file"
+	"github.com/micromdm/nanomdm/storage/mysql"
 )
 
 type StringAccumulator []string

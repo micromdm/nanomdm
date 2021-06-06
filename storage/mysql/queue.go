@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 func enqueue(ctx context.Context, tx *sql.Tx, ids []string, cmd *mdm.Command) error {

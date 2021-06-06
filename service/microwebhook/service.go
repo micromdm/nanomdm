@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 type MicroWebhook struct {

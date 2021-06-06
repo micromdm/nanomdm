@@ -4,9 +4,9 @@ package multi
 import (
 	"context"
 
-	"github.com/jessepeterson/nanomdm/log"
-	"github.com/jessepeterson/nanomdm/mdm"
-	"github.com/jessepeterson/nanomdm/service"
+	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/service"
 )
 
 // MultiService executes multiple services for the same service calls.

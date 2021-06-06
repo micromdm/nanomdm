@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/jessepeterson/nanomdm/cryptoutil"
-	"github.com/jessepeterson/nanomdm/log"
+	"github.com/micromdm/nanomdm/cryptoutil"
+	"github.com/micromdm/nanomdm/log"
 )
 
 type contextKeyCert struct{}

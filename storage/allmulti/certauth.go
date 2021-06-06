@@ -1,6 +1,6 @@
 package allmulti
 
-import "github.com/jessepeterson/nanomdm/mdm"
+import "github.com/micromdm/nanomdm/mdm"
 
 func (ms *MultiAllStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
 	hasFinal, finalErr := ms.stores[0].HasCertHash(r, hash)

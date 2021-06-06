@@ -8,8 +8,8 @@ import (
 	"time"
 
 	bufordpush "github.com/RobotsAndPencils/buford/push"
-	"github.com/jessepeterson/nanomdm/mdm"
-	"github.com/jessepeterson/nanomdm/push"
+	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/push"
 )
 
 // bufordFactory instantiates new buford Services to satisfy the PushProviderFactory interface.

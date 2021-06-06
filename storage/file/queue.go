@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/jessepeterson/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/mdm"
 )
 
 const (
