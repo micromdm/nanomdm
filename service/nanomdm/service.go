@@ -2,8 +2,13 @@
 package nanomdm
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/url"
+	"path"
 
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/mdm"
@@ -24,6 +29,10 @@ type Service struct {
 	// https://developer.apple.com/documentation/devicemanagement/userauthenticate
 	sendEmptyDigestChallenge bool
 	storeRejectedUserAuth    bool
+
+	// for Declarative Management
+	dmURLPrefix string
+	dmClient    *http.Client
 }
 
 // normalize generates enrollment IDs that are used by other
@@ -67,6 +76,7 @@ func New(store storage.ServiceStore, opts ...Option) *Service {
 		store:      store,
 		logger:     log.NopLogger,
 		normalizer: normalize,
+		dmClient:   http.DefaultClient,
 	}
 	for _, opt := range opts {
 		opt(nanomdm)
@@ -239,4 +249,42 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 		"id", r.ID,
 	)
 	return nil, nil
+}
+
+func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
+	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+		return nil, err
+	}
+	s.logger.Info(
+		"msg", "DeclarativeManagement",
+		"id", r.ID,
+		"type", r.Type,
+		"endpoint", message.Endpoint,
+	)
+	if s.dmURLPrefix == "" {
+		return nil, errors.New("missing declarative management URL")
+	}
+	u, err := url.Parse(s.dmURLPrefix)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, message.Endpoint)
+	req, err := http.NewRequestWithContext(r.Context, http.MethodGet, u.String(), bytes.NewBuffer(message.Data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Enrollment-ID", r.ID)
+	resp, err := s.dmClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected HTTP status %d %s", resp.StatusCode, resp.Status)
+	}
+	return bodyBytes, nil
 }

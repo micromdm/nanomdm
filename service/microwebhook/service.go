@@ -129,3 +129,17 @@ func (w *MicroWebhook) CommandAndReportResults(r *mdm.Request, results *mdm.Comm
 	}
 	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
 }
+
+func (w *MicroWebhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManagement) ([]byte, error) {
+	ev := &Event{
+		Topic:     "mdm.DeclarativeManagement",
+		CreatedAt: time.Now(),
+		CheckinEvent: &CheckinEvent{
+			UDID:         m.UDID,
+			EnrollmentID: m.EnrollmentID,
+			RawPayload:   m.Raw,
+			Params:       r.Params,
+		},
+	}
+	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
+}

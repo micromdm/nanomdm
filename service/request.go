@@ -69,6 +69,11 @@ func CheckinRequest(svc Checkin, r *mdm.Request, bodyBytes []byte) ([]byte, erro
 		if err != nil {
 			err = fmt.Errorf("marshal bootstrap token: %w", err)
 		}
+	case *mdm.DeclarativeManagement:
+		respBytes, err = svc.DeclarativeManagement(r, m)
+		if err != nil {
+			err = fmt.Errorf("declarativemanagement service: %w", err)
+		}
 	default:
 		return nil, errors.New("unhandled check-in request type")
 	}
