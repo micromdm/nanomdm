@@ -49,6 +49,16 @@ func (q *queue) enqueue(uuid string, raw []byte) error {
 	)
 }
 
+func (q *queue) exists(uuid string) (bool, error) {
+	if _, err := os.Stat(path.Join(q.dir(), uuid+".plist")); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func (q *queue) move(uuid string, dest *queue) error {
 	err := dest.mkdir()
 	if err != nil {
@@ -58,6 +68,10 @@ func (q *queue) move(uuid string, dest *queue) error {
 		path.Join(q.dir(), uuid+".plist"),
 		path.Join(dest.dir(), uuid+".plist"),
 	)
+}
+
+func (q *queue) removeResults(uuid string) error {
+	return os.Remove(path.Join(q.dir(), uuid+".result.plist"))
 }
 
 func (q *queue) writeResults(uuid string, raw []byte) error {
@@ -105,14 +119,33 @@ func (s *FileStorage) StoreCommandReport(r *mdm.Request, report *mdm.CommandResu
 		return nil
 	}
 	e := s.newEnrollment(r.ID)
-	q := e.newQueue(subQueue)
-	dest := e.newQueue(subDone)
-	if report.Status == "NotNow" {
-		q = e.newQueue(subNotNow)
-	}
-	err := q.move(report.CommandUUID, dest)
+	src := e.newQueue(subQueue)
+	qExists, err := src.exists(report.CommandUUID)
 	if err != nil {
 		return err
+	}
+	nnq := e.newQueue(subNotNow)
+	var nnqExists bool
+	if !qExists {
+		nnqExists, err = nnq.exists(report.CommandUUID)
+		if err != nil {
+			return err
+		}
+		if nnqExists {
+			src = nnq
+
+		}
+	}
+	dest := e.newQueue(subDone)
+	if report.Status == "NotNow" {
+		dest = e.newQueue(subNotNow)
+	}
+	err = src.move(report.CommandUUID, dest)
+	if err != nil {
+		return err
+	}
+	if nnqExists {
+		nnq.removeResults(report.CommandUUID)
 	}
 	return dest.writeResults(report.CommandUUID, report.Raw)
 }
