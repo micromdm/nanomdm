@@ -251,6 +251,13 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 	return nil, nil
 }
 
+// DeclarativeManagement calls out to an HTTP server with the
+// "unwrapped" Declarative Management endpoints.
+//
+// We append the "Endpoint" key to the provided service DM URL Prefix
+// and send along any JSON in the request. If there is any provided Data
+// in the check-in message we set the Content-Type to JSON and use HTTP
+// PUT instead of GET.
 func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return nil, err
@@ -269,12 +276,18 @@ func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.Declarative
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, message.Endpoint)
-	req, err := http.NewRequestWithContext(r.Context, http.MethodGet, u.String(), bytes.NewBuffer(message.Data))
+	method := http.MethodGet
+	if len(message.Data) > 0 {
+		method = http.MethodPut
+	}
+	req, err := http.NewRequestWithContext(r.Context, method, u.String(), bytes.NewBuffer(message.Data))
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Enrollment-ID", r.ID)
+	if len(message.Data) > 0 {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	resp, err := s.dmClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -283,6 +296,7 @@ func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.Declarative
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("unexpected HTTP status %d %s", resp.StatusCode, resp.Status)
 	}
