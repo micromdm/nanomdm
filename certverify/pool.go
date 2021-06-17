@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// Verifier is a simple certificate verifier
+// PoolVerifier is a simple certificate verifier
 type PoolVerifier struct {
 	verifyOpts x509.VerifyOptions
 }
