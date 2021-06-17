@@ -50,6 +50,7 @@ type Request struct {
 	*EnrollID
 	Certificate *x509.Certificate
 	Context     context.Context
+	Params      map[string]string
 }
 
 // Clone returns a shallow copy of r

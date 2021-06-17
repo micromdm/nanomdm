@@ -28,6 +28,7 @@ func (w *MicroWebhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 			UDID:         m.UDID,
 			EnrollmentID: m.EnrollmentID,
 			RawPayload:   m.Raw,
+			Params:       r.Params,
 		},
 	}
 	return postWebhookEvent(r.Context, w.client, w.url, ev)
@@ -41,6 +42,7 @@ func (w *MicroWebhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 			UDID:         m.UDID,
 			EnrollmentID: m.EnrollmentID,
 			RawPayload:   m.Raw,
+			Params:       r.Params,
 		},
 	}
 	return postWebhookEvent(r.Context, w.client, w.url, ev)
@@ -54,6 +56,7 @@ func (w *MicroWebhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 			UDID:         m.UDID,
 			EnrollmentID: m.EnrollmentID,
 			RawPayload:   m.Raw,
+			Params:       r.Params,
 		},
 	}
 	return postWebhookEvent(r.Context, w.client, w.url, ev)
@@ -69,6 +72,7 @@ func (w *MicroWebhook) CommandAndReportResults(r *mdm.Request, results *mdm.Comm
 			Status:       results.Status,
 			CommandUUID:  results.CommandUUID,
 			RawPayload:   results.Raw,
+			Params:       r.Params,
 		},
 	}
 	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
