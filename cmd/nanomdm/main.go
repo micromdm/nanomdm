@@ -89,7 +89,7 @@ func main() {
 	}
 
 	// create 'core' MDM service
-	nano := nanomdm.New(mdmStorage, logger.With("service", "nanomdm"))
+	nano := nanomdm.New(mdmStorage, nanomdm.WithLogger(logger.With("service", "nanomdm")))
 
 	mux := http.NewServeMux()
 

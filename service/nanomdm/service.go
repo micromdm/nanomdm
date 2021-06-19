@@ -43,13 +43,25 @@ func normalize(e *mdm.Enrollment) *mdm.EnrollID {
 	return eid
 }
 
+type Option func(*Service)
+
+func WithLogger(logger log.Logger) Option {
+	return func(s *Service) {
+		s.logger = logger
+	}
+}
+
 // New returns a new NanoMDM main service.
-func New(store storage.ServiceStore, logger log.Logger) *Service {
-	return &Service{
+func New(store storage.ServiceStore, opts ...Option) *Service {
+	nanomdm := &Service{
 		store:      store,
-		logger:     logger,
+		logger:     log.NopLogger,
 		normalizer: normalize,
 	}
+	for _, opt := range opts {
+		opt(nanomdm)
+	}
+	return nanomdm
 }
 
 func (s *Service) updateEnrollID(r *mdm.Request, e *mdm.Enrollment) error {
