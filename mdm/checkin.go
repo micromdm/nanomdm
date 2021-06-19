@@ -20,7 +20,7 @@ type Authenticate struct {
 	Enrollment
 	MessageType
 	Topic string
-	Raw   []byte // Original Authenticate XML plist
+	Raw   []byte `plist:"-"` // Original Authenticate XML plist
 
 	// Fields that may be present but are not strictly required for the
 	// operation of the MDM protocol. Nice-to-haves.
@@ -34,7 +34,7 @@ type TokenUpdate struct {
 	MessageType
 	Push
 	UnlockToken []byte `plist:",omitempty"`
-	Raw         []byte // Original TokenUpdate XML plist
+	Raw         []byte `plist:"-"` // Original TokenUpdate XML plist
 }
 
 // CheckOut is a representation of a "CheckOut" check-in message type.
@@ -42,7 +42,7 @@ type TokenUpdate struct {
 type CheckOut struct {
 	Enrollment
 	MessageType
-	Raw []byte // Original CheckOut XML plist
+	Raw []byte `plist:"-"` // Original CheckOut XML plist
 }
 
 // newCheckinMessageForType returns a pointer to a check-in struct for MessageType t

@@ -27,7 +27,7 @@ type CommandResults struct {
 	Status      string
 	ErrorChain  []ErrorChain
 	RequestType string
-	Raw         []byte // Original command result XML plist
+	Raw         []byte `plist:"-"` // Original command result XML plist
 }
 
 // DecodeCheckin unmarshals rawMessage into results
