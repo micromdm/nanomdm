@@ -9,12 +9,12 @@ import (
 
 // Enrollment represents the various enrollment-related data sent with requests.
 type Enrollment struct {
-	UDID             string
-	UserID           string
-	UserShortName    string
-	UserLongName     string
-	EnrollmentID     string
-	EnrollmentUserID string
+	UDID             string `plist:",omitempty"`
+	UserID           string `plist:",omitempty"`
+	UserShortName    string `plist:",omitempty"`
+	UserLongName     string `plist:",omitempty"`
+	EnrollmentID     string `plist:",omitempty"`
+	EnrollmentUserID string `plist:",omitempty"`
 }
 
 // EnrollID contains the custom enrollment IDs derived from enrollment
