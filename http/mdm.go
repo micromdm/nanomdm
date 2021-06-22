@@ -35,13 +35,12 @@ func CheckinHandlerFunc(svc service.Checkin, logger log.Logger) http.HandlerFunc
 		respBytes, err := service.CheckinRequest(svc, mdmReqFromHTTPReq(r), bodyBytes)
 		if err != nil {
 			logger.Info("msg", "check-in request", "err", err)
-			var decodeError *service.DecodeError
-			if errors.Is(err, mdm.ErrUnrecognizedMessageType) || errors.As(err, &decodeError) {
-				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-				return
+			httpStatus := http.StatusInternalServerError
+			var statusErr *service.HTTPStatusError
+			if errors.As(err, &statusErr) {
+				httpStatus = statusErr.Status
 			}
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
+			http.Error(w, http.StatusText(httpStatus), httpStatus)
 		}
 		w.Write(respBytes)
 	}
@@ -59,13 +58,12 @@ func CommandAndReportResultsHandlerFunc(svc service.CommandAndReportResults, log
 		respBytes, err := service.CommandAndReportResultsRequest(svc, mdmReqFromHTTPReq(r), bodyBytes)
 		if err != nil {
 			logger.Info("msg", "command report results", "err", err)
-			var decodeError *service.DecodeError
-			if errors.As(err, &decodeError) {
-				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-				return
+			httpStatus := http.StatusInternalServerError
+			var statusErr *service.HTTPStatusError
+			if errors.As(err, &statusErr) {
+				httpStatus = statusErr.Status
 			}
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
+			http.Error(w, http.StatusText(httpStatus), httpStatus)
 		}
 		w.Write(respBytes)
 	}
