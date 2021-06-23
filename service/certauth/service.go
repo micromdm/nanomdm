@@ -35,6 +35,26 @@ func (s *CertAuth) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	return s.next.CheckOut(r, m)
 }
 
+func (s *CertAuth) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {
+	req := r.Clone()
+	req.EnrollID = s.normalizer(&m.Enrollment)
+	err := s.validateAssociateExistingEnrollment(req)
+	if err != nil {
+		return fmt.Errorf("cert auth: existing enrollment: %w", err)
+	}
+	return s.next.SetBootstrapToken(r, m)
+}
+
+func (s *CertAuth) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
+	req := r.Clone()
+	req.EnrollID = s.normalizer(&m.Enrollment)
+	err := s.validateAssociateExistingEnrollment(req)
+	if err != nil {
+		return nil, fmt.Errorf("cert auth: existing enrollment: %w", err)
+	}
+	return s.next.GetBootstrapToken(r, m)
+}
+
 func (s *CertAuth) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	req := r.Clone()
 	req.EnrollID = s.normalizer(&results.Enrollment)

@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/micromdm/nanomdm/mdm"
+
+	"github.com/groob/plist"
 )
 
 type HTTPStatusError struct {
@@ -31,6 +33,7 @@ func CheckinRequest(svc Checkin, r *mdm.Request, bodyBytes []byte) ([]byte, erro
 	if err != nil {
 		return nil, NewHTTPStatusError(http.StatusBadRequest, fmt.Errorf("decoding check-in: %w", err))
 	}
+	var respBytes []byte
 	switch m := msg.(type) {
 	case *mdm.Authenticate:
 		err = svc.Authenticate(r, m)
@@ -47,10 +50,26 @@ func CheckinRequest(svc Checkin, r *mdm.Request, bodyBytes []byte) ([]byte, erro
 		if err != nil {
 			err = fmt.Errorf("checkout service: %w", err)
 		}
+	case *mdm.SetBootstrapToken:
+		err = svc.SetBootstrapToken(r, m)
+		if err != nil {
+			err = fmt.Errorf("setbootstraptoken service: %w", err)
+		}
+	case *mdm.GetBootstrapToken:
+		var bsToken *mdm.BootstrapToken
+		bsToken, err = svc.GetBootstrapToken(r, m)
+		if err != nil {
+			err = fmt.Errorf("getbootstraptoken service: %w", err)
+			break
+		}
+		respBytes, err = plist.Marshal(bsToken)
+		if err != nil {
+			err = fmt.Errorf("marshal bootstrap token: %w", err)
+		}
 	default:
 		return nil, NewHTTPStatusError(http.StatusBadRequest, mdm.ErrUnrecognizedMessageType)
 	}
-	return nil, err
+	return respBytes, err
 }
 
 // CommandAndReportResultsRequest is a simple adapter that takes the raw

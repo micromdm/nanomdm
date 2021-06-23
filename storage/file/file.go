@@ -18,6 +18,7 @@ const (
 	SerialNumberFilename = "SerialNumber.txt"
 	IdentityCertFilename = "Identity.pem"
 	DisabledFilename     = "Disabled"
+	BootstrapTokenFile   = "BootstrapToken.dat"
 
 	CertAuthFilename             = "CertAuth.sha256.txt"
 	CertAuthAssociationsFilename = "CertAuth.txt"

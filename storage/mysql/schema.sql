@@ -17,6 +17,9 @@ CREATE TABLE devices (
     token_update    TEXT      NULL,
     token_update_at TIMESTAMP NULL,
 
+    bootstrap_token_b64 TEXT      NULL,
+    bootstrap_token_at  TIMESTAMP NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -32,6 +35,8 @@ CREATE TABLE devices (
 
     CHECK (authenticate != ''),
     CHECK (token_update IS NULL OR token_update != '')
+
+    CHECK (bootstrap_token_b64 IS NULL OR bootstrap_token_b64 != '')
 );
 
 

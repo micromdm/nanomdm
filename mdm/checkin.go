@@ -1,6 +1,7 @@
 package mdm
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -27,6 +28,13 @@ type Authenticate struct {
 	SerialNumber string
 }
 
+type b64Data []byte
+
+// String returns the base64-encoded string form of b
+func (b b64Data) String() string {
+	return base64.StdEncoding.EncodeToString(b)
+}
+
 // TokenUpdate is a representation of a "TokenUpdate" check-in message type.
 // See https://developer.apple.com/documentation/devicemanagement/token_update
 type TokenUpdate struct {
@@ -45,6 +53,37 @@ type CheckOut struct {
 	Raw []byte `plist:"-"` // Original CheckOut XML plist
 }
 
+type BootstrapToken struct {
+	BootstrapToken b64Data
+}
+
+// SetTokenString decodes the base64-encoded bootstrap token into t
+func (t *BootstrapToken) SetTokenString(token string) error {
+	tokenRaw, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return err
+	}
+	t.BootstrapToken = tokenRaw
+	return nil
+}
+
+// SetBootstrapToken is a representation of a "SetBootstrapToken" check-in message type.
+// See https://developer.apple.com/documentation/devicemanagement/setbootstraptokenrequest
+type SetBootstrapToken struct {
+	Enrollment
+	MessageType
+	BootstrapToken
+	Raw []byte `plist:"-"` // Original XML plist
+}
+
+// GetBootstrapToken is a representation of a "GetBootstrapToken" check-in message type.
+// See https://developer.apple.com/documentation/devicemanagement/getbootstraptokenrequest
+type GetBootstrapToken struct {
+	Enrollment
+	MessageType
+	Raw []byte `plist:"-"` // Original XML plist
+}
+
 // newCheckinMessageForType returns a pointer to a check-in struct for MessageType t
 func newCheckinMessageForType(t string, raw []byte) interface{} {
 	switch t {
@@ -54,6 +93,10 @@ func newCheckinMessageForType(t string, raw []byte) interface{} {
 		return &TokenUpdate{Raw: raw}
 	case "CheckOut":
 		return &CheckOut{Raw: raw}
+	case "SetBootstrapToken":
+		return &SetBootstrapToken{Raw: raw}
+	case "GetBootstrapToken":
+		return &GetBootstrapToken{Raw: raw}
 	default:
 		return nil
 	}

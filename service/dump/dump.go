@@ -2,6 +2,7 @@
 package dump
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/micromdm/nanomdm/mdm"
@@ -14,6 +15,7 @@ type Dumper struct {
 	next service.CheckinAndCommandService
 	file *os.File
 	cmd  bool
+	bst  bool
 }
 
 // New creates a new dumper service middleware.
@@ -22,6 +24,7 @@ func New(next service.CheckinAndCommandService, file *os.File) *Dumper {
 		next: next,
 		file: file,
 		cmd:  true,
+		bst:  true,
 	}
 }
 
@@ -38,6 +41,20 @@ func (svc *Dumper) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 func (svc *Dumper) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	svc.file.Write(m.Raw)
 	return svc.next.CheckOut(r, m)
+}
+
+func (svc *Dumper) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {
+	svc.file.Write(m.Raw)
+	return svc.next.SetBootstrapToken(r, m)
+}
+
+func (svc *Dumper) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
+	svc.file.Write(m.Raw)
+	bsToken, err := svc.next.GetBootstrapToken(r, m)
+	if svc.bst && bsToken != nil && len(bsToken.BootstrapToken) > 0 {
+		svc.file.Write([]byte(fmt.Sprintf("Bootstrap token: %s\n", bsToken.BootstrapToken.String())))
+	}
+	return bsToken, err
 }
 
 func (svc *Dumper) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {

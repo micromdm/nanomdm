@@ -126,6 +126,30 @@ func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
 	return s.store.Disable(r)
 }
 
+func (s *Service) SetBootstrapToken(r *mdm.Request, message *mdm.SetBootstrapToken) error {
+	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+		return err
+	}
+	s.logger.Info(
+		"msg", "SetBootstrapToken",
+		"id", r.ID,
+		"type", r.Type,
+	)
+	return s.store.StoreBootstrapToken(r, message)
+}
+
+func (s *Service) GetBootstrapToken(r *mdm.Request, message *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
+	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+		return nil, err
+	}
+	s.logger.Info(
+		"msg", "GetBootstrapToken",
+		"id", r.ID,
+		"type", r.Type,
+	)
+	return s.store.RetrieveBootstrapToken(r, message)
+}
+
 // CommandAndReportResults command report and next-command request implementation.
 func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	if err := s.updateEnrollID(r, &results.Enrollment); err != nil {

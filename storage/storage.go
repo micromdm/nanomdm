@@ -23,10 +23,16 @@ type CommandAndReportResultsStore interface {
 	ClearQueue(r *mdm.Request) error
 }
 
+type BootstrapTokenStore interface {
+	StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrapToken) error
+	RetrieveBootstrapToken(r *mdm.Request, msg *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error)
+}
+
 // ServiceStore stores & retrieves both command and check-in data.
 type ServiceStore interface {
 	CheckinStore
 	CommandAndReportResultsStore
+	BootstrapTokenStore
 }
 
 // PushStore stores and retrieves APNs push-related data.
