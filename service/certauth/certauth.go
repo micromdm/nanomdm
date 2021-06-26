@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/mdm"
@@ -216,5 +217,23 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 		"id", r.ID,
 		"hash", hash,
 	)
+	return nil
+}
+
+func (s *CertAuth) associateForNewEnrollment(r *mdm.Request, e *mdm.Enrollment) error {
+	req := r.Clone()
+	req.EnrollID = s.normalizer(e)
+	if err := s.associateNewEnrollment(req); err != nil {
+		return fmt.Errorf("cert auth: new enrollment: %w", err)
+	}
+	return nil
+}
+
+func (s *CertAuth) validateOrAssociateForExistingEnrollment(r *mdm.Request, e *mdm.Enrollment) error {
+	req := r.Clone()
+	req.EnrollID = s.normalizer(e)
+	if err := s.validateAssociateExistingEnrollment(req); err != nil {
+		return fmt.Errorf("cert auth: existing enrollment: %w", err)
+	}
 	return nil
 }
