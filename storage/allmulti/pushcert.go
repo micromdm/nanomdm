@@ -3,37 +3,33 @@ package allmulti
 import (
 	"context"
 	"crypto/tls"
+
+	"github.com/micromdm/nanomdm/storage"
 )
 
 func (ms *MultiAllStorage) IsPushCertStale(ctx context.Context, topic string, staleToken string) (bool, error) {
 	finalStale, finalErr := ms.stores[0].IsPushCertStale(ctx, topic, staleToken)
-	for n, storage := range ms.stores[1:] {
-		if _, err := storage.IsPushCertStale(ctx, topic, staleToken); err != nil {
-			ms.logger.Info("method", "IsPushCertStale", "storage", n+1, "err", err)
-			continue
-		}
-	}
+	ms.runAndLogOthers(func(s storage.AllStorage) error {
+		_, err := s.IsPushCertStale(ctx, topic, staleToken)
+		return err
+	})
 	return finalStale, finalErr
 }
 
 func (ms *MultiAllStorage) RetrievePushCert(ctx context.Context, topic string) (cert *tls.Certificate, staleToken string, err error) {
 	finalCert, finalToken, finalErr := ms.stores[0].RetrievePushCert(ctx, topic)
-	for n, storage := range ms.stores[1:] {
-		if _, _, err := storage.RetrievePushCert(ctx, topic); err != nil {
-			ms.logger.Info("method", "RetrievePushCert", "storage", n+1, "err", err)
-			continue
-		}
-	}
+	ms.runAndLogOthers(func(s storage.AllStorage) error {
+		_, _, err := s.RetrievePushCert(ctx, topic)
+		return err
+	})
+
 	return finalCert, finalToken, finalErr
 }
 
 func (ms *MultiAllStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte) error {
-	finalErr := ms.stores[0].StorePushCert(ctx, pemCert, pemKey)
-	for n, storage := range ms.stores[1:] {
-		if err := storage.StorePushCert(ctx, pemCert, pemKey); err != nil {
-			ms.logger.Info("method", "StorePushCert", "storage", n+1, "err", err)
-			continue
-		}
-	}
-	return finalErr
+	err := ms.stores[0].StorePushCert(ctx, pemCert, pemKey)
+	ms.runAndLogOthers(func(s storage.AllStorage) error {
+		return s.StorePushCert(ctx, pemCert, pemKey)
+	})
+	return err
 }

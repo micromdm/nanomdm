@@ -4,15 +4,14 @@ import (
 	"context"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage"
 )
 
 func (ms *MultiAllStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[string]*mdm.Push, error) {
 	finalMap, finalErr := ms.stores[0].RetrievePushInfo(ctx, ids)
-	for n, storage := range ms.stores[1:] {
-		if _, err := storage.RetrievePushInfo(ctx, ids); err != nil {
-			ms.logger.Info("method", "RetrievePushInfo", "storage", n+1, "err", err)
-			continue
-		}
-	}
+	ms.runAndLogOthers(func(s storage.AllStorage) error {
+		_, err := s.RetrievePushInfo(ctx, ids)
+		return err
+	})
 	return finalMap, finalErr
 }

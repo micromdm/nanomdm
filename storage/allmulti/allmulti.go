@@ -22,35 +22,36 @@ func New(logger log.Logger, stores ...storage.AllStorage) *MultiAllStorage {
 	return &MultiAllStorage{logger: logger, stores: stores}
 }
 
-func (ms *MultiAllStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
-	finalErr := ms.stores[0].StoreAuthenticate(r, msg)
+type storageErrorer func(storage.AllStorage) error
+
+func (ms *MultiAllStorage) runAndLogOthers(storageCallback storageErrorer) {
 	for n, storage := range ms.stores[1:] {
-		if err := storage.StoreAuthenticate(r, msg); err != nil {
-			ms.logger.Info("method", "StoreAuthenticate", "storage", n+1, "err", err)
-			continue
+		if err := storageCallback(storage); err != nil {
+			ms.logger.Info("msg", n+1, "err", err)
 		}
 	}
-	return finalErr
+}
+
+func (ms *MultiAllStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
+	err := ms.stores[0].StoreAuthenticate(r, msg)
+	ms.runAndLogOthers(func(s storage.AllStorage) error {
+		return s.StoreAuthenticate(r, msg)
+	})
+	return err
 }
 
 func (ms *MultiAllStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
-	finalErr := ms.stores[0].StoreTokenUpdate(r, msg)
-	for n, storage := range ms.stores[1:] {
-		if err := storage.StoreTokenUpdate(r, msg); err != nil {
-			ms.logger.Info("method", "StoreTokenUpdate", "storage", n+1, "err", err)
-			continue
-		}
-	}
-	return finalErr
+	err := ms.stores[0].StoreTokenUpdate(r, msg)
+	ms.runAndLogOthers(func(s storage.AllStorage) error {
+		return s.StoreTokenUpdate(r, msg)
+	})
+	return err
 }
 
 func (ms *MultiAllStorage) Disable(r *mdm.Request) error {
-	finalErr := ms.stores[0].Disable(r)
-	for n, storage := range ms.stores[1:] {
-		if err := storage.Disable(r); err != nil {
-			ms.logger.Info("method", "Disable", "storage", n+1, "err", err)
-			continue
-		}
-	}
-	return finalErr
+	err := ms.stores[0].Disable(r)
+	ms.runAndLogOthers(func(s storage.AllStorage) error {
+		return s.Disable(r)
+	})
+	return err
 }
