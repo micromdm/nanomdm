@@ -34,7 +34,7 @@ CREATE TABLE devices (
     CHECK (unlock_token IS NULL OR LENGTH(unlock_token) > 0),
 
     CHECK (authenticate != ''),
-    CHECK (token_update IS NULL OR token_update != '')
+    CHECK (token_update IS NULL OR token_update != ''),
 
     CHECK (bootstrap_token_b64 IS NULL OR bootstrap_token_b64 != '')
 );
