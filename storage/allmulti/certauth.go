@@ -6,36 +6,29 @@ import (
 )
 
 func (ms *MultiAllStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
-	hasFinal, finalErr := ms.stores[0].HasCertHash(r, hash)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		_, err := s.HasCertHash(r, hash)
-		return err
+	val, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return s.HasCertHash(r, hash)
 	})
-	return hasFinal, finalErr
+	return val.(bool), err
 }
 
 func (ms *MultiAllStorage) EnrollmentHasCertHash(r *mdm.Request, hash string) (bool, error) {
-	hasFinal, finalErr := ms.stores[0].EnrollmentHasCertHash(r, hash)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		_, err := s.EnrollmentHasCertHash(r, hash)
-		return err
+	val, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return s.EnrollmentHasCertHash(r, hash)
 	})
-	return hasFinal, finalErr
+	return val.(bool), err
 }
 
 func (ms *MultiAllStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, error) {
-	isAssocFinal, finalErr := ms.stores[0].IsCertHashAssociated(r, hash)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		_, err := s.IsCertHashAssociated(r, hash)
-		return err
+	val, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return s.IsCertHashAssociated(r, hash)
 	})
-	return isAssocFinal, finalErr
+	return val.(bool), err
 }
 
 func (ms *MultiAllStorage) AssociateCertHash(r *mdm.Request, hash string) error {
-	err := ms.stores[0].AssociateCertHash(r, hash)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		return s.AssociateCertHash(r, hash)
+	_, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return nil, s.AssociateCertHash(r, hash)
 	})
 	return err
 }

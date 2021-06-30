@@ -8,10 +8,8 @@ import (
 )
 
 func (ms *MultiAllStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[string]*mdm.Push, error) {
-	finalMap, finalErr := ms.stores[0].RetrievePushInfo(ctx, ids)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		_, err := s.RetrievePushInfo(ctx, ids)
-		return err
+	val, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return s.RetrievePushInfo(ctx, ids)
 	})
-	return finalMap, finalErr
+	return val.(map[string]*mdm.Push), err
 }

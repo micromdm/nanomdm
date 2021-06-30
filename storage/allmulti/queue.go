@@ -8,35 +8,29 @@ import (
 )
 
 func (ms *MultiAllStorage) StoreCommandReport(r *mdm.Request, report *mdm.CommandResults) error {
-	err := ms.stores[0].StoreCommandReport(r, report)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		return s.StoreCommandReport(r, report)
+	_, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return nil, s.StoreCommandReport(r, report)
 	})
 	return err
 }
 
 func (ms *MultiAllStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command, error) {
-	skipFinal, finalErr := ms.stores[0].RetrieveNextCommand(r, skipNotNow)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		_, err := s.RetrieveNextCommand(r, skipNotNow)
-		return err
+	val, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return s.RetrieveNextCommand(r, skipNotNow)
 	})
-	return skipFinal, finalErr
+	return val.(*mdm.Command), err
 }
 
 func (ms *MultiAllStorage) ClearQueue(r *mdm.Request) error {
-	err := ms.stores[0].ClearQueue(r)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		return s.ClearQueue(r)
+	_, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return nil, s.ClearQueue(r)
 	})
 	return err
 }
 
 func (ms *MultiAllStorage) EnqueueCommand(ctx context.Context, id []string, cmd *mdm.Command) (map[string]error, error) {
-	finalMap, finalErr := ms.stores[0].EnqueueCommand(ctx, id, cmd)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		_, err := s.EnqueueCommand(ctx, id, cmd)
-		return err
+	val, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return s.EnqueueCommand(ctx, id, cmd)
 	})
-	return finalMap, finalErr
+	return val.(map[string]error), err
 }

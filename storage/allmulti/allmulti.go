@@ -22,36 +22,57 @@ func New(logger log.Logger, stores ...storage.AllStorage) *MultiAllStorage {
 	return &MultiAllStorage{logger: logger, stores: stores}
 }
 
-type storageErrorer func(storage.AllStorage) error
+type returnCollector struct {
+	storeNumber int
+	returnValue interface{}
+	err         error
+}
 
-func (ms *MultiAllStorage) runAndLogOthers(storageCallback storageErrorer) {
-	for n, storage := range ms.stores[1:] {
-		if err := storageCallback(storage); err != nil {
-			ms.logger.Info("msg", n+1, "err", err)
+type errRunner func(storage.AllStorage) (interface{}, error)
+
+func (ms *MultiAllStorage) execStores(r errRunner) (interface{}, error) {
+	retChan := make(chan *returnCollector)
+	for i, store := range ms.stores {
+		go func(n int, s storage.AllStorage) {
+			val, err := r(s)
+			retChan <- &returnCollector{
+				storeNumber: n,
+				returnValue: val,
+				err:         err,
+			}
+		}(i, store)
+	}
+	var finalErr error
+	var finalValue interface{}
+	for range ms.stores {
+		sErr := <-retChan
+		if sErr.storeNumber == 0 {
+			finalErr = sErr.err
+			finalValue = sErr.returnValue
+		} else if sErr.err != nil {
+			ms.logger.Info("n", sErr.storeNumber, "err", sErr.err)
 		}
 	}
+	return finalValue, finalErr
 }
 
 func (ms *MultiAllStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
-	err := ms.stores[0].StoreAuthenticate(r, msg)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		return s.StoreAuthenticate(r, msg)
+	_, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return nil, s.StoreAuthenticate(r, msg)
 	})
 	return err
 }
 
 func (ms *MultiAllStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
-	err := ms.stores[0].StoreTokenUpdate(r, msg)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		return s.StoreTokenUpdate(r, msg)
+	_, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return nil, s.StoreTokenUpdate(r, msg)
 	})
 	return err
 }
 
 func (ms *MultiAllStorage) Disable(r *mdm.Request) error {
-	err := ms.stores[0].Disable(r)
-	ms.runAndLogOthers(func(s storage.AllStorage) error {
-		return s.Disable(r)
+	_, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return nil, s.Disable(r)
 	})
 	return err
 }
