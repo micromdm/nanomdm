@@ -3,9 +3,11 @@ package nanomdm
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/storage"
 )
 
@@ -14,6 +16,13 @@ type Service struct {
 	logger     log.Logger
 	normalizer func(e *mdm.Enrollment) *mdm.EnrollID
 	store      storage.ServiceStore
+
+	// By default the UserAuthenticate message will be rejected (410
+	// response). If this is set true then a static zero-length
+	// digest challenge will be supplied to the first UserAuthenticate
+	// check-in message. See the Discussion section of
+	// https://developer.apple.com/documentation/devicemanagement/userauthenticate
+	sendEmptyDigestChallenge bool
 }
 
 // normalize generates enrollment IDs that are used by other
@@ -124,6 +133,45 @@ func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
 		"type", r.Type,
 	)
 	return s.store.Disable(r)
+}
+
+const emptyDigestChallenge = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DigestChallenge</key>
+	<string></string>
+</dict>
+</plist>`
+
+var emptyDigestChallengeBytes = []byte(emptyDigestChallenge)
+
+func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate) ([]byte, error) {
+	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+		return nil, err
+	}
+	// if the DigestResponse is empty then this is the first (of two)
+	// UserAuthenticate messages depending on our response
+	if message.DigestResponse == "" {
+		if s.sendEmptyDigestChallenge {
+			s.logger.Info(
+				"msg", "sending empty DigestChallenge response to UserAuthenticate",
+				"id", r.ID,
+				"type", r.Type,
+			)
+			return emptyDigestChallengeBytes, nil
+		}
+		return nil, service.NewHTTPStatusError(
+			http.StatusGone,
+			fmt.Errorf("declining management of user: %s", r.ID),
+		)
+	}
+	s.logger.Debug(
+		"msg", "sending empty response to second UserAuthenticate",
+		"id", r.ID,
+		"type", r.Type,
+	)
+	return nil, nil
 }
 
 func (s *Service) SetBootstrapToken(r *mdm.Request, message *mdm.SetBootstrapToken) error {

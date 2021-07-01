@@ -53,6 +53,15 @@ type CheckOut struct {
 	Raw []byte `plist:"-"` // Original CheckOut XML plist
 }
 
+// UserAuthenticate is a representation of a "UserAuthenticate" check-in message type.
+// https://developer.apple.com/documentation/devicemanagement/userauthenticaterequest
+type UserAuthenticate struct {
+	Enrollment
+	MessageType
+	DigestResponse string `plist:",omitempty"`
+	Raw            []byte `plist:"-"` // Original XML plist
+}
+
 type BootstrapToken struct {
 	BootstrapToken b64Data
 }
@@ -97,6 +106,8 @@ func newCheckinMessageForType(t string, raw []byte) interface{} {
 		return &SetBootstrapToken{Raw: raw}
 	case "GetBootstrapToken":
 		return &GetBootstrapToken{Raw: raw}
+	case "UserAuthenticate":
+		return &UserAuthenticate{Raw: raw}
 	default:
 		return nil
 	}

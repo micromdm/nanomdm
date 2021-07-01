@@ -62,6 +62,20 @@ func (w *MicroWebhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	return postWebhookEvent(r.Context, w.client, w.url, ev)
 }
 
+func (w *MicroWebhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]byte, error) {
+	ev := &Event{
+		Topic:     "mdm.UserAuthenticate",
+		CreatedAt: time.Now(),
+		CheckinEvent: &CheckinEvent{
+			UDID:         m.UDID,
+			EnrollmentID: m.EnrollmentID,
+			RawPayload:   m.Raw,
+			Params:       r.Params,
+		},
+	}
+	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
+}
+
 func (w *MicroWebhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {
 	ev := &Event{
 		Topic:     "mdm.SetBootstrapToken",

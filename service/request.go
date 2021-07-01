@@ -50,6 +50,8 @@ func CheckinRequest(svc Checkin, r *mdm.Request, bodyBytes []byte) ([]byte, erro
 		if err != nil {
 			err = fmt.Errorf("checkout service: %w", err)
 		}
+	case *mdm.UserAuthenticate:
+		respBytes, err = svc.UserAuthenticate(r, m)
 	case *mdm.SetBootstrapToken:
 		err = svc.SetBootstrapToken(r, m)
 		if err != nil {

@@ -16,6 +16,7 @@ type Dumper struct {
 	file *os.File
 	cmd  bool
 	bst  bool
+	usr  bool
 }
 
 // New creates a new dumper service middleware.
@@ -25,6 +26,7 @@ func New(next service.CheckinAndCommandService, file *os.File) *Dumper {
 		file: file,
 		cmd:  true,
 		bst:  true,
+		usr:  true,
 	}
 }
 
@@ -41,6 +43,15 @@ func (svc *Dumper) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 func (svc *Dumper) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	svc.file.Write(m.Raw)
 	return svc.next.CheckOut(r, m)
+}
+
+func (svc *Dumper) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]byte, error) {
+	svc.file.Write(m.Raw)
+	respBytes, err := svc.next.UserAuthenticate(r, m)
+	if svc.usr && respBytes != nil && len(respBytes) > 0 {
+		svc.file.Write(respBytes)
+	}
+	return respBytes, err
 }
 
 func (svc *Dumper) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {

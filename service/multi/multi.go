@@ -75,6 +75,20 @@ func (ms *MultiService) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	return err
 }
 
+func (ms *MultiService) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]byte, error) {
+	respBytes, err := ms.svcs[0].UserAuthenticate(r, m)
+	rc := RequestWithContext(r, context.Background())
+	for i, svc := range ms.svcs[1:] {
+		go func(n int, svc service.CheckinAndCommandService) {
+			_, err := svc.UserAuthenticate(rc, m)
+			if err != nil {
+				ms.logger.Info("msg", "multi service", "service", n, "err", err)
+			}
+		}(i+1, svc)
+	}
+	return respBytes, err
+}
+
 func (ms *MultiService) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {
 	err := ms.svcs[0].SetBootstrapToken(r, m)
 	rc := RequestWithContext(r, context.Background())

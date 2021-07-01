@@ -25,6 +25,13 @@ func (s *CertAuth) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	return s.next.CheckOut(r, m)
 }
 
+func (s *CertAuth) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]byte, error) {
+	if err := s.validateOrAssociateForExistingEnrollment(r, &m.Enrollment); err != nil {
+		return nil, err
+	}
+	return s.next.UserAuthenticate(r, m)
+}
+
 func (s *CertAuth) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {
 	if err := s.validateOrAssociateForExistingEnrollment(r, &m.Enrollment); err != nil {
 		return err

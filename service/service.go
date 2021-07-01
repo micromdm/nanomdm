@@ -13,6 +13,7 @@ type Checkin interface {
 	CheckOut(*mdm.Request, *mdm.CheckOut) error
 	SetBootstrapToken(*mdm.Request, *mdm.SetBootstrapToken) error
 	GetBootstrapToken(*mdm.Request, *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error)
+	UserAuthenticate(*mdm.Request, *mdm.UserAuthenticate) ([]byte, error)
 }
 
 // CommandAndReportResults represents the command report and next-command request.
