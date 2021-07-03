@@ -304,7 +304,10 @@ func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.Declarative
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected HTTP status %d %s", resp.StatusCode, resp.Status)
+		return bodyBytes, service.NewHTTPStatusError(
+			resp.StatusCode,
+			fmt.Errorf("unexpected HTTP status: %s", resp.Status),
+		)
 	}
 	return bodyBytes, nil
 }
