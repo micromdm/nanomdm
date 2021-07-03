@@ -51,6 +51,12 @@ CREATE TABLE users (
     token_update    TEXT      NULL,
     token_update_at TIMESTAMP NULL,
 
+    -- The last raw UserAuthenticate (and optional digest) for this user
+    user_authenticate           TEXT      NULL,
+    user_authenticate_at        TIMESTAMP NULL,
+    user_authenticate_digest    TEXT      NULL,
+    user_authenticate_digest_at TIMESTAMP NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -63,7 +69,10 @@ CREATE TABLE users (
     CHECK (user_short_name IS NULL OR user_short_name != ''),
     CHECK (user_long_name  IS NULL OR user_long_name  != ''),
 
-    CHECK (token_update IS NULL OR token_update != '')
+    CHECK (token_update IS NULL OR token_update != ''),
+
+    CHECK (user_authenticate        IS NULL OR user_authenticate        != ''),
+    CHECK (user_authenticate_digest IS NULL OR user_authenticate_digest != '')
 );
 
 

@@ -147,6 +147,37 @@ UPDATE
 	return err
 }
 
+func (s *MySQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
+	colName := "user_authenticate"
+	colAtName := "user_authenticate_at"
+	// if the DigestResponse is empty then this is the first (of two)
+	// UserAuthenticate messages depending on our response
+	if msg.DigestResponse != "" {
+		colName = "user_authenticate_digest"
+		colAtName = "user_authenticate_digest_at"
+	}
+	_, err := s.db.ExecContext(
+		r.Context, `
+INSERT INTO users
+    (id, device_id, user_short_name, user_long_name, `+colName+`, `+colAtName+`)
+VALUES
+    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
+ON DUPLICATE KEY
+UPDATE
+    device_id = new.device_id,
+    user_short_name = new.user_short_name,
+    user_long_name = new.user_long_name,
+    `+colName+` = new.`+colName+`,
+    `+colAtName+` = new.`+colAtName+`;`,
+		r.ID,
+		r.ParentID,
+		nullEmptyString(msg.UserShortName),
+		nullEmptyString(msg.UserLongName),
+		msg.Raw,
+	)
+	return err
+}
+
 func (s *MySQLStorage) Disable(r *mdm.Request) error {
 	if r.ParentID != "" {
 		return errors.New("can only disable a device channel")

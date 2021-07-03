@@ -20,6 +20,9 @@ const (
 	DisabledFilename     = "Disabled"
 	BootstrapTokenFile   = "BootstrapToken.dat"
 
+	UserAuthFilename       = "UserAuthenticate.plist"
+	UserAuthDigestFilename = "UserAuthenticate.Digest.plist"
+
 	CertAuthFilename             = "CertAuth.sha256.txt"
 	CertAuthAssociationsFilename = "CertAuth.txt"
 
@@ -164,6 +167,17 @@ func (s *FileStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) err
 		return err
 	}
 	return nil
+}
+
+func (s *FileStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
+	e := s.newEnrollment(r.ID)
+	filename := UserAuthFilename
+	// if the DigestResponse is empty then this is the first (of two)
+	// UserAuthenticate messages depending on our response
+	if msg.DigestResponse != "" {
+		filename = UserAuthDigestFilename
+	}
+	return e.writeFile(filename, msg.Raw)
 }
 
 func (s *FileStorage) Disable(r *mdm.Request) error {

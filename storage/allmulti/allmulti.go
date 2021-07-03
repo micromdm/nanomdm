@@ -70,6 +70,13 @@ func (ms *MultiAllStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 	return err
 }
 
+func (ms *MultiAllStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
+	_, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return nil, s.StoreUserAuthenticate(r, msg)
+	})
+	return err
+}
+
 func (ms *MultiAllStorage) Disable(r *mdm.Request) error {
 	_, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
 		return nil, s.Disable(r)

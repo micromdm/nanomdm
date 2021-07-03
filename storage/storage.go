@@ -13,6 +13,7 @@ import (
 type CheckinStore interface {
 	StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error
 	StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error
+	StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error
 	Disable(r *mdm.Request) error
 }
 
