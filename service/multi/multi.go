@@ -26,6 +26,22 @@ func New(logger log.Logger, svcs ...service.CheckinAndCommandService) *MultiServ
 	return &MultiService{logger: logger, svcs: svcs}
 }
 
+type errorRunner func(service.CheckinAndCommandService) error
+
+func (ms *MultiService) runOthers(r errorRunner) {
+	for i, svc := range ms.svcs[1:] {
+		go func(n int, s service.CheckinAndCommandService) {
+			err := r(s)
+			if err != nil {
+				ms.logger.Info(
+					"sub_service", n,
+					"err", err,
+				)
+			}
+		}(i+1, svc)
+	}
+}
+
 // RequestWithContext returns a clone of r and sets its context to ctx.
 func RequestWithContext(r *mdm.Request, ctx context.Context) *mdm.Request {
 	r2 := r.Clone()
@@ -36,97 +52,65 @@ func RequestWithContext(r *mdm.Request, ctx context.Context) *mdm.Request {
 func (ms *MultiService) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 	err := ms.svcs[0].Authenticate(r, m)
 	rc := RequestWithContext(r, context.Background())
-	for i, svc := range ms.svcs[1:] {
-		go func(n int, svc service.CheckinAndCommandService) {
-			err := svc.Authenticate(rc, m)
-			if err != nil {
-				ms.logger.Info("msg", "multi service", "service", n, "err", err)
-			}
-		}(i+1, svc)
-	}
+	ms.runOthers(func(svc service.CheckinAndCommandService) error {
+		return svc.Authenticate(rc, m)
+	})
 	return err
 }
 
 func (ms *MultiService) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 	err := ms.svcs[0].TokenUpdate(r, m)
 	rc := RequestWithContext(r, context.Background())
-	for i, svc := range ms.svcs[1:] {
-		go func(n int, svc service.CheckinAndCommandService) {
-			err := svc.TokenUpdate(rc, m)
-			if err != nil {
-				ms.logger.Info("msg", "multi service", "service", n, "err", err)
-			}
-		}(i+1, svc)
-	}
+	ms.runOthers(func(svc service.CheckinAndCommandService) error {
+		return svc.TokenUpdate(rc, m)
+	})
 	return err
 }
 
 func (ms *MultiService) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	err := ms.svcs[0].CheckOut(r, m)
 	rc := RequestWithContext(r, context.Background())
-	for i, svc := range ms.svcs[1:] {
-		go func(n int, svc service.CheckinAndCommandService) {
-			err := svc.CheckOut(rc, m)
-			if err != nil {
-				ms.logger.Info("msg", "multi service", "service", n, "err", err)
-			}
-		}(i+1, svc)
-	}
+	ms.runOthers(func(svc service.CheckinAndCommandService) error {
+		return svc.CheckOut(rc, m)
+	})
 	return err
 }
 
 func (ms *MultiService) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]byte, error) {
 	respBytes, err := ms.svcs[0].UserAuthenticate(r, m)
 	rc := RequestWithContext(r, context.Background())
-	for i, svc := range ms.svcs[1:] {
-		go func(n int, svc service.CheckinAndCommandService) {
-			_, err := svc.UserAuthenticate(rc, m)
-			if err != nil {
-				ms.logger.Info("msg", "multi service", "service", n, "err", err)
-			}
-		}(i+1, svc)
-	}
+	ms.runOthers(func(svc service.CheckinAndCommandService) error {
+		_, err := svc.UserAuthenticate(rc, m)
+		return err
+	})
 	return respBytes, err
 }
 
 func (ms *MultiService) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {
 	err := ms.svcs[0].SetBootstrapToken(r, m)
 	rc := RequestWithContext(r, context.Background())
-	for i, svc := range ms.svcs[1:] {
-		go func(n int, svc service.CheckinAndCommandService) {
-			err := svc.SetBootstrapToken(rc, m)
-			if err != nil {
-				ms.logger.Info("msg", "multi service", "service", n, "err", err)
-			}
-		}(i+1, svc)
-	}
+	ms.runOthers(func(svc service.CheckinAndCommandService) error {
+		return svc.SetBootstrapToken(rc, m)
+	})
 	return err
 }
 
 func (ms *MultiService) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
 	bsToken, err := ms.svcs[0].GetBootstrapToken(r, m)
 	rc := RequestWithContext(r, context.Background())
-	for i, svc := range ms.svcs[1:] {
-		go func(n int, svc service.CheckinAndCommandService) {
-			_, err := svc.GetBootstrapToken(rc, m)
-			if err != nil {
-				ms.logger.Info("msg", "multi service", "service", n, "err", err)
-			}
-		}(i+1, svc)
-	}
+	ms.runOthers(func(svc service.CheckinAndCommandService) error {
+		_, err := svc.GetBootstrapToken(rc, m)
+		return err
+	})
 	return bsToken, err
 }
 
 func (ms *MultiService) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	cmd, err := ms.svcs[0].CommandAndReportResults(r, results)
 	rc := RequestWithContext(r, context.Background())
-	for i, svc := range ms.svcs[1:] {
-		go func(n int, svc service.CheckinAndCommandService) {
-			_, err := svc.CommandAndReportResults(rc, results)
-			if err != nil {
-				ms.logger.Info("msg", "multi service", "service", n, "err", err)
-			}
-		}(i+1, svc)
-	}
+	ms.runOthers(func(svc service.CheckinAndCommandService) error {
+		_, err := svc.CommandAndReportResults(rc, results)
+		return err
+	})
 	return cmd, err
 }
