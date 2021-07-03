@@ -23,6 +23,7 @@ type Service struct {
 	// check-in message. See the Discussion section of
 	// https://developer.apple.com/documentation/devicemanagement/userauthenticate
 	sendEmptyDigestChallenge bool
+	storeRejectedUserAuth    bool
 }
 
 // normalize generates enrollment IDs that are used by other
@@ -150,8 +151,10 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	if err := s.store.StoreUserAuthenticate(r, message); err != nil {
-		return nil, err
+	if s.sendEmptyDigestChallenge || s.storeRejectedUserAuth {
+		if err := s.store.StoreUserAuthenticate(r, message); err != nil {
+			return nil, err
+		}
 	}
 	// if the DigestResponse is empty then this is the first (of two)
 	// UserAuthenticate messages depending on our response
