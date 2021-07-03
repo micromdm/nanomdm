@@ -30,7 +30,7 @@ type Service struct {
 	sendEmptyDigestChallenge bool
 	storeRejectedUserAuth    bool
 
-	// for Declarative Management
+	// Declarative Management
 	dmURLPrefix string
 	dmClient    *http.Client
 }
@@ -67,6 +67,12 @@ type Option func(*Service)
 func WithLogger(logger log.Logger) Option {
 	return func(s *Service) {
 		s.logger = logger
+	}
+}
+
+func WithDeclarativeManagement(urlPrefix string) Option {
+	return func(s *Service) {
+		s.dmURLPrefix = urlPrefix
 	}
 }
 

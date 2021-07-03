@@ -57,7 +57,7 @@ func main() {
 		flCheckin    = flag.Bool("checkin", false, "enable separate HTTP endpoint for MDM check-ins")
 		flMigration  = flag.Bool("migration", false, "HTTP endpoint for enrollment migrations")
 		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
-		flMDMURLPfx  = flag.String("dm", "", "URL to send Declarative Management requests to")
+		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
 	)
 	flag.Parse()
 
@@ -90,9 +90,11 @@ func main() {
 	}
 
 	// create 'core' MDM service
-	_ = *flMDMURLPfx
-	nano := nanomdm.New(mdmStorage, nanomdm.WithLogger(logger.With("service", "nanomdm")))
-	// nano := nanomdm.New(mdmStorage, *flMDMURLPfx, logger.With("service", "nanomdm"))
+	nanoOpts := []nanomdm.Option{nanomdm.WithLogger(logger.With("service", "nanomdm"))}
+	if *flDMURLPfx != "" {
+		nanoOpts = append(nanoOpts, nanomdm.WithDeclarativeManagement(*flDMURLPfx))
+	}
+	nano := nanomdm.New(mdmStorage, nanoOpts...)
 
 	mux := http.NewServeMux()
 
