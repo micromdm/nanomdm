@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -69,7 +70,7 @@ func CheckinRequest(svc Checkin, r *mdm.Request, bodyBytes []byte) ([]byte, erro
 			err = fmt.Errorf("marshal bootstrap token: %w", err)
 		}
 	default:
-		return nil, NewHTTPStatusError(http.StatusBadRequest, mdm.ErrUnrecognizedMessageType)
+		return nil, errors.New("unhandled check-in request type")
 	}
 	return respBytes, err
 }
