@@ -164,6 +164,9 @@ CREATE TABLE command_results (
     status       VARCHAR(31)  NOT NULL,
     result       TEXT         NOT NULL,
 
+    not_now_at    TIMESTAMP NULL,
+    not_now_tally INTEGER NOT NULL DEFAULT 0,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 

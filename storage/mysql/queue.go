@@ -50,16 +50,24 @@ func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 		// TODO: store LastSeen?
 		return nil
 	}
+	notNowConstants := "NULL, 0"
+	notNowBumpTallySQL := ""
+	// note that due to the ON DUPLICATE KEY we don't UPDATE the
+	// not_now_at field. thus it will only represent the first NotNow.
+	if result.Status == "NotNow" {
+		notNowConstants = "CURRENT_TIMESTAMP, 1"
+		notNowBumpTallySQL = `, command_results.not_now_tally = command_results.not_now_tally + 1`
+	}
 	_, err := s.db.ExecContext(
 		r.Context, `
 INSERT INTO command_results
-    (id, command_uuid, status, result)
+    (id, command_uuid, status, result, not_now_at, not_now_tally)
 VALUES
-    (?, ?, ?, ?) AS new
+    (?, ?, ?, ?, `+notNowConstants+`) AS new
 ON DUPLICATE KEY
 UPDATE
     status = new.status,
-    result = new.result;`,
+    result = new.result`+notNowBumpTallySQL+`;`,
 		r.ID,
 		result.CommandUUID,
 		result.Status,
