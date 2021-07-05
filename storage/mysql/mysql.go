@@ -2,6 +2,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -124,9 +125,9 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 	_, err = s.db.ExecContext(
 		r.Context, `
 INSERT INTO enrollments
-	(id, device_id, user_id, type, topic, push_magic, token_hex)
+	(id, device_id, user_id, type, topic, push_magic, token_hex, token_update_tally)
 VALUES
-	(?, ?, ?, ?, ?, ?, ?) AS new
+	(?, ?, ?, ?, ?, ?, ?, 1) AS new
 ON DUPLICATE KEY
 UPDATE
     device_id = new.device_id,
@@ -135,7 +136,8 @@ UPDATE
     topic = new.topic,
     push_magic = new.push_magic,
     token_hex = new.token_hex,
-	enabled = 1;`,
+	enabled = 1,
+	enrollments.token_update_tally = enrollments.token_update_tally + 1;`,
 		r.ID,
 		deviceId,
 		nullEmptyString(userId),
@@ -145,6 +147,16 @@ UPDATE
 		msg.Token.String(),
 	)
 	return err
+}
+
+func (s *MySQLStorage) RetrieveTokenUpdateTally(ctx context.Context, id string) (int, error) {
+	var tally int
+	err := s.db.QueryRowContext(
+		ctx,
+		`SELECT token_update_tally FROM enrollments WHERE id = ?;`,
+		id,
+	).Scan(&tally)
+	return tally, err
 }
 
 func (s *MySQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
@@ -184,7 +196,7 @@ func (s *MySQLStorage) Disable(r *mdm.Request) error {
 	}
 	_, err := s.db.ExecContext(
 		r.Context,
-		`UPDATE enrollments SET enabled = 0 WHERE device_id = ? AND enabled = 1;`,
+		`UPDATE enrollments SET enabled = 0, token_update_tally = 0 WHERE device_id = ? AND enabled = 1;`,
 		r.ID,
 	)
 	return err

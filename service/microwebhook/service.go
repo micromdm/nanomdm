@@ -6,17 +6,20 @@ import (
 	"time"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage"
 )
 
 type MicroWebhook struct {
 	url    string
 	client *http.Client
+	store  storage.TokenUpdateTallyStore
 }
 
-func New(url string) *MicroWebhook {
+func New(url string, store storage.TokenUpdateTallyStore) *MicroWebhook {
 	return &MicroWebhook{
 		url:    url,
 		client: http.DefaultClient,
+		store:  store,
 	}
 }
 
@@ -44,6 +47,13 @@ func (w *MicroWebhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 			RawPayload:   m.Raw,
 			Params:       r.Params,
 		},
+	}
+	if w.store != nil {
+		tally, err := w.store.RetrieveTokenUpdateTally(r.Context, r.ID)
+		if err != nil {
+			return err
+		}
+		ev.CheckinEvent.TokenUpdateTally = &tally
 	}
 	return postWebhookEvent(r.Context, w.client, w.url, ev)
 }

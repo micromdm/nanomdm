@@ -96,7 +96,7 @@ func main() {
 	if !*flDisableMDM {
 		var mdmService service.CheckinAndCommandService = nano
 		if *flWebhook != "" {
-			webhookService := microwebhook.New(*flWebhook)
+			webhookService := microwebhook.New(*flWebhook, mdmStorage)
 			mdmService = multi.New(logger.With("service", "multi"), mdmService, webhookService)
 		}
 		certAuthOpts := []certauth.Option{certauth.WithLogger(logger.With("service", "certauth"))}

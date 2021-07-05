@@ -1,6 +1,8 @@
 package allmulti
 
 import (
+	"context"
+
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage"
@@ -68,6 +70,13 @@ func (ms *MultiAllStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 		return nil, s.StoreTokenUpdate(r, msg)
 	})
 	return err
+}
+
+func (ms *MultiAllStorage) RetrieveTokenUpdateTally(ctx context.Context, id string) (int, error) {
+	val, err := ms.execStores(func(s storage.AllStorage) (interface{}, error) {
+		return s.RetrieveTokenUpdateTally(ctx, id)
+	})
+	return val.(int), err
 }
 
 func (ms *MultiAllStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {

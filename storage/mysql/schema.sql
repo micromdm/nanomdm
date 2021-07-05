@@ -99,7 +99,8 @@ CREATE TABLE enrollments (
     push_magic VARCHAR(127) NOT NULL,
     token_hex  VARCHAR(255) NOT NULL, -- TODO: Perhaps just CHAR(64)?
 
-    enabled BOOLEAN NOT NULL DEFAULT 1,
+    enabled            BOOLEAN NOT NULL DEFAULT 1,
+    token_update_tally INTEGER NOT NULL DEFAULT 1,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

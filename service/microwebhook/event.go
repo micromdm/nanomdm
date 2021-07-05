@@ -25,4 +25,8 @@ type CheckinEvent struct {
 	EnrollmentID string            `json:"enrollment_id,omitempty"`
 	Params       map[string]string `json:"url_params"`
 	RawPayload   []byte            `json:"raw_payload"`
+
+	// signals which tokenupdate this is to be able to tell whether this
+	// is the initial enrollment vs. a following tokenupdate
+	TokenUpdateTally *int `json:"token_update_tally,omitempty"`
 }

@@ -2,10 +2,12 @@
 package file
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 	"github.com/micromdm/nanomdm/mdm"
@@ -19,6 +21,8 @@ const (
 	IdentityCertFilename = "Identity.pem"
 	DisabledFilename     = "Disabled"
 	BootstrapTokenFile   = "BootstrapToken.dat"
+
+	TokenUpdateTallyFilename = "TokenUpdate.tally.txt"
 
 	UserAuthFilename       = "UserAuthenticate.plist"
 	UserAuthDigestFilename = "UserAuthenticate.Digest.plist"
@@ -94,6 +98,28 @@ func (e *enrollment) fileExists(name string) (bool, error) {
 	return true, nil
 }
 
+func (e *enrollment) bumpNumericFile(name string) error {
+	ctr, err := e.readNumericFile(name)
+	if err != nil {
+		return err
+	}
+	ctr += 1
+	return e.writeFile(name, []byte(strconv.Itoa(ctr)))
+}
+
+func (e *enrollment) resetNumericFile(name string) error {
+	return e.writeFile(name, []byte{48})
+}
+
+func (e *enrollment) readNumericFile(name string) (int, error) {
+	val, err := e.readFile(name)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return 0, err
+	}
+	ctr, _ := strconv.Atoi(string(val))
+	return ctr, nil
+}
+
 // assocSubEnrollment writes an empty file of the sub (user) enrollment for tracking.
 func (e *enrollment) assocSubEnrollment(id string) error {
 	subPath := e.dirPrefix(SubEnrollmentPathname)
@@ -162,11 +188,19 @@ func (s *FileStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) err
 	if err := e.writeFile(TokenUpdateFilename, []byte(msg.Raw)); err != nil {
 		return err
 	}
+	if err := e.bumpNumericFile(TokenUpdateTallyFilename); err != nil {
+		return err
+	}
 	// delete the disabled flag to let signify this enrollment is enabled
 	if err := os.Remove(e.dirPrefix(DisabledFilename)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	return nil
+}
+
+func (s *FileStorage) RetrieveTokenUpdateTally(_ context.Context, id string) (int, error) {
+	e := s.newEnrollment(id)
+	return e.readNumericFile(TokenUpdateTallyFilename)
 }
 
 func (s *FileStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
@@ -193,6 +227,9 @@ func (s *FileStorage) Disable(r *mdm.Request) error {
 		e := s.newEnrollment(id)
 		// write zero-byte disabled marker
 		if err := e.writeFile(DisabledFilename, nil); err != nil {
+			return err
+		}
+		if err := e.resetNumericFile(TokenUpdateTallyFilename); err != nil {
 			return err
 		}
 	}

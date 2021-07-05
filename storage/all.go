@@ -8,4 +8,5 @@ type AllStorage interface {
 	CommandEnqueuer
 	CertAuthStore
 	StoreMigrator
+	TokenUpdateTallyStore
 }

@@ -74,3 +74,8 @@ type StoreMigrator interface {
 	// follow the device channel TokenUpdate.
 	RetrieveMigrationCheckins(context.Context, chan<- interface{}) error
 }
+
+// TokenUpdateTallyStore retrieves the TokenUpdate tally (count) for an id
+type TokenUpdateTallyStore interface {
+	RetrieveTokenUpdateTally(ctx context.Context, id string) (int, error)
+}
