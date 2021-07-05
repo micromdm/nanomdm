@@ -44,10 +44,10 @@ The `-storage` and `-dsn` flags together represent how the backend storage is co
 
 * `-storage file`  
 Configures the file storage backend. This manages enrollment data in plain filesystem directories and files and has zero dependencies. The `-dsn` switch specifies the directory for the database.  
-Example `-storage file -dsn /path/to/my/db`
+*Example:* `-storage file -dsn /path/to/my/db`
 * `-storage mysql`  
-Configures the MySQL storage backend. The `-dsn` switch should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with the [schema.sql](../storage/mysql/schema.sql) file first.
-Example `-storage mysql -dsn nanomdm:nanomdm/mymdmdb`
+Configures the MySQL storage backend. The `-dsn` switch should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with the [schema.sql](../storage/mysql/schema.sql) file first.  
+*Example:* `-storage mysql -dsn nanomdm:nanomdm/mymdmdb`
 
 #### Multiple backends:
 
