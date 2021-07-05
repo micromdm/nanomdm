@@ -1,6 +1,6 @@
 # NanoMDM Operations Guide
 
-This is a brief overview of the various command-line switches and HTTP endpoints and APIs available to NanoMDM.
+This is a brief overview of the various command-line switches and HTTP endpoints (including APIs) available to NanoMDM.
 
 ## Switches
 
@@ -8,7 +8,7 @@ This is a brief overview of the various command-line switches and HTTP endpoints
 
 * API key for API endpoints
 
-API authorization in NanoMDM is just HTTP Basic authentication with "nanomdm" as the username and this API key as the password. Omitting this switch turns off all API endpoints — NanoMDM in this mode will essentially just be for handling MDM client requests. It is not compatible with also specifying `-disable-mdm`.
+API authorization in NanoMDM is simply HTTP Basic authentication using "nanomdm" as the username and the API key as the password. Omitting this switch turns off all API endpoints — NanoMDM in this mode will essentially just be for handling MDM client requests. It is not compatible with also specifying `-disable-mdm`.
 
 ### -ca string
 
@@ -22,13 +22,13 @@ NanoMDM validates that the device identity certificate is issued from specific C
 
 By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices)). This corresponds to the `SignMessage` key being set to true in the enrollment profile.
 
-With the `-cert-header` switch you can specify the name of an HTTP header that is passed to NanoMDM to read the client identity certificate. This is ostensibly to support Nginx' [$ssl_client_escaped_cert](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) in a [proxy_set_header](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header) directive. Though any reverse proxy setting a similar header could be used, of course.
+With the `-cert-header` switch you can specify the name of an HTTP header that is passed to NanoMDM to read the client identity certificate. This is ostensibly to support Nginx' [$ssl_client_escaped_cert](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) in a [proxy_set_header](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header) directive. Though any reverse proxy setting a similar header could be used, of course. The `SignMessage` key in the enrollment profile should be set appropriately.
 
 ### -checkin
 
 * enable separate HTTP endpoint for MDM check-ins
 
-By default NanoMDM uses a single HTTP endpoint, `/mdm`, for both commands and results *and* for check-ins. If this option is specified then `/mdm` will only be for commands and results and `/checkin` will only be for MDM check-ins.
+By default NanoMDM uses a single HTTP endpoint (`/mdm` — see below) for both commands and results *and* for check-ins. If this option is specified then `/mdm` will only be for commands and results and `/checkin` will only be for MDM check-ins.
 
 ### -debug
 
@@ -38,26 +38,26 @@ Enable additional debug logging.
 
 ### -storage & -dsn
 
-The `-storage` and `-dsn` flags together represent how the backend storage is configured. `-storage` specifies the name of the backend while `-dsn` specifies the backend data source name (in other words the connection string). These switches are used as a pair. If neither are supplied then it is as if you specified `-storage file -dsn db` meaning we use the `file` storage backend with `db` as its DSN—in the `file` backend's case the DSN is just a directory name of the DB.
+The `-storage` and `-dsn` flags together represent how the backend storage is configured. `-storage` specifies the name of the backend while `-dsn` specifies the backend data source name (in other words the connection string). These switches are used as a pair. If neither are supplied then it is as if you specified `-storage file -dsn db` meaning we use the `file` storage backend with `db` as its DSN. In the `file` backend's case the DSN is just a directory name of the DB.
 
 #### Supported backends:
 
 * `-storage file`  
-Configures the file storage backend. This manages enrollment data in plain filesystem directories and files but has zero dependencies. The `-dsn` specifies the directory for the database.  
+Configures the file storage backend. This manages enrollment data in plain filesystem directories and files and has zero dependencies. The `-dsn` switch specifies the directory for the database.  
 Example `-storage file -dsn /path/to/my/db`
 * `-storage mysql`  
-Configures the MySQL storage backend. The `-dsn` should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with `schema.sql` file first.  
+Configures the MySQL storage backend. The `-dsn` switch should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with the [schema.sql](../storage/mysql/schema.sql) file first.
 Example `-storage mysql -dsn nanomdm:nanomdm/mymdmdb`
 
 #### Multiple backends:
 
-You can configure multiple storage backends. Specifying multiple sets of `-storage` and `-dsn` flags (in paired order) will configure the "multi-storage" adapter. Be aware that only the first storage backend will be used when interacting with the system, all others storge is called to but any results are discarded. In other words consider them write-only.
+You can configure multiple storage backends. Specifying multiple sets of `-storage` and `-dsn` flags (in paired order) will configure the "multi-storage" adapter. Be aware that only the first storage backend will be used when interacting with the system, all others storage is called to, but any results are discarded. In other words consider them write-only.
 
-Also beware that you will have very bizaare results if you change to using multiple storage backends in the midst of existing enrollments. You will receive errors about missing database rows or data. A storage backend needs to be around when a (or all devices) initially enrolls. There is no "sync" or backfill system (see the migration ability if you need this).
+Also beware that you will have very bizaare results if you change to using multiple storage backends in the midst of existing enrollments. You will receive errors about missing database rows or data. A storage backend needs to be around when a device (or all devices) initially enroll(s). There is no "sync" or backfill system with multiple storage backends (see the migration ability if you need this).
 
 This feature is really only useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps a new storage backend).
 
-For example to use both a `file` *and* `mysql` backend your command line might look like: `-storage file -dsn db -storage mysql -dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match of just about any type. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN.
+For example to use both a `file` *and* `mysql` backend your command line might look like: `-storage file -dsn db -storage mysql -dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple types of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN.
 
 ### -dump
 
@@ -105,7 +105,7 @@ Print version and exit.
 
 NanoMDM supports a MicroMDM-compatible [webhook callback](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md) option. This switch turns on the webhook and specifies the URL.
 
-## HTTP endpoints & API
+## HTTP endpoints & APIs
 
 ### MDM
 
