@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/micromdm/nanomdm/mdm"
 )
@@ -22,10 +23,11 @@ func enqueue(ctx context.Context, tx *sql.Tx, ids []string, cmd *mdm.Command) er
 		return err
 	}
 	query := `INSERT INTO enrollment_queue (id, command_uuid) VALUES (?, ?)`
-	args := []interface{}{ids[0], cmd.CommandUUID}
-	for _, id := range ids[1:] {
-		query += `, (?, ?)`
-		args = append(args, id, cmd.CommandUUID)
+	query += strings.Repeat(", (?, ?)", len(ids)-1)
+	args := make([]interface{}, len(ids)*2)
+	for i, id := range ids {
+		args[i*2] = id
+		args[i*2+1] = cmd.CommandUUID
 	}
 	_, err = tx.ExecContext(ctx, query+";", args...)
 	return err
