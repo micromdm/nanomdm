@@ -162,7 +162,7 @@ CREATE TABLE command_results (
     id           VARCHAR(255) NOT NULL,
     command_uuid VARCHAR(127) NOT NULL,
     status       VARCHAR(31)  NOT NULL,
-    result       MEDIUMTEXT     NOT NULL,
+    result       MEDIUMTEXT   NOT NULL,
 
     not_now_at    TIMESTAMP NULL,
     not_now_tally INTEGER NOT NULL DEFAULT 0,
