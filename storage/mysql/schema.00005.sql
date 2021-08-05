@@ -1,1 +1,1 @@
-ALTER TABLE command_results MODIFY result LONGTEXT;
+ALTER TABLE command_results MODIFY result MEDIUMTEXT;
