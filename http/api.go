@@ -45,6 +45,7 @@ type apiResult struct {
 // users.
 func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var hadServerError bool
 		ids := strings.Split(r.URL.Path, ",")
 		output := apiResult{
 			Status: make(enrolledAPIResults),
@@ -56,7 +57,6 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 			hadServerError = true
 		}
 		var ct, errCt int
-		var hadServerError bool
 		for id, resp := range pushResp {
 			output.Status[id] = &enrolledAPIResult{
 				PushResult: resp.Id,
