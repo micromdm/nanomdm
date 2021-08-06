@@ -56,7 +56,7 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 			hadServerError = true
 		}
 		var ct, errCt int
-		var hadServerError bool = false
+		var hadServerError bool
 		for id, resp := range pushResp {
 			output.Status[id] = &enrolledAPIResult{
 				PushResult: resp.Id,
@@ -115,7 +115,7 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			CommandUUID: command.CommandUUID,
 			RequestType: command.Command.RequestType,
 		}
-		var hadServerError bool = false
+		var hadServerError bool
 		idErrs, err := enqueuer.EnqueueCommand(r.Context(), ids, command)
 		if err != nil {
 			logger.Info("msg", "enqueue command", "err", err)
@@ -195,7 +195,7 @@ func StorePushCertHandlerFunc(storage storage.PushCertStore, logger log.Logger) 
 		var pemKey []byte
 		var topic string
 		var block *pem.Block
-		var hadServerError bool = false
+		var hadServerError bool
 		for {
 			block, b = pem.Decode(b)
 			if block == nil {
