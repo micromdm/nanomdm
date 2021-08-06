@@ -53,8 +53,10 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 		if err != nil {
 			logger.Info("msg", "push", "err", err)
 			output.PushError = err.Error()
+			hadServerError = true
 		}
 		var ct, errCt int
+		var hadServerError bool = false
 		for id, resp := range pushResp {
 			output.Status[id] = &enrolledAPIResult{
 				PushResult: resp.Id,
@@ -62,6 +64,7 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 			if resp.Err != nil {
 				output.Status[id].PushError = resp.Err.Error()
 				errCt += 1
+				hadServerError = true
 			} else {
 				ct += 1
 			}
@@ -70,8 +73,12 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
 			logger.Info("msg", "marshal json", "err", err)
+			hadServerError = true
 		}
 		w.Header().Set("Content-type", "application/json")
+		if hadServerError {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		_, err = w.Write(json)
 		if err != nil {
 			logger.Info("msg", "writing body", "err", err)
@@ -108,10 +115,12 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			CommandUUID: command.CommandUUID,
 			RequestType: command.Command.RequestType,
 		}
+		var hadServerError bool = false
 		idErrs, err := enqueuer.EnqueueCommand(r.Context(), ids, command)
 		if err != nil {
 			logger.Info("msg", "enqueue command", "err", err)
 			output.CommandError = err.Error()
+			hadServerError = true
 		}
 		pushResp := make(map[string]*push.Response)
 		if !nopush {
@@ -119,6 +128,7 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			if err != nil {
 				logger.Info("msg", "push", "err", err)
 				output.PushError = err.Error()
+				hadServerError = true
 			}
 		}
 		// loop through our command errors, if any, and add to output
@@ -153,8 +163,12 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
 			logger.Info("msg", "marshal json", "err", err)
+			hadServerError = true
 		}
 		w.Header().Set("Content-type", "application/json")
+		if hadServerError {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		_, err = w.Write(json)
 		if err != nil {
 			logger.Info("msg", "writing body", "err", err)
@@ -181,6 +195,7 @@ func StorePushCertHandlerFunc(storage storage.PushCertStore, logger log.Logger) 
 		var pemKey []byte
 		var topic string
 		var block *pem.Block
+		var hadServerError bool = false
 		for {
 			block, b = pem.Decode(b)
 			if block == nil {
@@ -221,14 +236,19 @@ func StorePushCertHandlerFunc(storage storage.PushCertStore, logger log.Logger) 
 		if err != nil {
 			logger.Info("msg", "store push cert", "err", err)
 			output.Error = err.Error()
+			hadServerError = true
 		} else {
 			logger.Info("msg", "stored push cert", "topic", topic)
 		}
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
 			logger.Info("msg", "marshal json", "err", err)
+			hadServerError = true
 		}
 		w.Header().Set("Content-type", "application/json")
+		if hadServerError {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		_, err = w.Write(json)
 		if err != nil {
 			logger.Info("msg", "writing body", "err", err)
