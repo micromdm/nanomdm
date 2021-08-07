@@ -11,6 +11,8 @@ import (
 	"github.com/micromdm/nanomdm/storage/allmulti"
 	"github.com/micromdm/nanomdm/storage/file"
 	"github.com/micromdm/nanomdm/storage/mysql"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type StringAccumulator []string
@@ -57,7 +59,10 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 			}
 			mdmStorage = append(mdmStorage, fileStorage)
 		case "mysql":
-			mysqlStorage, err := mysql.New(dsn, logger.With("storage", "mysql"))
+			mysqlStorage, err := mysql.New(
+				mysql.WithDSN(dsn),
+				mysql.WithLogger(logger.With("storage", "mysql")),
+			)
 			if err != nil {
 				return nil, err
 			}

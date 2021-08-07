@@ -9,8 +9,6 @@ import (
 	"github.com/micromdm/nanomdm/cryptoutil"
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/mdm"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 var ErrNoCert = errors.New("no certificate in MDM Request")
@@ -20,16 +18,55 @@ type MySQLStorage struct {
 	db     *sql.DB
 }
 
-func New(conn string, logger log.Logger) (*MySQLStorage, error) {
-	db, err := sql.Open("mysql", conn)
-	if err != nil {
+type config struct {
+	driver string
+	dsn    string
+	db     *sql.DB
+	logger log.Logger
+}
+
+type Option func(*config)
+
+func WithLogger(logger log.Logger) Option {
+	return func(c *config) {
+		c.logger = logger
+	}
+}
+
+func WithDSN(dsn string) Option {
+	return func(c *config) {
+		c.dsn = dsn
+	}
+}
+
+func WithDriver(driver string) Option {
+	return func(c *config) {
+		c.driver = driver
+	}
+}
+
+func WithDB(db *sql.DB) Option {
+	return func(c *config) {
+		c.db = db
+	}
+}
+
+func New(opts ...Option) (*MySQLStorage, error) {
+	cfg := &config{logger: log.NopLogger, driver: "mysql"}
+	for _, opt := range opts {
+		opt(cfg)
+	}
+	var err error
+	if cfg.db == nil {
+		cfg.db, err = sql.Open(cfg.driver, cfg.dsn)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-	return &MySQLStorage{db: db, logger: logger}, nil
+	return &MySQLStorage{db: cfg.db, logger: cfg.logger}, nil
 }
 
 // nullEmptyString returns a NULL string if s is empty.
