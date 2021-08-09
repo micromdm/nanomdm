@@ -1,1 +1,1 @@
-ALTER TABLE command_results MODIFY result MEDIUMTEXT;
+ALTER TABLE command_results MODIFY result MEDIUMTEXT NOT NULL;
