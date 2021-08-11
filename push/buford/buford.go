@@ -5,6 +5,7 @@ package buford
 import (
 	"crypto/tls"
 	"errors"
+	"net/http"
 	"time"
 
 	bufordpush "github.com/RobotsAndPencils/buford/push"
@@ -12,22 +13,61 @@ import (
 	"github.com/micromdm/nanomdm/push"
 )
 
+// NewClient describes a callback for setting up an HTTP client for Push notifications.
+type NewClient func(*tls.Certificate) (*http.Client, error)
+
 // bufordFactory instantiates new buford Services to satisfy the PushProviderFactory interface.
 type bufordFactory struct {
-	workers    uint
-	expiration time.Time
+	workers           uint
+	expiration        time.Time
+	newClientCallback NewClient
+}
+
+type Option func(*bufordFactory)
+
+// WithWorkers sets how many worker goroutines to use when sending
+// multiple push notifications.
+func WithWorkers(workers uint) Option {
+	return func(f *bufordFactory) {
+		f.workers = workers
+	}
+}
+
+// WithExpiration sets the APNs expiration time for the push notifications.
+func WithExpiration(expiration time.Time) Option {
+	return func(f *bufordFactory) {
+		f.expiration = expiration
+	}
+}
+
+// WithNewClient sets a callback to setup an HTTP client for each
+// new Push provider.
+func WithNewClient(newClientCallback NewClient) Option {
+	return func(f *bufordFactory) {
+		f.newClientCallback = newClientCallback
+	}
 }
 
 // NewPushProviderFactory creates a new instance that can spawn buford Services
-func NewPushProviderFactory() *bufordFactory {
-	return &bufordFactory{
+func NewPushProviderFactory(opts ...Option) *bufordFactory {
+	factory := &bufordFactory{
 		workers: 5,
 	}
+	for _, opt := range opts {
+		opt(factory)
+	}
+	return factory
 }
 
 // NewPushProvider generates a new PushProvider given a tls keypair
 func (f *bufordFactory) NewPushProvider(cert *tls.Certificate) (push.PushProvider, error) {
-	client, err := bufordpush.NewClient(*cert)
+	var client *http.Client
+	var err error
+	if f.newClientCallback == nil {
+		client, err = bufordpush.NewClient(*cert)
+	} else {
+		client, err = f.newClientCallback(cert)
+	}
 	if err != nil {
 		return nil, err
 	}
