@@ -190,7 +190,12 @@ func main() {
 	})
 
 	logger.Info("msg", "starting server", "listen", *flListen)
-	http.ListenAndServe(*flListen, simpleLog(mux, logger.With("handler", "log")))
+	err = http.ListenAndServe(*flListen, simpleLog(mux, logger.With("handler", "log")))
+	logs := []interface{}{"msg", "server shutdown"}
+	if err != nil {
+		logs = append(logs, "err", err)
+	}
+	logger.Info(logs...)
 }
 
 func basicAuth(next http.Handler, username, password, realm string) http.HandlerFunc {
