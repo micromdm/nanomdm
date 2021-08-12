@@ -253,6 +253,9 @@ CREATE TABLE push_certs (
      * changed and reload it. This is managed by the MySQL backend. */
     stale_token INTEGER NOT NULL,
 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
     PRIMARY KEY (topic),
     CHECK (topic != ''),
 
