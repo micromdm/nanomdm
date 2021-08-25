@@ -232,7 +232,7 @@ $ ./tools/cmdr.py SecurityInfo
 It also has a `-r` mode to pick a random read-only command to generate. We'll use this to send a command to our MDM device!
 
 ```
-$ ./tools/cmdr.py -r | curl -T - -u nanomdm:nanomm 'http://127.0.0.1:9000/v1/enqueue/E9085AF6-DCCB-5661-A678-BCE8F4D9A2C8'
+$ ./tools/cmdr.py -r | curl -T - -u nanomdm:nanomdm 'http://127.0.0.1:9000/v1/enqueue/E9085AF6-DCCB-5661-A678-BCE8F4D9A2C8'
 {
 	"status": {
 		"E9085AF6-DCCB-5661-A678-BCE8F4D9A2C8": {
