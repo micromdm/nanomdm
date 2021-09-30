@@ -46,6 +46,7 @@ func NewDeclarativeManagementHTTPCaller(urlPrefix string) *DeclarativeManagement
 	}
 }
 
+// DeclarativeManagement calls out to an HTTP URL to handle the actual Declarative Management protocol
 func (c *DeclarativeManagementHTTPCaller) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
 	if c.urlPrefix == "" {
 		return nil, errors.New("missing URL")
