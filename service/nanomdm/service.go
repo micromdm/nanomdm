@@ -2,13 +2,8 @@
 package nanomdm
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
-	"path"
 
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/mdm"
@@ -31,8 +26,7 @@ type Service struct {
 	storeRejectedUserAuth    bool
 
 	// Declarative Management
-	dmURLPrefix string
-	dmClient    *http.Client
+	dm service.DeclarativeManagement
 }
 
 // normalize generates enrollment IDs that are used by other
@@ -70,9 +64,9 @@ func WithLogger(logger log.Logger) Option {
 	}
 }
 
-func WithDeclarativeManagement(urlPrefix string) Option {
+func WithDeclarativeManagement(dm service.DeclarativeManagement) Option {
 	return func(s *Service) {
-		s.dmURLPrefix = urlPrefix
+		s.dm = dm
 	}
 }
 
@@ -82,7 +76,6 @@ func New(store storage.ServiceStore, opts ...Option) *Service {
 		store:      store,
 		logger:     log.NopLogger,
 		normalizer: normalize,
-		dmClient:   http.DefaultClient,
 	}
 	for _, opt := range opts {
 		opt(nanomdm)
@@ -255,59 +248,4 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 		"id", r.ID,
 	)
 	return nil, nil
-}
-
-// DeclarativeManagement calls out to an HTTP server with the
-// "unwrapped" Declarative Management endpoints.
-//
-// We append the "Endpoint" key to the provided service DM URL Prefix
-// and send along any JSON in the request. If there is any provided Data
-// in the check-in message we set the Content-Type to JSON and use HTTP
-// PUT instead of GET.
-func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
-		return nil, err
-	}
-	s.logger.Info(
-		"msg", "DeclarativeManagement",
-		"id", r.ID,
-		"type", r.Type,
-		"endpoint", message.Endpoint,
-	)
-	if s.dmURLPrefix == "" {
-		return nil, errors.New("missing declarative management URL")
-	}
-	u, err := url.Parse(s.dmURLPrefix)
-	if err != nil {
-		return nil, err
-	}
-	u.Path = path.Join(u.Path, message.Endpoint)
-	method := http.MethodGet
-	if len(message.Data) > 0 {
-		method = http.MethodPut
-	}
-	req, err := http.NewRequestWithContext(r.Context, method, u.String(), bytes.NewBuffer(message.Data))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Enrollment-ID", r.ID)
-	if len(message.Data) > 0 {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	resp, err := s.dmClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return bodyBytes, service.NewHTTPStatusError(
-			resp.StatusCode,
-			fmt.Errorf("unexpected HTTP status: %s", resp.Status),
-		)
-	}
-	return bodyBytes, nil
 }
