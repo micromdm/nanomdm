@@ -3,6 +3,8 @@ package certverify
 import (
 	"crypto/x509"
 	"errors"
+
+	"github.com/micromdm/nanomdm/cryptoutil"
 )
 
 // SignatureVerifier is a simple certificate verifier
@@ -12,7 +14,7 @@ type SignatureVerifier struct {
 
 // NewSignatureVerifier creates a new Verifier
 func NewSignatureVerifier(rootPEM []byte) (*SignatureVerifier, error) {
-	ca, err := x509.ParseCertificate(rootPEM)
+	ca, err := cryptoutil.DecodePEMCertificate(rootPEM)
 	if err != nil {
 		return nil, err
 	}
