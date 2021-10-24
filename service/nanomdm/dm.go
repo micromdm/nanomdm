@@ -13,24 +13,6 @@ import (
 	"github.com/micromdm/nanomdm/service"
 )
 
-// DeclarativeManagement Check-in message implementation. Calls out to
-// the service's DM handler (if configured).
-func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
-		return nil, err
-	}
-	s.logger.Info(
-		"msg", "DeclarativeManagement",
-		"id", r.ID,
-		"type", r.Type,
-		"endpoint", message.Endpoint,
-	)
-	if s.dm == nil {
-		return nil, errors.New("no Declarative Management handler")
-	}
-	return s.dm.DeclarativeManagement(r, message)
-}
-
 const enrollmentIDHeader = "X-Enrollment-ID"
 
 type DeclarativeManagementHTTPCaller struct {
