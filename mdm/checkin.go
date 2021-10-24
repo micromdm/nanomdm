@@ -100,7 +100,7 @@ type DeclarativeManagement struct {
 	MessageType
 	Data     []byte
 	Endpoint string
-	Raw      []byte // Original XML plist
+	Raw      []byte `plist:"-"` // Original XML plist
 }
 
 // newCheckinMessageForType returns a pointer to a check-in struct for MessageType t
