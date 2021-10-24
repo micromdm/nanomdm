@@ -77,6 +77,12 @@ Specifies the listen address (interface & port number) for the server to listen 
 
 This switch disables MDM client capability. This effecitvely turns this running instance into "API-only" mode. It is not compatible with having an empty `-api` switch.
 
+### -dm
+
+* URL to send Declarative Management requests to
+
+Specifies the "base" URL to send Declarative Management requests to. The full URL is constructed from this base URL appended with the type of Declarative Management ["Endpoint" request](https://developer.apple.com/documentation/devicemanagement/declarativemanagementrequest?language=objc) such as "status" or "declaration-items". Each HTTP request includes the NanoMDM enrollment ID as the HTTP header "X-Enrollment-ID". See [this blog post](https://micromdm.io/blog/wwdc21-declarative-management/) for more details.
+
 ### -migration
 
 * HTTP endpoint for enrollment migrations
