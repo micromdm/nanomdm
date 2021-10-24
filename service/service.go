@@ -6,7 +6,7 @@ import (
 )
 
 // DeclarativeManagement is the interface for handling the Apple
-// Declarative Management protocol vi MDM "v1."
+// Declarative Management protocol via MDM "v1."
 type DeclarativeManagement interface {
 	DeclarativeManagement(*mdm.Request, *mdm.DeclarativeManagement) ([]byte, error)
 }
