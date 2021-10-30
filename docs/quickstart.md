@@ -23,11 +23,11 @@ If you don't already have a SCEP server we'll need to set one up. For this guide
 ```
 $ mkdir scep && cd scep
 
-$ curl -RLO https://github.com/micromdm/scep/releases/download/v2.0.0/scepserver-darwin-amd64-v2.0.0.zip
+$ curl -RLO https://github.com/micromdm/scep/releases/download/v2.1.0/scepserver-darwin-amd64-v2.1.0.zip
 [snip]
 
-$ unzip scepserver-darwin-amd64-v2.0.0.zip 
-Archive:  scepserver-darwin-amd64-v2.0.0.zip
+$ unzip scepserver-darwin-amd64-v2.1.0.zip 
+Archive:  scepserver-darwin-amd64-v2.1.0.zip
   inflating: scepserver-darwin-amd64  
 
 $ ./scepserver-darwin-amd64 ca -init
@@ -84,11 +84,11 @@ This requests the CA certificate from the SCEP server, converts it into a PEM fi
 ```
 $ mkdir nanomdm && cd nanomdm
 
-$ curl -RLO https://github.com/micromdm/nanomdm/releases/download/v0.1.0/nanomdm-darwin-amd64-v0.1.0.zip
+$ curl -RLO https://github.com/micromdm/nanomdm/releases/download/v0.2.0/nanomdm-darwin-amd64-v0.2.0.zip
 [snip]
 
-$ unzip nanomdm-darwin-amd64-v0.1.0.zip 
-Archive:  nanomdm-darwin-amd64-v0.1.0.zip
+$ unzip nanomdm-darwin-amd64-v0.2.0.zip 
+Archive:  nanomdm-darwin-amd64-v0.2.0.zip
   inflating: nanomdm-darwin-amd64  
 ```
 
