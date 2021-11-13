@@ -2,6 +2,7 @@
 package nanomdm
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -24,6 +25,9 @@ type Service struct {
 	// https://developer.apple.com/documentation/devicemanagement/userauthenticate
 	sendEmptyDigestChallenge bool
 	storeRejectedUserAuth    bool
+
+	// Declarative Management
+	dm service.DeclarativeManagement
 }
 
 // normalize generates enrollment IDs that are used by other
@@ -58,6 +62,12 @@ type Option func(*Service)
 func WithLogger(logger log.Logger) Option {
 	return func(s *Service) {
 		s.logger = logger
+	}
+}
+
+func WithDeclarativeManagement(dm service.DeclarativeManagement) Option {
+	return func(s *Service) {
+		s.dm = dm
 	}
 }
 
@@ -202,6 +212,24 @@ func (s *Service) GetBootstrapToken(r *mdm.Request, message *mdm.GetBootstrapTok
 		"type", r.Type,
 	)
 	return s.store.RetrieveBootstrapToken(r, message)
+}
+
+// DeclarativeManagement Check-in message implementation. Calls out to
+// the service's DM handler (if configured).
+func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
+	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+		return nil, err
+	}
+	s.logger.Info(
+		"msg", "DeclarativeManagement",
+		"id", r.ID,
+		"type", r.Type,
+		"endpoint", message.Endpoint,
+	)
+	if s.dm == nil {
+		return nil, errors.New("no Declarative Management handler")
+	}
+	return s.dm.DeclarativeManagement(r, message)
 }
 
 // CommandAndReportResults command report and next-command request implementation.

@@ -110,6 +110,16 @@ func (ms *MultiService) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapTok
 	return bsToken, err
 }
 
+func (ms *MultiService) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManagement) ([]byte, error) {
+	retBytes, err := ms.svcs[0].DeclarativeManagement(r, m)
+	rc := ms.RequestWithContext(r)
+	ms.runOthers(func(svc service.CheckinAndCommandService) error {
+		_, err := svc.DeclarativeManagement(rc, m)
+		return err
+	})
+	return retBytes, err
+}
+
 func (ms *MultiService) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	cmd, err := ms.svcs[0].CommandAndReportResults(r, results)
 	rc := ms.RequestWithContext(r)

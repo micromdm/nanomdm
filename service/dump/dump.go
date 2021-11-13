@@ -17,6 +17,7 @@ type Dumper struct {
 	cmd  bool
 	bst  bool
 	usr  bool
+	dm   bool
 }
 
 // New creates a new dumper service middleware.
@@ -27,6 +28,7 @@ func New(next service.CheckinAndCommandService, file *os.File) *Dumper {
 		cmd:  true,
 		bst:  true,
 		usr:  true,
+		dm:   true,
 	}
 }
 
@@ -75,4 +77,16 @@ func (svc *Dumper) CommandAndReportResults(r *mdm.Request, results *mdm.CommandR
 		svc.file.Write(cmd.Raw)
 	}
 	return cmd, err
+}
+
+func (svc *Dumper) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManagement) ([]byte, error) {
+	svc.file.Write(m.Raw)
+	if len(m.Data) > 0 {
+		svc.file.Write(m.Data)
+	}
+	respBytes, err := svc.next.DeclarativeManagement(r, m)
+	if svc.dm && err != nil {
+		svc.file.Write(respBytes)
+	}
+	return respBytes, err
 }

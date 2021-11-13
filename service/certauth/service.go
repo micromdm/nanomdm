@@ -46,6 +46,13 @@ func (s *CertAuth) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (
 	return s.next.GetBootstrapToken(r, m)
 }
 
+func (s *CertAuth) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManagement) ([]byte, error) {
+	if err := s.validateOrAssociateForExistingEnrollment(r, &m.Enrollment); err != nil {
+		return nil, err
+	}
+	return s.next.DeclarativeManagement(r, m)
+}
+
 func (s *CertAuth) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
 	if err := s.validateOrAssociateForExistingEnrollment(r, &results.Enrollment); err != nil {
 		return nil, err

@@ -93,6 +93,16 @@ type GetBootstrapToken struct {
 	Raw []byte `plist:"-"` // Original XML plist
 }
 
+// DeclarativeManagement is a representation of a "DeclarativeManagement" check-in message type.
+// See https://developer.apple.com/documentation/devicemanagement/declarativemanagementrequest
+type DeclarativeManagement struct {
+	Enrollment
+	MessageType
+	Data     []byte
+	Endpoint string
+	Raw      []byte `plist:"-"` // Original XML plist
+}
+
 // newCheckinMessageForType returns a pointer to a check-in struct for MessageType t
 func newCheckinMessageForType(t string, raw []byte) interface{} {
 	switch t {
@@ -108,6 +118,8 @@ func newCheckinMessageForType(t string, raw []byte) interface{} {
 		return &GetBootstrapToken{Raw: raw}
 	case "UserAuthenticate":
 		return &UserAuthenticate{Raw: raw}
+	case "DeclarativeManagement":
+		return &DeclarativeManagement{Raw: raw}
 	default:
 		return nil
 	}
