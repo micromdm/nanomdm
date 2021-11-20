@@ -21,7 +21,7 @@ def simple_command(request_type):
 def install_profile(args):
     return {
         "RequestType": "InstallProfile",
-        "Payload": plistlib.Data(args.mobileconfig.read()),
+        "Payload": args.mobileconfig.read(),
     }
 
 
