@@ -36,7 +36,7 @@ NanoMDM is but one component for a functioning MDM server. At a minimum you need
 - Enrollment (Profiles).
   - You'll need to create and serve your own enrollment profiles to devices.
 - Blueprints.
-  - No 'automatic' command sending upon enrollment. Entirely driven my webhook or other integrations.
+  - No 'automatic' command sending upon enrollment. Entirely driven by webhook or other integrations.
 - JSON command API.
   - Commands are submitted in raw Plist form only. See the [cmdr.py tool](tools/cmdr.py) that helps generate raw commands
   - The [micro2nano](https://github.com/micromdm/micro2nano) project provides an API translation server between MicroMDM's JSON command API and NanoMDM's raw Plist API.
