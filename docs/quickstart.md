@@ -186,7 +186,7 @@ $ curl -u nanomdm:nanomdm 'http://127.0.0.1:9000/v1/push/99385AF6-44CB-5621-A678
 	}
 ```
 
-The `push_result` UUID (and absense of an error) is an indicator the push notification succeeded. Our push on the server should look like:
+The `push_result` UUID (and absence of an error) is an indicator the push notification succeeded. Our push on the server should look like:
 
 *Note: As an aside you can specify multiple enrollment IDs to send to by comma-separating them.*
 
