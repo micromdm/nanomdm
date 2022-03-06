@@ -41,6 +41,57 @@ def dev_info(args):
     return c
 
 
+def sched_update(args):
+    c = {
+        "RequestType": "ScheduleOSUpdate",
+        "Updates": [
+            {"InstallAction": args.action}
+        ],
+    }
+    if hasattr(args, "version") and args.version:
+        c["Updates"][0]["ProductVersion"] = args.version
+    if hasattr(args, "key") and args.key:
+        c["Updates"][0]["ProductKey"] = args.key
+    if hasattr(args, "deferrals") and args.deferrals:
+        c["Updates"][0]["MaxUserDeferrals"] = args.deferrals
+    if hasattr(args, "priority") and args.priority:
+        c["Updates"][0]["Priority"] = args.priority
+    return c
+
+
+def sched_update_subparser(parser):
+    sched_update_parser = parser.add_parser(
+        "ScheduleOSUpdate", help="ScheduleOSUpdate MDM command"
+    )
+    sched_update_parser.add_argument(
+        "action",
+        type=str,
+        help="InstallAction (ex. InstallASAP, InstallLater, etc.)",
+    )
+    sched_update_parser.add_argument(
+        "--version",
+        type=str,
+        help="ProductVersion (ex. 12.1, 12.2.1, etc.)",
+    )
+    sched_update_parser.add_argument(
+        "--key",
+        type=str,
+        help="ProductKey (ex. MSU_UPDATE_21E5227a_patch_12.3, etc.)",
+    )
+    sched_update_parser.add_argument(
+        "--deferrals",
+        type=int,
+        help="MaxUserDeferrals (ex. 3, 30, etc.)",
+    )
+    sched_update_parser.add_argument(
+        "--priority",
+        type=str,
+        help="Priority (ex. Low, High.)",
+    )
+    sched_update_parser.set_defaults(func=sched_update)
+    return sched_update_parser
+
+
 def dev_info_subparser(parser):
     dev_info_parser = parser.add_parser(
         "DeviceInformation", help="DeviceInformation MDM command"
@@ -151,6 +202,7 @@ def main():
     dev_info_subparser(subparsers)
     inst_prof_subparser(subparsers)
     rem_prof_subparser(subparsers)
+    sched_update_subparser(subparsers)
 
     command_subparser(subparsers)
 
