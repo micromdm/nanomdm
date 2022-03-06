@@ -80,7 +80,7 @@ def sched_update_subparser(parser):
     )
     sched_update_parser.add_argument(
         "--deferrals",
-        type=str,
+        type=int,
         help="MaxUserDeferrals (ex. 3, 30, etc.)",
     )
     sched_update_parser.add_argument(
@@ -196,7 +196,6 @@ def main():
         "EnableRemoteDesktop",
         "DisableRemoteDesktop",
         "ActivationLockBypassCode",
-        "ScheduleOSUpdate",
     ]:
         simple_command_subparser(c, subparsers)
 
