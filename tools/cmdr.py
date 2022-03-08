@@ -18,6 +18,14 @@ def simple_command(request_type):
     return simple_command_body
 
 
+def device_lock(args):
+    return {
+        "RequestType": "DeviceLock",
+        "Message": "Lock Message",
+        "PhoneNumber": "954-555-5555",
+    }
+
+
 def install_profile(args):
     return {
         "RequestType": "InstallProfile",
@@ -196,6 +204,7 @@ def main():
         "EnableRemoteDesktop",
         "DisableRemoteDesktop",
         "ActivationLockBypassCode",
+        "DeviceLock"
     ]:
         simple_command_subparser(c, subparsers)
 
