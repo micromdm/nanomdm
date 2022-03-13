@@ -196,6 +196,7 @@ def main():
         "EnableRemoteDesktop",
         "DisableRemoteDesktop",
         "ActivationLockBypassCode",
+        "ScheduleOSUpdateScan",
     ]:
         simple_command_subparser(c, subparsers)
 
