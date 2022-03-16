@@ -12,6 +12,7 @@ import (
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/push"
 	"github.com/micromdm/nanomdm/storage"
@@ -45,6 +46,7 @@ type apiResult struct {
 // users.
 func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
 		ids := strings.Split(r.URL.Path, ",")
 		output := apiResult{
 			Status: make(enrolledAPIResults),
@@ -88,6 +90,7 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 // for "API" users.
 func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
 		b, err := ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
@@ -169,6 +172,7 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 // upload our push certs.
 func StorePushCertHandlerFunc(storage storage.PushCertStore, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
 		b, err := ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 )
 
@@ -117,7 +118,9 @@ func (s *MySQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 	// there shouldn't be an Unlock Token on the user channel, but
 	// complain if there is to warn an admin
 	if len(msg.UnlockToken) > 0 {
-		s.logger.Info("msg", "Unlock Token on user channel not stored")
+		ctxlog.Logger(r.Context, s.logger).Info(
+			"msg", "Unlock Token on user channel not stored",
+		)
 	}
 	_, err := s.db.ExecContext(
 		r.Context, `

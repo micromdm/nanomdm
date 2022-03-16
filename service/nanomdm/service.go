@@ -97,15 +97,14 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
+	logger := s.ctxLogger(r)
 	logs := []interface{}{
 		"msg", "Authenticate",
-		"id", r.ID,
-		"type", r.Type,
 	}
 	if message.SerialNumber != "" {
 		logs = append(logs, "serial_number", message.SerialNumber)
 	}
-	s.logger.Info(logs...)
+	logger.Info(logs...)
 	if err := s.store.StoreAuthenticate(r, message); err != nil {
 		return err
 	}
@@ -125,10 +124,9 @@ func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.logger.Info(
+	logger := s.ctxLogger(r)
+	logger.Info(
 		"msg", "TokenUpdate",
-		"id", r.ID,
-		"type", r.Type,
 	)
 	return s.store.StoreTokenUpdate(r, message)
 }
@@ -138,10 +136,9 @@ func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.logger.Info(
+	logger := s.ctxLogger(r)
+	logger.Info(
 		"msg", "CheckOut",
-		"id", r.ID,
-		"type", r.Type,
 	)
 	return s.store.Disable(r)
 }
@@ -161,6 +158,7 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
+	logger := s.ctxLogger(r)
 	if s.sendEmptyDigestChallenge || s.storeRejectedUserAuth {
 		if err := s.store.StoreUserAuthenticate(r, message); err != nil {
 			return nil, err
@@ -170,10 +168,8 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 	// UserAuthenticate messages depending on our response
 	if message.DigestResponse == "" {
 		if s.sendEmptyDigestChallenge {
-			s.logger.Info(
+			logger.Info(
 				"msg", "sending empty DigestChallenge response to UserAuthenticate",
-				"id", r.ID,
-				"type", r.Type,
 			)
 			return emptyDigestChallengeBytes, nil
 		}
@@ -182,10 +178,8 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 			fmt.Errorf("declining management of user: %s", r.ID),
 		)
 	}
-	s.logger.Debug(
+	logger.Debug(
 		"msg", "sending empty response to second UserAuthenticate",
-		"id", r.ID,
-		"type", r.Type,
 	)
 	return nil, nil
 }
@@ -194,10 +188,9 @@ func (s *Service) SetBootstrapToken(r *mdm.Request, message *mdm.SetBootstrapTok
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.logger.Info(
+	logger := s.ctxLogger(r)
+	logger.Info(
 		"msg", "SetBootstrapToken",
-		"id", r.ID,
-		"type", r.Type,
 	)
 	return s.store.StoreBootstrapToken(r, message)
 }
@@ -206,10 +199,9 @@ func (s *Service) GetBootstrapToken(r *mdm.Request, message *mdm.GetBootstrapTok
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	s.logger.Info(
+	logger := s.ctxLogger(r)
+	logger.Info(
 		"msg", "GetBootstrapToken",
-		"id", r.ID,
-		"type", r.Type,
 	)
 	return s.store.RetrieveBootstrapToken(r, message)
 }
@@ -220,10 +212,9 @@ func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.Declarative
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	s.logger.Info(
+	logger := s.ctxLogger(r)
+	logger.Info(
 		"msg", "DeclarativeManagement",
-		"id", r.ID,
-		"type", r.Type,
 		"endpoint", message.Endpoint,
 	)
 	if s.dm == nil {
@@ -237,15 +228,14 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 	if err := s.updateEnrollID(r, &results.Enrollment); err != nil {
 		return nil, err
 	}
+	logger := s.ctxLogger(r)
 	logs := []interface{}{
 		"status", results.Status,
-		"id", r.ID,
-		"type", r.Type,
 	}
 	if results.Status != "Idle" {
 		logs = append(logs, "command_uuid", results.CommandUUID)
 	}
-	s.logger.Info(logs...)
+	logger.Info(logs...)
 	err := s.store.StoreCommandReport(r, results)
 	if err != nil {
 		return nil, fmt.Errorf("storing command report: %w", err)
@@ -255,16 +245,14 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 		return nil, fmt.Errorf("retrieving next command: %w", err)
 	}
 	if cmd != nil {
-		s.logger.Debug(
+		logger.Debug(
 			"msg", "command retrieved",
-			"id", r.ID,
 			"command_uuid", cmd.CommandUUID,
 		)
 		return cmd, nil
 	}
-	s.logger.Debug(
+	logger.Debug(
 		"msg", "no command retrieved",
-		"id", r.ID,
 	)
 	return nil, nil
 }

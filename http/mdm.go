@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
 )
@@ -26,6 +27,7 @@ func mdmReqFromHTTPReq(r *http.Request) *mdm.Request {
 // CheckinHandlerFunc decodes an MDM check-in request and adapts it to service.
 func CheckinHandlerFunc(svc service.Checkin, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
 		bodyBytes, err := ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
@@ -49,6 +51,7 @@ func CheckinHandlerFunc(svc service.Checkin, logger log.Logger) http.HandlerFunc
 // CommandAndReportResultsHandlerFunc decodes an MDM command request and adapts it to service.
 func CommandAndReportResultsHandlerFunc(svc service.CommandAndReportResults, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
 		bodyBytes, err := ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
