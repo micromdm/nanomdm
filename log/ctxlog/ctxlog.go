@@ -23,6 +23,9 @@ type funcs struct {
 
 // AddFunc associates a new CtxKVFunc function to a context.
 func AddFunc(ctx context.Context, f CtxKVFunc) context.Context {
+	if ctx == nil {
+		return ctx
+	}
 	ctxFuncs, ok := ctx.Value(ctxKeyFuncs{}).(*funcs)
 	if !ok || ctxFuncs == nil {
 		ctxFuncs = &funcs{}
@@ -36,6 +39,9 @@ func AddFunc(ctx context.Context, f CtxKVFunc) context.Context {
 // Logger runs the associated CtxKVFunc functions and returns a new
 // logger with the results.
 func Logger(ctx context.Context, logger log.Logger) log.Logger {
+	if ctx == nil {
+		return logger
+	}
 	ctxFuncs, ok := ctx.Value(ctxKeyFuncs{}).(*funcs)
 	if !ok {
 		return logger
