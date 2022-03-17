@@ -1,8 +1,14 @@
 package allmulti
 
-import "context"
+import (
+	"context"
+
+	"github.com/micromdm/nanomdm/log/ctxlog"
+)
 
 func (ms *MultiAllStorage) RetrieveMigrationCheckins(ctx context.Context, c chan<- interface{}) error {
-	ms.logger.Info("msg", "only using first store for migration")
+	ctxlog.Logger(ctx, ms.logger).Info(
+		"msg", "only using first store for migration",
+	)
 	return ms.stores[0].RetrieveMigrationCheckins(ctx, c)
 }

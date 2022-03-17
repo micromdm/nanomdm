@@ -243,7 +243,6 @@ func simpleLog(next http.Handler, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := storeNewTraceID(r.Context())
 		ctx = ctxlog.AddFunc(ctx, ctxlog.SimpleStringFunc(ctxKeyTraceID{}, "trace_id"))
-		logger := ctxlog.Logger(ctx, logger)
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			host = r.RemoteAddr
@@ -257,7 +256,7 @@ func simpleLog(next http.Handler, logger log.Logger) http.HandlerFunc {
 		if fwdedFor := r.Header.Get("X-Forwarded-For"); fwdedFor != "" {
 			logs = append(logs, "real_ip", fwdedFor)
 		}
-		logger.Info(logs...)
+		ctxlog.Logger(ctx, logger).Info(logs...)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

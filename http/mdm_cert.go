@@ -51,9 +51,10 @@ func CertExtractPEMHeaderMiddleware(next http.Handler, header string, logger log
 // at the TLS peer certificate in the request.
 func CertExtractTLSMiddleware(next http.Handler, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := ctxlog.Logger(r.Context(), logger)
 		if r.TLS == nil || len(r.TLS.PeerCertificates) < 1 {
-			logger.Debug("msg", "no TLS peer certificate")
+			ctxlog.Logger(r.Context(), logger).Debug(
+				"msg", "no TLS peer certificate",
+			)
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -115,9 +116,11 @@ type CertVerifier interface {
 // MDM unenrollments in the case of bugs or something going wrong.
 func CertVerifyMiddleware(next http.Handler, verifier CertVerifier, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := ctxlog.Logger(r.Context(), logger)
 		if err := verifier.Verify(GetCert(r.Context())); err != nil {
-			logger.Info("msg", "error verifying MDM certificate", "err", err)
+			ctxlog.Logger(r.Context(), logger).Info(
+				"msg", "error verifying MDM certificate",
+				"err", err,
+			)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/storage"
@@ -86,7 +87,9 @@ func New(store storage.ServiceStore, opts ...Option) *Service {
 
 func (s *Service) updateEnrollID(r *mdm.Request, e *mdm.Enrollment) error {
 	if r.EnrollID != nil && r.ID != "" {
-		s.logger.Debug("msg", "overwriting enrollment id")
+		ctxlog.Logger(r.Context, s.logger).Debug(
+			"msg", "overwriting enrollment id",
+		)
 	}
 	r.EnrollID = s.normalizer(e)
 	return r.EnrollID.Validate()
@@ -97,14 +100,13 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
-	logger := s.ctxLogger(r)
 	logs := []interface{}{
 		"msg", "Authenticate",
 	}
 	if message.SerialNumber != "" {
 		logs = append(logs, "serial_number", message.SerialNumber)
 	}
-	logger.Info(logs...)
+	s.ctxLogger(r).Info(logs...)
 	if err := s.store.StoreAuthenticate(r, message); err != nil {
 		return err
 	}
@@ -124,10 +126,7 @@ func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
-	logger := s.ctxLogger(r)
-	logger.Info(
-		"msg", "TokenUpdate",
-	)
+	s.ctxLogger(r).Info("msg", "TokenUpdate")
 	return s.store.StoreTokenUpdate(r, message)
 }
 
@@ -136,10 +135,7 @@ func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
-	logger := s.ctxLogger(r)
-	logger.Info(
-		"msg", "CheckOut",
-	)
+	s.ctxLogger(r).Info("msg", "CheckOut")
 	return s.store.Disable(r)
 }
 
@@ -188,10 +184,7 @@ func (s *Service) SetBootstrapToken(r *mdm.Request, message *mdm.SetBootstrapTok
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return err
 	}
-	logger := s.ctxLogger(r)
-	logger.Info(
-		"msg", "SetBootstrapToken",
-	)
+	s.ctxLogger(r).Info("msg", "SetBootstrapToken")
 	return s.store.StoreBootstrapToken(r, message)
 }
 
@@ -199,10 +192,7 @@ func (s *Service) GetBootstrapToken(r *mdm.Request, message *mdm.GetBootstrapTok
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	logger := s.ctxLogger(r)
-	logger.Info(
-		"msg", "GetBootstrapToken",
-	)
+	s.ctxLogger(r).Info("msg", "GetBootstrapToken")
 	return s.store.RetrieveBootstrapToken(r, message)
 }
 
@@ -212,8 +202,7 @@ func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.Declarative
 	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	logger := s.ctxLogger(r)
-	logger.Info(
+	s.ctxLogger(r).Info(
 		"msg", "DeclarativeManagement",
 		"endpoint", message.Endpoint,
 	)
