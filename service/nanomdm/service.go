@@ -85,19 +85,24 @@ func New(store storage.ServiceStore, opts ...Option) *Service {
 	return nanomdm
 }
 
-func (s *Service) updateEnrollID(r *mdm.Request, e *mdm.Enrollment) error {
+func (s *Service) setupRequest(r *mdm.Request, e *mdm.Enrollment) error {
 	if r.EnrollID != nil && r.ID != "" {
 		ctxlog.Logger(r.Context, s.logger).Debug(
 			"msg", "overwriting enrollment id",
 		)
 	}
 	r.EnrollID = s.normalizer(e)
-	return r.EnrollID.Validate()
+	if err := r.EnrollID.Validate(); err != nil {
+		return err
+	}
+	r.Context = newContextWithValues(r.Context, r)
+	r.Context = ctxlog.AddFunc(r.Context, ctxKVs)
+	return nil
 }
 
 // Authenticate Check-in message implementation.
 func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return err
 	}
 	logs := []interface{}{
@@ -106,7 +111,7 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 	if message.SerialNumber != "" {
 		logs = append(logs, "serial_number", message.SerialNumber)
 	}
-	s.ctxLogger(r).Info(logs...)
+	ctxlog.Logger(r.Context, s.logger).Info(logs...)
 	if err := s.store.StoreAuthenticate(r, message); err != nil {
 		return err
 	}
@@ -123,19 +128,19 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 
 // TokenUpdate Check-in message implementation.
 func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.ctxLogger(r).Info("msg", "TokenUpdate")
+	ctxlog.Logger(r.Context, s.logger).Info("msg", "TokenUpdate")
 	return s.store.StoreTokenUpdate(r, message)
 }
 
 // CheckOut Check-in message implementation.
 func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.ctxLogger(r).Info("msg", "CheckOut")
+	ctxlog.Logger(r.Context, s.logger).Info("msg", "CheckOut")
 	return s.store.Disable(r)
 }
 
@@ -151,10 +156,10 @@ const emptyDigestChallenge = `<?xml version="1.0" encoding="UTF-8"?>
 var emptyDigestChallengeBytes = []byte(emptyDigestChallenge)
 
 func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate) ([]byte, error) {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	logger := s.ctxLogger(r)
+	logger := ctxlog.Logger(r.Context, s.logger)
 	if s.sendEmptyDigestChallenge || s.storeRejectedUserAuth {
 		if err := s.store.StoreUserAuthenticate(r, message); err != nil {
 			return nil, err
@@ -181,28 +186,28 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 }
 
 func (s *Service) SetBootstrapToken(r *mdm.Request, message *mdm.SetBootstrapToken) error {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.ctxLogger(r).Info("msg", "SetBootstrapToken")
+	ctxlog.Logger(r.Context, s.logger).Info("msg", "SetBootstrapToken")
 	return s.store.StoreBootstrapToken(r, message)
 }
 
 func (s *Service) GetBootstrapToken(r *mdm.Request, message *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	s.ctxLogger(r).Info("msg", "GetBootstrapToken")
+	ctxlog.Logger(r.Context, s.logger).Info("msg", "GetBootstrapToken")
 	return s.store.RetrieveBootstrapToken(r, message)
 }
 
 // DeclarativeManagement Check-in message implementation. Calls out to
 // the service's DM handler (if configured).
 func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	s.ctxLogger(r).Info(
+	ctxlog.Logger(r.Context, s.logger).Info(
 		"msg", "DeclarativeManagement",
 		"endpoint", message.Endpoint,
 	)
@@ -214,10 +219,10 @@ func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.Declarative
 
 // CommandAndReportResults command report and next-command request implementation.
 func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
-	if err := s.updateEnrollID(r, &results.Enrollment); err != nil {
+	if err := s.setupRequest(r, &results.Enrollment); err != nil {
 		return nil, err
 	}
-	logger := s.ctxLogger(r)
+	logger := ctxlog.Logger(r.Context, s.logger)
 	logs := []interface{}{
 		"status", results.Status,
 	}
