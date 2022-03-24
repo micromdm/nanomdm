@@ -61,7 +61,7 @@ func SimpleStringFunc(ctxKey interface{}, logKey string) CtxKVFunc {
 	return func(ctx context.Context) (out []interface{}) {
 		v, _ := ctx.Value(ctxKey).(string)
 		if v != "" {
-			out = append(out, logKey, v)
+			out = []interface{}{logKey, v}
 		}
 		return
 	}
