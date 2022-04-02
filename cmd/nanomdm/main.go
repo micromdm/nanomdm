@@ -242,7 +242,7 @@ func storeNewTraceID(ctx context.Context) context.Context {
 func simpleLog(next http.Handler, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := storeNewTraceID(r.Context())
-		ctx = ctxlog.AddFunc(ctx, ctxlog.SimpleStringFunc(ctxKeyTraceID{}, "trace_id"))
+		ctx = ctxlog.AddFunc(ctx, ctxlog.SimpleStringFunc("trace_id", ctxKeyTraceID{}))
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			host = r.RemoteAddr

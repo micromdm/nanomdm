@@ -61,7 +61,7 @@ func Logger(ctx context.Context, logger log.Logger) log.Logger {
 
 // SimpleStringFunc is a helper that generates a simple CtxKVFunc that
 // returns a key-value pair if found on the context.
-func SimpleStringFunc(ctxKey interface{}, logKey string) CtxKVFunc {
+func SimpleStringFunc(logKey string, ctxKey interface{}) CtxKVFunc {
 	return func(ctx context.Context) (out []interface{}) {
 		v, _ := ctx.Value(ctxKey).(string)
 		if v != "" {
