@@ -9,6 +9,10 @@ import (
 )
 
 // CtxKVFunc creates logger key-value pairs from a context.
+// CtxKVFuncs should aim to be be as efficient as possible—ideally only
+// doing the minimum to read context values and generate KV pairs. Each
+// associated CtxKVFunc is called every time we adapt a logger with
+// Logger.
 type CtxKVFunc func(context.Context) []interface{}
 
 // ctxKeyFuncs is the context key for storing and retriveing
