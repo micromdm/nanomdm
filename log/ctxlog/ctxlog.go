@@ -47,7 +47,7 @@ func Logger(ctx context.Context, logger log.Logger) log.Logger {
 		return logger
 	}
 	ctxFuncs, ok := ctx.Value(ctxKeyFuncs{}).(*funcs)
-	if !ok {
+	if !ok || ctxFuncs == nil {
 		return logger
 	}
 	var acc []interface{}
