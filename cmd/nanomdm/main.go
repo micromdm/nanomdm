@@ -1,20 +1,24 @@
 package main
 
 import (
+	"context"
 	"crypto/subtle"
 	"crypto/x509"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	stdlog "log"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/micromdm/nanomdm/certverify"
 	"github.com/micromdm/nanomdm/cmd/cli"
 	mdmhttp "github.com/micromdm/nanomdm/http"
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/log/stdlogfmt"
 	"github.com/micromdm/nanomdm/push/buford"
 	pushsvc "github.com/micromdm/nanomdm/push/service"
@@ -196,6 +200,8 @@ func main() {
 		w.Write([]byte(`{"version":"` + version + `"}`))
 	})
 
+	rand.Seed(time.Now().UnixNano())
+
 	logger.Info("msg", "starting server", "listen", *flListen)
 	err = http.ListenAndServe(*flListen, simpleLog(mux, logger.With("handler", "log")))
 	logs := []interface{}{"msg", "server shutdown"}
@@ -219,8 +225,24 @@ func basicAuth(next http.Handler, username, password, realm string) http.Handler
 	}
 }
 
+type ctxKeyTraceID struct{}
+
+// storeNewTraceID generates a new trace identifier and stores it on
+// the context.
+func storeNewTraceID(ctx context.Context) context.Context {
+	// currently this just makes a random string. this would be better
+	// served by e.g. https://github.com/oklog/ulid or something like
+	// https://opentelemetry.io/ someday.
+	b := make([]byte, 8)
+	rand.Read(b)
+	id := fmt.Sprintf("%x", b)
+	return context.WithValue(ctx, ctxKeyTraceID{}, id)
+}
+
 func simpleLog(next http.Handler, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := storeNewTraceID(r.Context())
+		ctx = ctxlog.AddFunc(ctx, ctxlog.SimpleStringFunc("trace_id", ctxKeyTraceID{}))
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			host = r.RemoteAddr
@@ -234,7 +256,7 @@ func simpleLog(next http.Handler, logger log.Logger) http.HandlerFunc {
 		if fwdedFor := r.Header.Get("X-Forwarded-For"); fwdedFor != "" {
 			logs = append(logs, "real_ip", fwdedFor)
 		}
-		logger.Info(logs...)
-		next.ServeHTTP(w, r)
+		ctxlog.Logger(ctx, logger).Info(logs...)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

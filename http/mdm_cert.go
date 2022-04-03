@@ -8,6 +8,7 @@ import (
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 )
 
 type contextKeyCert struct{}
@@ -21,6 +22,7 @@ type contextKeyCert struct{}
 // similar header could be used, of course.
 func CertExtractPEMHeaderMiddleware(next http.Handler, header string, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
 		escapedCert := r.Header.Get(header)
 		if escapedCert == "" {
 			logger.Debug("msg", "empty header", "header", header)
@@ -50,7 +52,9 @@ func CertExtractPEMHeaderMiddleware(next http.Handler, header string, logger log
 func CertExtractTLSMiddleware(next http.Handler, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.TLS == nil || len(r.TLS.PeerCertificates) < 1 {
-			logger.Debug("msg", "no TLS peer certificate")
+			ctxlog.Logger(r.Context(), logger).Debug(
+				"msg", "no TLS peer certificate",
+			)
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -69,6 +73,7 @@ func CertExtractTLSMiddleware(next http.Handler, logger log.Logger) http.Handler
 // verification fails.
 func CertExtractMdmSignatureMiddleware(next http.Handler, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
 		mdmSig := r.Header.Get("Mdm-Signature")
 		if mdmSig == "" {
 			logger.Debug("msg", "empty Mdm-Signature header")
@@ -112,7 +117,10 @@ type CertVerifier interface {
 func CertVerifyMiddleware(next http.Handler, verifier CertVerifier, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := verifier.Verify(GetCert(r.Context())); err != nil {
-			logger.Info("msg", "error verifying MDM certificate", "err", err)
+			ctxlog.Logger(r.Context(), logger).Info(
+				"msg", "error verifying MDM certificate",
+				"err", err,
+			)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}

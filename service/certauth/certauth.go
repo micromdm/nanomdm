@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/storage"
@@ -110,6 +111,7 @@ func (s *CertAuth) associateNewEnrollment(r *mdm.Request) error {
 	if err := r.EnrollID.Validate(); err != nil {
 		return err
 	}
+	logger := ctxlog.Logger(r.Context, s.logger)
 	hash := hashCert(r.Certificate)
 	if hasHash, err := s.storage.HasCertHash(r, hash); err != nil {
 		return err
@@ -124,7 +126,7 @@ func (s *CertAuth) associateNewEnrollment(r *mdm.Request) error {
 			} else if isAssoc {
 				return nil
 			}
-			s.logger.Info(
+			logger.Info(
 				"msg", "cert hash exists",
 				"enrollment", "new",
 				"id", r.ID,
@@ -138,7 +140,7 @@ func (s *CertAuth) associateNewEnrollment(r *mdm.Request) error {
 	if err := s.storage.AssociateCertHash(r, hash); err != nil {
 		return err
 	}
-	s.logger.Info(
+	logger.Info(
 		"msg", "cert associated",
 		"enrollment", "new",
 		"id", r.ID,
@@ -154,6 +156,7 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 	if err := r.EnrollID.Validate(); err != nil {
 		return err
 	}
+	logger := ctxlog.Logger(r.Context, s.logger)
 	hash := hashCert(r.Certificate)
 	if isAssoc, err := s.storage.IsCertHashAssociated(r, hash); err != nil {
 		return err
@@ -161,7 +164,7 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 		return nil
 	}
 	if !s.allowRetroactive {
-		s.logger.Info(
+		logger.Info(
 			"msg", "no cert association",
 			"enrollment", "existing",
 			"id", r.ID,
@@ -178,7 +181,7 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 	if hasHash, err := s.storage.EnrollmentHasCertHash(r, hash); err != nil {
 		return err
 	} else if hasHash {
-		s.logger.Info(
+		logger.Info(
 			"msg", "enrollment cannot have associated cert hash",
 			"enrollment", "existing",
 			"id", r.ID,
@@ -195,7 +198,7 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 	if hasHash, err := s.storage.HasCertHash(r, hash); err != nil {
 		return err
 	} else if hasHash {
-		s.logger.Info(
+		logger.Info(
 			"msg", "cert hash exists",
 			"enrollment", "existing",
 			"id", r.ID,
@@ -211,7 +214,7 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 	if err := s.storage.AssociateCertHash(r, hash); err != nil {
 		return err
 	}
-	s.logger.Info(
+	logger.Info(
 		"msg", "cert associated",
 		"enrollment", "existing",
 		"id", r.ID,

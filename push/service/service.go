@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/push"
 	"github.com/micromdm/nanomdm/storage"
@@ -64,7 +65,10 @@ func (s *PushService) getProvider(ctx context.Context, topic string) (push.PushP
 	if err != nil {
 		return nil, fmt.Errorf("retrieving push cert for topic %q: %w", topic, err)
 	}
-	s.logger.Info("msg", "retrieved push cert", "topic", topic)
+	ctxlog.Logger(ctx, s.logger).Info(
+		"msg", "retrieved push cert",
+		"topic", topic,
+	)
 	newProvider, err := s.providerFactory.NewPushProvider(cert)
 	if err != nil {
 		return nil, fmt.Errorf("creating new push provider: %w", err)
@@ -114,7 +118,10 @@ func (s *PushService) pushMulti(ctx context.Context, pushInfos []*mdm.Push) (map
 	for topic, pushInfos := range topicToPushInfos {
 		prov, err := s.getProvider(ctx, topic)
 		if err != nil {
-			s.logger.Info("msg", "get provider", "err", err)
+			ctxlog.Logger(ctx, s.logger).Info(
+				"msg", "get provider",
+				"err", err,
+			)
 			finalErr = err
 			continue
 		}
@@ -191,7 +198,9 @@ func (s *PushService) Push(ctx context.Context, ids []string) (map[string]*push.
 	for token, resp := range tokenToResponse {
 		id, ok := tokenToId[token]
 		if !ok {
-			s.logger.Info("msg", "could not find id by token")
+			ctxlog.Logger(ctx, s.logger).Info(
+				"msg", "could not find id by token",
+			)
 			continue
 		}
 		idToResponse[id] = resp

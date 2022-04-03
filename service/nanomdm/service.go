@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/storage"
@@ -84,28 +85,33 @@ func New(store storage.ServiceStore, opts ...Option) *Service {
 	return nanomdm
 }
 
-func (s *Service) updateEnrollID(r *mdm.Request, e *mdm.Enrollment) error {
+func (s *Service) setupRequest(r *mdm.Request, e *mdm.Enrollment) error {
 	if r.EnrollID != nil && r.ID != "" {
-		s.logger.Debug("msg", "overwriting enrollment id")
+		ctxlog.Logger(r.Context, s.logger).Debug(
+			"msg", "overwriting enrollment id",
+		)
 	}
 	r.EnrollID = s.normalizer(e)
-	return r.EnrollID.Validate()
+	if err := r.EnrollID.Validate(); err != nil {
+		return err
+	}
+	r.Context = newContextWithValues(r.Context, r)
+	r.Context = ctxlog.AddFunc(r.Context, ctxKVs)
+	return nil
 }
 
 // Authenticate Check-in message implementation.
 func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return err
 	}
 	logs := []interface{}{
 		"msg", "Authenticate",
-		"id", r.ID,
-		"type", r.Type,
 	}
 	if message.SerialNumber != "" {
 		logs = append(logs, "serial_number", message.SerialNumber)
 	}
-	s.logger.Info(logs...)
+	ctxlog.Logger(r.Context, s.logger).Info(logs...)
 	if err := s.store.StoreAuthenticate(r, message); err != nil {
 		return err
 	}
@@ -122,27 +128,19 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 
 // TokenUpdate Check-in message implementation.
 func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.logger.Info(
-		"msg", "TokenUpdate",
-		"id", r.ID,
-		"type", r.Type,
-	)
+	ctxlog.Logger(r.Context, s.logger).Info("msg", "TokenUpdate")
 	return s.store.StoreTokenUpdate(r, message)
 }
 
 // CheckOut Check-in message implementation.
 func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.logger.Info(
-		"msg", "CheckOut",
-		"id", r.ID,
-		"type", r.Type,
-	)
+	ctxlog.Logger(r.Context, s.logger).Info("msg", "CheckOut")
 	return s.store.Disable(r)
 }
 
@@ -158,9 +156,10 @@ const emptyDigestChallenge = `<?xml version="1.0" encoding="UTF-8"?>
 var emptyDigestChallengeBytes = []byte(emptyDigestChallenge)
 
 func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate) ([]byte, error) {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
+	logger := ctxlog.Logger(r.Context, s.logger)
 	if s.sendEmptyDigestChallenge || s.storeRejectedUserAuth {
 		if err := s.store.StoreUserAuthenticate(r, message); err != nil {
 			return nil, err
@@ -170,10 +169,8 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 	// UserAuthenticate messages depending on our response
 	if message.DigestResponse == "" {
 		if s.sendEmptyDigestChallenge {
-			s.logger.Info(
+			logger.Info(
 				"msg", "sending empty DigestChallenge response to UserAuthenticate",
-				"id", r.ID,
-				"type", r.Type,
 			)
 			return emptyDigestChallengeBytes, nil
 		}
@@ -182,48 +179,36 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 			fmt.Errorf("declining management of user: %s", r.ID),
 		)
 	}
-	s.logger.Debug(
+	logger.Debug(
 		"msg", "sending empty response to second UserAuthenticate",
-		"id", r.ID,
-		"type", r.Type,
 	)
 	return nil, nil
 }
 
 func (s *Service) SetBootstrapToken(r *mdm.Request, message *mdm.SetBootstrapToken) error {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return err
 	}
-	s.logger.Info(
-		"msg", "SetBootstrapToken",
-		"id", r.ID,
-		"type", r.Type,
-	)
+	ctxlog.Logger(r.Context, s.logger).Info("msg", "SetBootstrapToken")
 	return s.store.StoreBootstrapToken(r, message)
 }
 
 func (s *Service) GetBootstrapToken(r *mdm.Request, message *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	s.logger.Info(
-		"msg", "GetBootstrapToken",
-		"id", r.ID,
-		"type", r.Type,
-	)
+	ctxlog.Logger(r.Context, s.logger).Info("msg", "GetBootstrapToken")
 	return s.store.RetrieveBootstrapToken(r, message)
 }
 
 // DeclarativeManagement Check-in message implementation. Calls out to
 // the service's DM handler (if configured).
 func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
-	if err := s.updateEnrollID(r, &message.Enrollment); err != nil {
+	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
-	s.logger.Info(
+	ctxlog.Logger(r.Context, s.logger).Info(
 		"msg", "DeclarativeManagement",
-		"id", r.ID,
-		"type", r.Type,
 		"endpoint", message.Endpoint,
 	)
 	if s.dm == nil {
@@ -234,18 +219,17 @@ func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.Declarative
 
 // CommandAndReportResults command report and next-command request implementation.
 func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
-	if err := s.updateEnrollID(r, &results.Enrollment); err != nil {
+	if err := s.setupRequest(r, &results.Enrollment); err != nil {
 		return nil, err
 	}
+	logger := ctxlog.Logger(r.Context, s.logger)
 	logs := []interface{}{
 		"status", results.Status,
-		"id", r.ID,
-		"type", r.Type,
 	}
 	if results.Status != "Idle" {
 		logs = append(logs, "command_uuid", results.CommandUUID)
 	}
-	s.logger.Info(logs...)
+	logger.Info(logs...)
 	err := s.store.StoreCommandReport(r, results)
 	if err != nil {
 		return nil, fmt.Errorf("storing command report: %w", err)
@@ -255,16 +239,14 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 		return nil, fmt.Errorf("retrieving next command: %w", err)
 	}
 	if cmd != nil {
-		s.logger.Debug(
+		logger.Debug(
 			"msg", "command retrieved",
-			"id", r.ID,
 			"command_uuid", cmd.CommandUUID,
 		)
 		return cmd, nil
 	}
-	s.logger.Debug(
+	logger.Debug(
 		"msg", "no command retrieved",
-		"id", r.ID,
 	)
 	return nil, nil
 }
