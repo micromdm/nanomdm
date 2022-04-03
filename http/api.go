@@ -262,7 +262,8 @@ func StorePushCertHandlerFunc(storage storage.PushCertStore, logger log.Logger) 
 			switch block.Type {
 			case "CERTIFICATE":
 				pemCert = pem.EncodeToMemory(block)
-				cert, err := x509.ParseCertificate(block.Bytes)
+				var cert *x509.Certificate
+				cert, err = x509.ParseCertificate(block.Bytes)
 				if err == nil {
 					topic, err = cryptoutil.TopicFromCert(cert)
 				}
