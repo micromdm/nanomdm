@@ -82,9 +82,10 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 		output := apiResult{
 			Status: make(enrolledAPIResults),
 		}
+		logs := []interface{}{"msg", "push"}
 		pushResp, err := pusher.Push(ctx, ids)
 		if err != nil {
-			logger.Info("msg", "push", "err", err)
+			logs = append(logs, "err", err)
 			output.PushError = err.Error()
 		}
 		var ct, errCt int
@@ -99,7 +100,15 @@ func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 				ct += 1
 			}
 		}
-		logger.Debug("msg", "push", "count", ct, "errs", errCt)
+		logs = append(logs, "count", ct)
+		if errCt > 0 {
+			logs = append(logs, "errs", errCt)
+		}
+		if err != nil || errCt > 0 {
+			logger.Info(logs...)
+		} else {
+			logger.Debug(logs...)
+		}
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
 			logger.Info("msg", "marshal json", "err", err)
@@ -142,10 +151,26 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			CommandUUID: command.CommandUUID,
 			RequestType: command.Command.RequestType,
 		}
+		logger = logger.With(
+			"command_uuid", command.CommandUUID,
+			"request_type", command.Command.RequestType,
+		)
+		logs := []interface{}{
+			"msg", "enqueue",
+		}
 		idErrs, err := enqueuer.EnqueueCommand(ctx, ids, command)
 		if err != nil {
-			logger.Info("msg", "enqueue command", "err", err)
+			logs = append(logs, "err", err)
 			output.CommandError = err.Error()
+		}
+		logs = append(logs, "count", len(ids)-len(idErrs))
+		if len(idErrs) > 0 {
+			logs = append(logs, "errs", len(idErrs))
+		}
+		if err != nil || len(idErrs) > 0 {
+			logger.Info(logs...)
+		} else {
+			logger.Debug(logs...)
 		}
 		pushResp := make(map[string]*push.Response)
 		if !nopush {
@@ -154,6 +179,8 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 				logger.Info("msg", "push", "err", err)
 				output.PushError = err.Error()
 			}
+		} else {
+			err = nil
 		}
 		// loop through our command errors, if any, and add to output
 		for id, err := range idErrs {
@@ -164,6 +191,7 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			}
 		}
 		// loop through our push errors, if any, and add to output
+		var pushCt, pushErrCt int
 		for id, resp := range pushResp {
 			if _, ok := output.Status[id]; ok {
 				output.Status[id].PushResult = resp.Id
@@ -174,14 +202,26 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			}
 			if resp.Err != nil {
 				output.Status[id].PushError = resp.Err.Error()
+				pushErrCt++
+			} else {
+				pushCt++
 			}
 		}
-		logger.Debug(
-			"msg", "enqueue",
-			"command_uuid", command.CommandUUID,
-			"request_type", command.Command.RequestType,
-		)
-		logger.Debug("msg", "push", "count", len(pushResp))
+		logs = []interface{}{
+			"msg", "push",
+			"count", pushCt,
+		}
+		if err != nil {
+			logs = append(logs, "err", err)
+		}
+		if pushErrCt > 0 {
+			logs = append(logs, "errs", pushErrCt)
+		}
+		if err != nil || pushErrCt > 0 {
+			logger.Info(logs...)
+		} else {
+			logger.Debug(logs...)
+		}
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
 			logger.Info("msg", "marshal json", "err", err)
