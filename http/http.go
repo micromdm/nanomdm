@@ -34,3 +34,11 @@ func BasicAuth(next http.Handler, username, password, realm string) http.Handler
 		next.ServeHTTP(w, r)
 	}
 }
+
+// VersionHandler returns a simple JSON response from a version string.
+func VersionHandler(version string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"version":"` + version + `"}`))
+	}
+}

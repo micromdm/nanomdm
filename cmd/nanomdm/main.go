@@ -194,10 +194,7 @@ func main() {
 		}
 	}
 
-	mux.HandleFunc(endpointAPIVersion, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"version":"` + version + `"}`))
-	})
+	mux.HandleFunc(endpointAPIVersion, mdmhttp.VersionHandler(version))
 
 	rand.Seed(time.Now().UnixNano())
 
