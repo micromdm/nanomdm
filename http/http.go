@@ -69,7 +69,7 @@ func TraceLoggingMiddleware(next http.Handler, logger log.Logger, newTrace func(
 		}
 
 		if fwdedFor := r.Header.Get("X-Forwarded-For"); fwdedFor != "" {
-			logs = append(logs, "real_ip", fwdedFor)
+			logs = append(logs, "x_forwarded_for", fwdedFor)
 		}
 
 		ctxlog.Logger(ctx, logger).Info(logs...)
