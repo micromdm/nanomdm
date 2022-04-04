@@ -20,8 +20,8 @@ func ReadAllAndReplaceBody(r *http.Request) ([]byte, error) {
 	return b, nil
 }
 
-// BasicAuth is a simple HTTP plain authentication middleware.
-func BasicAuth(next http.Handler, username, password, realm string) http.HandlerFunc {
+// BasicAuthMiddleware is a simple HTTP plain authentication middleware.
+func BasicAuthMiddleware(next http.Handler, username, password, realm string) http.HandlerFunc {
 	uBytes := []byte(username)
 	pBytes := []byte(password)
 	return func(w http.ResponseWriter, r *http.Request) {

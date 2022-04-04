@@ -159,7 +159,7 @@ func main() {
 		// register API handler for push cert storage/upload.
 		var pushCertHandler http.Handler
 		pushCertHandler = mdmhttp.StorePushCertHandlerFunc(mdmStorage, logger.With("handler", "store-cert"))
-		pushCertHandler = mdmhttp.BasicAuth(pushCertHandler, apiUsername, *flAPIKey, "nanomdm")
+		pushCertHandler = mdmhttp.BasicAuthMiddleware(pushCertHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(endpointAPIPushCert, pushCertHandler)
 
 		// register API handler for push notifications.
@@ -167,7 +167,7 @@ func main() {
 		var pushHandler http.Handler
 		pushHandler = mdmhttp.PushHandlerFunc(pushService, logger.With("handler", "push"))
 		pushHandler = http.StripPrefix(endpointAPIPush, pushHandler)
-		pushHandler = mdmhttp.BasicAuth(pushHandler, apiUsername, *flAPIKey, "nanomdm")
+		pushHandler = mdmhttp.BasicAuthMiddleware(pushHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(endpointAPIPush, pushHandler)
 
 		// register API handler for new command queueing.
@@ -175,7 +175,7 @@ func main() {
 		var enqueueHandler http.Handler
 		enqueueHandler = mdmhttp.RawCommandEnqueueHandler(mdmStorage, pushService, logger.With("handler", "enqueue"))
 		enqueueHandler = http.StripPrefix(endpointAPIEnqueue, enqueueHandler)
-		enqueueHandler = mdmhttp.BasicAuth(enqueueHandler, apiUsername, *flAPIKey, "nanomdm")
+		enqueueHandler = mdmhttp.BasicAuthMiddleware(enqueueHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(endpointAPIEnqueue, enqueueHandler)
 
 		if *flMigration {
@@ -189,7 +189,7 @@ func main() {
 			// migrate MDM enrollments between servers.
 			var migHandler http.Handler
 			migHandler = mdmhttp.CheckinHandlerFunc(nano, logger.With("handler", "migration"))
-			migHandler = mdmhttp.BasicAuth(migHandler, apiUsername, *flAPIKey, "nanomdm")
+			migHandler = mdmhttp.BasicAuthMiddleware(migHandler, apiUsername, *flAPIKey, "nanomdm")
 			mux.Handle(endpointAPIMigration, migHandler)
 		}
 	}
