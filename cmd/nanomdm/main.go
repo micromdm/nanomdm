@@ -203,6 +203,10 @@ func main() {
 	logger.Info(logs...)
 }
 
+// newTraceID generates a new HTTP trace ID for context logging.
+// Currently this just makes a random string. This would be better
+// served by e.g. https://github.com/oklog/ulid or something like
+// https://opentelemetry.io/ someday.
 func newTraceID() string {
 	b := make([]byte, 8)
 	rand.Read(b)
