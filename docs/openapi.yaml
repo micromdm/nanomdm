@@ -51,11 +51,11 @@ paths:
         - basicAuth: []
       responses:
         '200':
-          description: API response. Can include errors in response object.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIResult'
+          $ref: '#/components/responses/APIResultOK'
+        '207':
+          $ref: '#/components/responses/APIResultSomeFailed'
+        '500':
+          $ref: '#/components/responses/APIResultAllFailed'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
       parameters:
@@ -89,17 +89,19 @@ paths:
               </plist>
       responses:
         '200':
-          description: API response. Can include errors in response object.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/APIResult'
+          $ref: '#/components/responses/APIResultOK'
+        '207':
+          $ref: '#/components/responses/APIResultSomeFailed'
         '400':
           description: Error decoding MDM command plist.
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          description: Error reading HTTP body from request
+          description:  One of two modes. One mode is an error reading HTTP body from request (which will return no content nor content-type). Otherwise all enqueue requests failed. Returns JSON API response object including errors.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResult'
       parameters:
         - $ref: '#/components/parameters/idParam'
         - in: query
@@ -148,6 +150,24 @@ components:
         WWW-Authenticate:
           schema:
             type: string
+    APIResultOK:
+      description: All requests succeeded. Returns JSON API response object.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIResult'
+    APIResultSomeFailed:
+      description: Some requests succeeded and some failed. Returns JSON API response object including errors.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIResult'
+    APIResultAllFailed:
+      description:  All requests failed. Returns JSON API response object including errors.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIResult'
   schemas:
     APIResult:
       type: object
