@@ -69,13 +69,13 @@ func setupCtxLog(ctx context.Context, ids []string, logger log.Logger) (context.
 	return ctx, ctxlog.Logger(ctx, logger)
 }
 
-// PushHandlerFunc sends APNs push notifications to MDM enrollments.
+// PushHandler sends APNs push notifications to MDM enrollments.
 //
 // Note the whole URL path is used as the identifier to push to. This
 // probably necessitates stripping the URL prefix before using. Also
 // note we expose Go errors to the output as this is meant for "API"
 // users.
-func PushHandlerFunc(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
+func PushHandler(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ids := strings.Split(r.URL.Path, ",")
 		ctx, logger := setupCtxLog(r.Context(), ids, logger)
@@ -234,12 +234,12 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 	}
 }
 
-// StorePushCertHandlerFunc reads a PEM-encoded certificate and private
+// StorePushCertHandler reads a PEM-encoded certificate and private
 // key from the HTTP body and saves it to storage. This effectively
 // enables us to do something like:
 // "% cat push.pem push.key | curl -T - http://api.example.com/" to
 // upload our push certs.
-func StorePushCertHandlerFunc(storage storage.PushCertStore, logger log.Logger) http.HandlerFunc {
+func StorePushCertHandler(storage storage.PushCertStore, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		b, err := ReadAllAndReplaceBody(r)

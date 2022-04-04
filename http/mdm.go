@@ -24,8 +24,8 @@ func mdmReqFromHTTPReq(r *http.Request) *mdm.Request {
 	}
 }
 
-// CheckinHandlerFunc decodes an MDM check-in request and adapts it to service.
-func CheckinHandlerFunc(svc service.Checkin, logger log.Logger) http.HandlerFunc {
+// CheckinHandler decodes an MDM check-in request and adapts it to service.
+func CheckinHandler(svc service.Checkin, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		bodyBytes, err := ReadAllAndReplaceBody(r)
@@ -48,8 +48,8 @@ func CheckinHandlerFunc(svc service.Checkin, logger log.Logger) http.HandlerFunc
 	}
 }
 
-// CommandAndReportResultsHandlerFunc decodes an MDM command request and adapts it to service.
-func CommandAndReportResultsHandlerFunc(svc service.CommandAndReportResults, logger log.Logger) http.HandlerFunc {
+// CommandAndReportResultsHandler decodes an MDM command request and adapts it to service.
+func CommandAndReportResultsHandler(svc service.CommandAndReportResults, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		bodyBytes, err := ReadAllAndReplaceBody(r)
@@ -72,15 +72,15 @@ func CommandAndReportResultsHandlerFunc(svc service.CommandAndReportResults, log
 	}
 }
 
-// CheckinAndCommandHandlerFunc handles both check-in and command requests.
-func CheckinAndCommandHandlerFunc(service service.CheckinAndCommandService, logger log.Logger) http.HandlerFunc {
+// CheckinAndCommandHandler handles both check-in and command requests.
+func CheckinAndCommandHandler(service service.CheckinAndCommandService, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 		if strings.HasPrefix(contentType, "application/x-apple-aspen-mdm-checkin") {
-			CheckinHandlerFunc(service, logger).ServeHTTP(w, r)
+			CheckinHandler(service, logger).ServeHTTP(w, r)
 			return
 		}
 		// assume a non-check-in is a command request
-		CommandAndReportResultsHandlerFunc(service, logger).ServeHTTP(w, r)
+		CommandAndReportResultsHandler(service, logger).ServeHTTP(w, r)
 	}
 }
