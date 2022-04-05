@@ -50,7 +50,7 @@ type Command struct {
 	Command     struct {
 		RequestType string
 	}
-	Raw []byte // Original command XML plist
+	Raw []byte `plist:"-"` // Original command XML plist
 }
 
 // DecodeCommand unmarshals rawCommand into command
