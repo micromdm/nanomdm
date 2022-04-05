@@ -268,7 +268,11 @@ func StorePushCertHandler(storage storage.PushCertStore, logger log.Logger) http
 					topic, err = cryptoutil.TopicFromCert(cert)
 				}
 			case "RSA PRIVATE KEY", "PRIVATE KEY":
-				pemKey = pem.EncodeToMemory(block)
+				if len(block.Headers) > 0 {
+					err = fmt.Errorf("private key PEM headers present: may be encrypted")
+				} else {
+					pemKey = pem.EncodeToMemory(block)
+				}
 			default:
 				err = fmt.Errorf("unrecognized PEM type: %q", block.Type)
 			}
