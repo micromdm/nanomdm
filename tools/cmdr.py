@@ -40,6 +40,17 @@ def dev_info(args):
         c["Queries"] = args.query
     return c
 
+def account_config(args):
+    c = {
+        "RequestType": "AccountConfiguration",
+    }
+    if hasattr(args, "fullname") and args.fullname:
+        c["PrimaryAccountFullName"] = args.fullname
+    if hasattr(args, "username") and args.username:
+        c["PrimaryAccountUserName"] = args.username
+    if hasattr(args, "lock") and args.lock:
+        c["LockPrimaryAccountInfo"] = True
+    return c
 
 def sched_update(args):
     c = {
@@ -132,6 +143,32 @@ def rem_prof_subparser(parser):
     return rem_prof_parser
 
 
+def account_config_subparser(parser):
+    p = parser.add_parser(
+        "AccountConfig", help="AccountConfiguration MDM command"
+    )
+    p.add_argument(
+        "-f",
+        "--fullname",
+        type=str,
+        help="PrimaryAccountFullName field",
+    )
+    p.add_argument(
+        "-u",
+        "--username",
+        type=str,
+        help="PrimaryAccountUserName field",
+    )
+    p.add_argument(
+        "-l",
+        "--lock",
+        action='store_true',
+        help="LockPrimaryAccountInfo",
+    )
+    p.set_defaults(func=account_config)
+    return p
+
+
 def simple_command_subparser(request_type, parser):
     new_parser = parser.add_parser(
         request_type,
@@ -204,6 +241,7 @@ def main():
     inst_prof_subparser(subparsers)
     rem_prof_subparser(subparsers)
     sched_update_subparser(subparsers)
+    account_config_subparser(subparsers)
 
     command_subparser(subparsers)
 
