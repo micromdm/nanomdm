@@ -40,6 +40,7 @@ def dev_info(args):
         c["Queries"] = args.query
     return c
 
+
 def account_config(args):
     c = {
         "RequestType": "AccountConfiguration",
@@ -52,12 +53,11 @@ def account_config(args):
         c["LockPrimaryAccountInfo"] = True
     return c
 
+
 def sched_update(args):
     c = {
         "RequestType": "ScheduleOSUpdate",
-        "Updates": [
-            {"InstallAction": args.action}
-        ],
+        "Updates": [{"InstallAction": args.action}],
     }
     if hasattr(args, "version") and args.version:
         c["Updates"][0]["ProductVersion"] = args.version
@@ -162,7 +162,7 @@ def account_config_subparser(parser):
     p.add_argument(
         "-l",
         "--lock",
-        action='store_true',
+        action="store_true",
         help="LockPrimaryAccountInfo",
     )
     p.set_defaults(func=account_config)
