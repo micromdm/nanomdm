@@ -42,9 +42,10 @@ func BasicAuthMiddleware(next http.Handler, username, password, realm string) ht
 
 // VersionHandler returns a simple JSON response from a version string.
 func VersionHandler(version string) http.HandlerFunc {
+	bodyBytes := []byte(`{"version":"` + version + `"}`)
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"version":"` + version + `"}`))
+		w.Write(bodyBytes)
 	}
 }
 
