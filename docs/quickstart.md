@@ -273,5 +273,5 @@ Great! You've verified the basics of getting NanoMDM going! Now you can move on 
 * A proper URL/domain name.
 * A proper TLS certificate (possibly using Let's Encrypt, even).
 * A proper reverse-proxy/load balancer (Nginx, HAProxy, Apache, etc.)
-* A proper deployment, perhaps in a container environemnt like Docker, Kubernetes, etc. or even just running as a service with systemctl.
+* A proper deployment, perhaps in a container environment like Docker, Kubernetes, etc. or even just running as a service with systemctl.
 * More advanced configuration of NanoMDM including backend storage options, etc.
