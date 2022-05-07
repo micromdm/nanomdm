@@ -109,11 +109,19 @@ func PushHandler(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 		} else {
 			logger.Debug(logs...)
 		}
+		// generate response codes depending on if everything succeeded, failed, or parially succedded
+		header := http.StatusInternalServerError
+		if (errCt > 0 || err != nil) && ct > 0 {
+			header = http.StatusMultiStatus
+		} else if (errCt == 0 && err == nil) && ct >= 1 {
+			header = http.StatusOK
+		}
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
 			logger.Info("msg", "marshal json", "err", err)
 		}
 		w.Header().Set("Content-type", "application/json")
+		w.WriteHeader(header)
 		_, err = w.Write(json)
 		if err != nil {
 			logger.Info("msg", "writing body", "err", err)
@@ -159,11 +167,17 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			"msg", "enqueue",
 		}
 		idErrs, err := enqueuer.EnqueueCommand(ctx, ids, command)
+		ct := len(ids) - len(idErrs)
 		if err != nil {
 			logs = append(logs, "err", err)
 			output.CommandError = err.Error()
+			if len(idErrs) == 0 {
+				// we assume if there were no ID-specific errors but
+				// there was a general error then all IDs failed
+				ct = 0
+			}
 		}
-		logs = append(logs, "count", len(ids)-len(idErrs))
+		logs = append(logs, "count", ct)
 		if len(idErrs) > 0 {
 			logs = append(logs, "errs", len(idErrs))
 		}
@@ -172,16 +186,6 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 		} else {
 			logger.Debug(logs...)
 		}
-		pushResp := make(map[string]*push.Response)
-		if !nopush {
-			pushResp, err = pusher.Push(ctx, ids)
-			if err != nil {
-				logger.Info("msg", "push", "err", err)
-				output.PushError = err.Error()
-			}
-		} else {
-			err = nil
-		}
 		// loop through our command errors, if any, and add to output
 		for id, err := range idErrs {
 			if err != nil {
@@ -189,6 +193,18 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 					CommandError: err.Error(),
 				}
 			}
+		}
+		// optionally send pushes
+		pushResp := make(map[string]*push.Response)
+		var pushErr error
+		if !nopush {
+			pushResp, pushErr = pusher.Push(ctx, ids)
+			if err != nil {
+				logger.Info("msg", "push", "err", err)
+				output.PushError = err.Error()
+			}
+		} else {
+			pushErr = nil
 		}
 		// loop through our push errors, if any, and add to output
 		var pushCt, pushErrCt int
@@ -211,22 +227,30 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			"msg", "push",
 			"count", pushCt,
 		}
-		if err != nil {
-			logs = append(logs, "err", err)
+		if pushErr != nil {
+			logs = append(logs, "err", pushErr)
 		}
 		if pushErrCt > 0 {
 			logs = append(logs, "errs", pushErrCt)
 		}
-		if err != nil || pushErrCt > 0 {
+		if pushErr != nil || pushErrCt > 0 {
 			logger.Info(logs...)
 		} else {
 			logger.Debug(logs...)
+		}
+		// generate response codes depending on if everything succeeded, failed, or parially succedded
+		header := http.StatusInternalServerError
+		if (len(idErrs) > 0 || err != nil || (!nopush && (pushErrCt > 0 || pushErr != nil))) && (ct > 0 || (!nopush && (pushCt > 0))) {
+			header = http.StatusMultiStatus
+		} else if (len(idErrs) == 0 && err == nil && (nopush || (pushErrCt == 0 && pushErr == nil))) && (ct >= 1 && (nopush || (pushCt >= 1))) {
+			header = http.StatusOK
 		}
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
 			logger.Info("msg", "marshal json", "err", err)
 		}
 		w.Header().Set("Content-type", "application/json")
+		w.WriteHeader(header)
 		_, err = w.Write(json)
 		if err != nil {
 			logger.Info("msg", "writing body", "err", err)
