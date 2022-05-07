@@ -3,7 +3,7 @@ package http
 import (
 	"bytes"
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -258,6 +258,34 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 	}
 }
 
+// readPEMCertAndKey reads a PEM-encoded certificate and non-encrypted
+// private key from input bytes and returns the separate PEM certificate
+// and private key in cert and key respectively.
+func readPEMCertAndKey(input []byte) (cert []byte, key []byte, err error) {
+	// if the PEM blocks are mushed together with no newline then add one
+	input = bytes.ReplaceAll(input, []byte("----------"), []byte("-----\n-----"))
+	var block *pem.Block
+	for {
+		block, input = pem.Decode(input)
+		if block == nil {
+			break
+		}
+		if block.Type == "CERTIFICATE" {
+			cert = pem.EncodeToMemory(block)
+		} else if block.Type == "PRIVATE KEY" || strings.HasSuffix(block.Type, " PRIVATE KEY") {
+			if len(block.Headers) > 0 {
+				err = errors.New("private key PEM headers present: possibly encrypted")
+				break
+			}
+			key = pem.EncodeToMemory(block)
+		} else {
+			err = fmt.Errorf("unrecognized PEM type: %q", block.Type)
+			break
+		}
+	}
+	return
+}
+
 // StorePushCertHandler reads a PEM-encoded certificate and private
 // key from the HTTP body and saves it to storage. This effectively
 // enables us to do something like:
@@ -272,47 +300,17 @@ func StorePushCertHandler(storage storage.PushCertStore, logger log.Logger) http
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		// if the PEM blocks are mushed together with no newline then add one
-		b = bytes.ReplaceAll(b, []byte("----------"), []byte("-----\n-----"))
-		var pemCert []byte
-		var pemKey []byte
+		cert, key, err := readPEMCertAndKey(b)
+		if err == nil {
+			// sanity check the provided cert and key to make sure they're usable as a pair.
+			_, err = tls.X509KeyPair(cert, key)
+		}
 		var topic string
-		var block *pem.Block
-		for {
-			block, b = pem.Decode(b)
-			if block == nil {
-				break
-			}
-			switch block.Type {
-			case "CERTIFICATE":
-				pemCert = pem.EncodeToMemory(block)
-				var cert *x509.Certificate
-				cert, err = x509.ParseCertificate(block.Bytes)
-				if err == nil {
-					topic, err = cryptoutil.TopicFromCert(cert)
-				}
-			case "RSA PRIVATE KEY", "PRIVATE KEY":
-				if len(block.Headers) > 0 {
-					err = fmt.Errorf("private key PEM headers present: may be encrypted")
-				} else {
-					pemKey = pem.EncodeToMemory(block)
-				}
-			default:
-				err = fmt.Errorf("unrecognized PEM type: %q", block.Type)
-			}
-			if err != nil {
-				break
-			}
+		if err == nil {
+			topic, err = cryptoutil.TopicFromPEMCert(cert)
 		}
 		if err == nil {
-			if len(pemCert) == 0 {
-				err = errors.New("cert not found")
-			} else if len(pemKey) == 0 {
-				err = errors.New("private key not found")
-			}
-		}
-		if err == nil {
-			err = storage.StorePushCert(r.Context(), pemCert, pemKey)
+			err = storage.StorePushCert(r.Context(), cert, key)
 		}
 		output := &struct {
 			Error string `json:"error,omitempty"`
@@ -323,8 +321,9 @@ func StorePushCertHandler(storage storage.PushCertStore, logger log.Logger) http
 		if err != nil {
 			logger.Info("msg", "store push cert", "err", err)
 			output.Error = err.Error()
+			w.WriteHeader(http.StatusInternalServerError)
 		} else {
-			logger.Info("msg", "stored push cert", "topic", topic)
+			logger.Debug("msg", "stored push cert", "topic", topic)
 		}
 		json, err := json.MarshalIndent(output, "", "\t")
 		if err != nil {
