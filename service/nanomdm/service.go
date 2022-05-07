@@ -226,7 +226,7 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 	logs := []interface{}{
 		"status", results.Status,
 	}
-	if results.Status != "Idle" {
+	if results.CommandUUID != "" {
 		logs = append(logs, "command_uuid", results.CommandUUID)
 	}
 	logger.Info(logs...)
