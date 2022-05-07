@@ -242,6 +242,7 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 		logger.Debug(
 			"msg", "command retrieved",
 			"command_uuid", cmd.CommandUUID,
+			"request_type", cmd.Command.RequestType,
 		)
 		return cmd, nil
 	}
