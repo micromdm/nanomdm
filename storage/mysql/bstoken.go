@@ -11,7 +11,10 @@ func (s *MySQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrap
 		nullEmptyString(msg.BootstrapToken.BootstrapToken.String()),
 		r.ID,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	return s.updateLastSeen(r)
 }
 
 func (s *MySQLStorage) RetrieveBootstrapToken(r *mdm.Request, _ *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
@@ -26,5 +29,8 @@ func (s *MySQLStorage) RetrieveBootstrapToken(r *mdm.Request, _ *mdm.GetBootstra
 	}
 	bsToken := new(mdm.BootstrapToken)
 	err = bsToken.SetTokenString(tokenB64)
+	if err == nil {
+		err = s.updateLastSeen(r)
+	}
 	return bsToken, err
 }

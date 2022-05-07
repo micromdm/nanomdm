@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 	"github.com/micromdm/nanomdm/log"
@@ -165,9 +166,9 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 	_, err = s.db.ExecContext(
 		r.Context, `
 INSERT INTO enrollments
-	(id, device_id, user_id, type, topic, push_magic, token_hex, token_update_tally)
+	(id, device_id, user_id, type, topic, push_magic, token_hex, last_seen_at, token_update_tally)
 VALUES
-	(?, ?, ?, ?, ?, ?, ?, 1) AS new
+	(?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1) AS new
 ON DUPLICATE KEY
 UPDATE
     device_id = new.device_id,
@@ -177,6 +178,7 @@ UPDATE
     push_magic = new.push_magic,
     token_hex = new.token_hex,
 	enabled = 1,
+	last_seen_at = CURRENT_TIMESTAMP,
 	enrollments.token_update_tally = enrollments.token_update_tally + 1;`,
 		r.ID,
 		deviceId,
@@ -227,17 +229,33 @@ UPDATE
 		nullEmptyString(msg.UserLongName),
 		msg.Raw,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	return s.updateLastSeen(r)
 }
 
+// Disable can be called for an Authenticate or CheckOut message
 func (s *MySQLStorage) Disable(r *mdm.Request) error {
 	if r.ParentID != "" {
 		return errors.New("can only disable a device channel")
 	}
 	_, err := s.db.ExecContext(
 		r.Context,
-		`UPDATE enrollments SET enabled = 0, token_update_tally = 0 WHERE device_id = ? AND enabled = 1;`,
+		`UPDATE enrollments SET enabled = 0, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = ? AND enabled = 1;`,
 		r.ID,
 	)
 	return err
+}
+
+func (s *MySQLStorage) updateLastSeen(r *mdm.Request) (err error) {
+	_, err = s.db.ExecContext(
+		r.Context,
+		`UPDATE enrollments SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		r.ID,
+	)
+	if err != nil {
+		err = fmt.Errorf("updating last seen: %w", err)
+	}
+	return
 }

@@ -48,8 +48,10 @@ func (m *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 }
 
 func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandResults) error {
+	if err := s.updateLastSeen(r); err != nil {
+		return err
+	}
 	if result.Status == "Idle" {
-		// TODO: store LastSeen?
 		return nil
 	}
 	notNowConstants := "NULL, 0"
