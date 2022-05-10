@@ -29,6 +29,7 @@ func (s *StringAccumulator) Set(value string) error {
 type Storage struct {
 	Storage StringAccumulator
 	DSN     StringAccumulator
+	Options StringAccumulator
 }
 
 func NewStorage() *Storage {
@@ -39,6 +40,9 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 	if len(s.Storage) != len(s.DSN) {
 		return nil, errors.New("must have same number of storage and DSN flags")
 	}
+	if len(s.Options) > 0 && len(s.Storage) != len(s.Options) {
+		return nil, errors.New("must have same number of storage and storage options flags")
+	}
 	// default storage and DSN pair
 	if len(s.Storage) < 1 {
 		s.Storage = append(s.Storage, "file")
@@ -47,22 +51,23 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 	var mdmStorage []storage.AllStorage
 	for idx, storage := range s.Storage {
 		dsn := s.DSN[idx]
+		options := ""
+		if len(s.Options) > 0 {
+			options = s.Options[idx]
+		}
 		logger.Info(
 			"msg", "storage setup",
 			"storage", storage,
 		)
 		switch storage {
 		case "file":
-			fileStorage, err := file.New(dsn)
+			fileStorage, err := fileStorageConfig(dsn, options)
 			if err != nil {
 				return nil, err
 			}
 			mdmStorage = append(mdmStorage, fileStorage)
 		case "mysql":
-			mysqlStorage, err := mysql.New(
-				mysql.WithDSN(dsn),
-				mysql.WithLogger(logger.With("storage", "mysql")),
-			)
+			mysqlStorage, err := mysqlStorageConfig(dsn, options, logger)
 			if err != nil {
 				return nil, err
 			}
@@ -82,4 +87,24 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 		logger.With("component", "multi-storage"),
 		mdmStorage...,
 	), nil
+}
+
+var NoStorageOptions = errors.New("storage backend does not support options, please specify no (or empty) options")
+
+func fileStorageConfig(dsn, options string) (*file.FileStorage, error) {
+	if options != "" {
+		return nil, NoStorageOptions
+	}
+	return file.New(dsn)
+}
+
+func mysqlStorageConfig(dsn, options string, logger log.Logger) (*mysql.MySQLStorage, error) {
+	if options != "" {
+		return nil, NoStorageOptions
+	}
+	opts := []mysql.Option{
+		mysql.WithDSN(dsn),
+		mysql.WithLogger(logger.With("storage", "mysql")),
+	}
+	return mysql.New(opts...)
 }

@@ -36,28 +36,35 @@ By default NanoMDM uses a single HTTP endpoint (`/mdm` — see below) for both c
 
 Enable additional debug logging.
 
-### -storage & -dsn
+### -storage, -dsn, & -storage-options
 
-The `-storage` and `-dsn` flags together represent how the backend storage is configured. `-storage` specifies the name of the backend while `-dsn` specifies the backend data source name (in other words the connection string). These switches are used as a pair. If neither are supplied then it is as if you specified `-storage file -dsn db` meaning we use the `file` storage backend with `db` as its DSN. In the `file` backend's case the DSN is just a directory name of the DB.
+The `-storage`, `-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage file -dsn db` meaning we use the `file` storage backend with `db` as its DSN.
 
-#### Supported backends:
+#### file storage backend
 
-* `-storage file`  
-Configures the file storage backend. This manages enrollment data in plain filesystem directories and files and has zero dependencies. The `-dsn` switch specifies the directory for the database.  
+* `-storage file`
+
+Configures the `file` storage backend. This manages enrollment and command data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-dsn` flag specifies the filesystem directory for the database.
+
 *Example:* `-storage file -dsn /path/to/my/db`
-* `-storage mysql`  
-Configures the MySQL storage backend. The `-dsn` switch should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with the [schema.sql](../storage/mysql/schema.sql) file first.  
+
+#### mysql storage backend
+
+* `-storage mysql`
+
+Configures the MySQL storage backend. The `-dsn` flag should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with the [schema.sql](../storage/mysql/schema.sql) file that corresponds to your NanoMDM version. Also make sure you apply any schema changes for each updated version (i.e. execute the numbered schema change files). MySQL 8.0.19 or later is required.
+
 *Example:* `-storage mysql -dsn nanomdm:nanomdm/mymdmdb`
 
-#### Multiple backends:
+#### multi-storage backend
 
-You can configure multiple storage backends. Specifying multiple sets of `-storage` and `-dsn` flags (in paired order) will configure the "multi-storage" adapter. Be aware that only the first storage backend will be used when interacting with the system, all others storage is called to, but any results are discarded. In other words consider them write-only.
+You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-dsn` flag and so forth.
 
-Also beware that you will have very bizaare results if you change to using multiple storage backends in the midst of existing enrollments. You will receive errors about missing database rows or data. A storage backend needs to be around when a device (or all devices) initially enroll(s). There is no "sync" or backfill system with multiple storage backends (see the migration ability if you need this).
+Be aware that only the first storage backend will be "used" when interacting with the system, all other storage backends are called to, but any *results* are discarded. In other words consider them write-only. Also beware that you will have very bizaare results if you change to using multiple storage backends in the midst of existing enrollments. You will receive errors about missing database rows or data. A storage backend needs to be around when a device (or all devices) initially enroll(s). There is no "sync" or backfill system with multiple storage backends (see the migration ability if you need this).
 
-This feature is really only useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps a new storage backend).
+The multi-storage backend is really only useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps creating a new storage backend).
 
-For example to use both a `file` *and* `mysql` backend your command line might look like: `-storage file -dsn db -storage mysql -dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple types of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN.
+For example to use both a `file` *and* `mysql` backend your command line might look like: `-storage file -dsn db -storage mysql -dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN.
 
 ### -dump
 
@@ -275,9 +282,9 @@ The `nano2nano` tool extracts migration enrollment data from a given storage bac
 
 Enable additional debug logging.
 
-### -storage & -dsn
+### -storage, -dsn, & -storage-options
 
-See the "-storage & -dsn" section, above, for NanoMDM. The syntax and capabilities are the same.
+See the "-storage, -dsn, & -storage-options" section, above, for NanoMDM. The syntax and capabilities are the same.
 
 ### -key string
 

@@ -41,8 +41,9 @@ const (
 
 func main() {
 	cliStorage := cli.NewStorage()
-	flag.Var(&cliStorage.Storage, "storage", "name of storage system")
+	flag.Var(&cliStorage.Storage, "storage", "name of storage backend")
 	flag.Var(&cliStorage.DSN, "dsn", "data source name (e.g. connection string or path)")
+	flag.Var(&cliStorage.Options, "storage-options", "storage backend options")
 	var (
 		flListen     = flag.String("listen", ":9000", "HTTP listen address")
 		flAPIKey     = flag.String("api", "", "API key for API endpoints")
