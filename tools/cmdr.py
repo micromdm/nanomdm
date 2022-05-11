@@ -184,7 +184,9 @@ def account_config_subparser(parser):
 
 
 def settings_subparser(parser):
-    settings_parser = parser.add_parser("Settings", help="Settings MDM command")
+    settings_parser = parser.add_parser(
+        "Settings", help="Settings MDM command"
+    )
     settings_parser.add_argument(
         "--allowbst",
         action="store_true",
