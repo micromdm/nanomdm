@@ -70,6 +70,20 @@ def sched_update(args):
     return c
 
 
+def settings(args):
+    c = {"RequestType": "Settings", "Settings": []}
+    if hasattr(args, "allowbst") and args.allowbst:
+        c["Settings"] = [
+            {
+                "Item": "MDMOptions",
+                "MDMOptions": {
+                    "BootstrapTokenAllowed": True,
+                },
+            }
+        ]
+    return c
+
+
 def sched_update_subparser(parser):
     sched_update_parser = parser.add_parser(
         "ScheduleOSUpdate", help="ScheduleOSUpdate MDM command"
@@ -169,6 +183,17 @@ def account_config_subparser(parser):
     return p
 
 
+def settings_subparser(parser):
+    settings_parser = parser.add_parser("Settings", help="Settings MDM command")
+    settings_parser.add_argument(
+        "--allowbst",
+        action="store_true",
+        help="BootstrapTokenAllowed",
+    )
+    settings_parser.set_defaults(func=settings)
+    return settings_parser
+
+
 def simple_command_subparser(request_type, parser):
     new_parser = parser.add_parser(
         request_type,
@@ -242,6 +267,7 @@ def main():
     rem_prof_subparser(subparsers)
     sched_update_subparser(subparsers)
     account_config_subparser(subparsers)
+    settings_subparser(subparsers)
 
     command_subparser(subparsers)
 
