@@ -126,6 +126,17 @@ Forwarding                    https://625ae9460120.ngrok.io -> http://localhost:
 
 The "9000" is the listen address (port) of the running NanoMDM server. Again, take note of the "forwarding" addresses.
 
+If you get an error about being limited to 1 simultaneous ngrok agent, you can workaround this by launching both tunnels simultaneously via the `tunnels` stanza in the [ngrok agent config file](https://ngrok.com/docs/ngrok-agent/config#config-ngrok-tunnel-definitions). Add the following to your `ngrok.yml` config file, stop your ngrok agents, and then start them both with `ngrok start --all`.
+```
+tunnels:
+  scep:
+    proto: http
+    addr: 8080
+  nanomdm:
+    proto: http
+    addr: 9000
+```
+
 ### Upload Push Certificate
 
 To store the Push Certificate in NanoMDM we use the API:
