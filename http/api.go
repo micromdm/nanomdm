@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -273,8 +274,8 @@ func readPEMCertAndKey(input []byte) (cert []byte, key []byte, err error) {
 		if block.Type == "CERTIFICATE" {
 			cert = pem.EncodeToMemory(block)
 		} else if block.Type == "PRIVATE KEY" || strings.HasSuffix(block.Type, " PRIVATE KEY") {
-			if len(block.Headers) > 0 {
-				err = errors.New("private key PEM headers present: possibly encrypted")
+			if x509.IsEncryptedPEMBlock(block) {
+				err = errors.New("private key PEM appears to be encrypted")
 				break
 			}
 			key = pem.EncodeToMemory(block)
