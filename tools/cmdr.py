@@ -84,6 +84,14 @@ def settings(args):
     return c
 
 
+def make_erase_device_command(args):
+    return {"RequestType": "EraseDevice", "PIN": args.pin}
+
+
+def make_device_lock_command(args):
+    return {"RequestType": "DeviceLock", "PIN": args.pin}
+
+
 def sched_update_subparser(parser):
     sched_update_parser = parser.add_parser(
         "ScheduleOSUpdate", help="ScheduleOSUpdate MDM command"
@@ -196,6 +204,26 @@ def settings_subparser(parser):
     return settings_parser
 
 
+def make_erase_device_subparser(parser):
+    p = parser.add_parser("EraseDevice", help="EraseDevice MDM command")
+    p.add_argument(
+        "pin",
+        type=str,
+        help="The six-character PIN for Find My.",
+    )
+    p.set_defaults(func=make_erase_device_command)
+
+
+def make_device_lock_subparser(parser):
+    p = parser.add_parser("DeviceLock", help="DeviceLock MDM command")
+    p.add_argument(
+        "pin",
+        type=str,
+        help="The six-character PIN for Find My.",
+    )
+    p.set_defaults(func=make_device_lock_command)
+
+
 def simple_command_subparser(request_type, parser):
     new_parser = parser.add_parser(
         request_type,
@@ -270,6 +298,8 @@ def main():
     sched_update_subparser(subparsers)
     account_config_subparser(subparsers)
     settings_subparser(subparsers)
+    make_erase_device_subparser(subparsers)
+    make_device_lock_subparser(subparsers)
 
     command_subparser(subparsers)
 
