@@ -99,12 +99,38 @@ func fileStorageConfig(dsn, options string) (*file.FileStorage, error) {
 }
 
 func mysqlStorageConfig(dsn, options string, logger log.Logger) (*mysql.MySQLStorage, error) {
-	if options != "" {
-		return nil, NoStorageOptions
-	}
+	logger = logger.With("storage", "mysql")
 	opts := []mysql.Option{
 		mysql.WithDSN(dsn),
-		mysql.WithLogger(logger.With("storage", "mysql")),
+		mysql.WithLogger(logger),
+	}
+	if options != "" {
+		for k, v := range splitOptions(options) {
+			switch k {
+			case "delete":
+				if v == "1" {
+					opts = append(opts, mysql.WithDeleteCommands())
+					logger.Debug("msg", "deleting commands")
+				} else if v != "0" {
+					return nil, fmt.Errorf("invalid value for delete option: %q", v)
+				}
+			default:
+				return nil, fmt.Errorf("invalid option: %q", k)
+			}
+		}
 	}
 	return mysql.New(opts...)
+}
+
+func splitOptions(s string) map[string]string {
+	out := make(map[string]string)
+	opts := strings.Split(s, ",")
+	for _, opt := range opts {
+		optKAndV := strings.SplitN(opt, "=", 2)
+		if len(optKAndV) < 2 {
+			optKAndV = append(optKAndV, "")
+		}
+		out[optKAndV[0]] = optKAndV[1]
+	}
+	return out
 }

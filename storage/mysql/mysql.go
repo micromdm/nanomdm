@@ -18,6 +18,7 @@ var ErrNoCert = errors.New("no certificate in MDM Request")
 type MySQLStorage struct {
 	logger log.Logger
 	db     *sql.DB
+	rm     bool
 }
 
 type config struct {
@@ -25,6 +26,7 @@ type config struct {
 	dsn    string
 	db     *sql.DB
 	logger log.Logger
+	rm     bool
 }
 
 type Option func(*config)
@@ -53,6 +55,12 @@ func WithDB(db *sql.DB) Option {
 	}
 }
 
+func WithDeleteCommands() Option {
+	return func(c *config) {
+		c.rm = true
+	}
+}
+
 func New(opts ...Option) (*MySQLStorage, error) {
 	cfg := &config{logger: log.NopLogger, driver: "mysql"}
 	for _, opt := range opts {
@@ -68,7 +76,7 @@ func New(opts ...Option) (*MySQLStorage, error) {
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
-	return &MySQLStorage{db: cfg.db, logger: cfg.logger}, nil
+	return &MySQLStorage{db: cfg.db, logger: cfg.logger, rm: cfg.rm}, nil
 }
 
 // nullEmptyString returns a NULL string if s is empty.

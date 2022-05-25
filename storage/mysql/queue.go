@@ -47,12 +47,65 @@ func (m *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 	return nil, tx.Commit()
 }
 
+func (s *MySQLStorage) deleteCommand(ctx context.Context, tx *sql.Tx, id, uuid string) error {
+	// delete command result (i.e. NotNows) and this queued command
+	_, err := tx.ExecContext(
+		ctx, `
+DELETE
+    q, r
+FROM
+    enrollment_queue AS q
+    LEFT JOIN command_results AS r
+        ON q.command_uuid = r.command_uuid AND r.id = q.id
+WHERE
+    q.id = ? AND q.command_uuid = ?;
+`,
+		id, uuid,
+	)
+	if err != nil {
+		return err
+	}
+	// now delete the actual command assuming any remaining queued
+	// enrolmments have been deleted
+	_, err = tx.ExecContext(
+		ctx, `
+DELETE
+    c
+FROM
+    commands AS c
+    LEFT JOIN enrollment_queue AS q
+        ON q.command_uuid = c.command_uuid
+WHERE
+    c.command_uuid = ? AND q.id IS NULL;
+`,
+		uuid,
+	)
+	return err
+}
+
+func (s *MySQLStorage) deleteCommandTx(r *mdm.Request, result *mdm.CommandResults) error {
+	tx, err := s.db.BeginTx(r.Context, nil)
+	if err != nil {
+		return err
+	}
+	if err = s.deleteCommand(r.Context, tx, r.ID, result.CommandUUID); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
+		}
+		return err
+	}
+	return tx.Commit()
+}
+
 func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandResults) error {
 	if err := s.updateLastSeen(r); err != nil {
 		return err
 	}
 	if result.Status == "Idle" {
 		return nil
+	}
+	if s.rm && (result.Status == "Acknowledged" || result.Status == "Error") {
+		return s.deleteCommandTx(r, result)
 	}
 	notNowConstants := "NULL, 0"
 	notNowBumpTallySQL := ""
