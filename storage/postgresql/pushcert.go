@@ -1,4 +1,4 @@
-package mysql
+package postgresql
 
 import (
 	"context"
@@ -8,12 +8,12 @@ import (
 	"github.com/micromdm/nanomdm/cryptoutil"
 )
 
-func (s *MySQLStorage) RetrievePushCert(ctx context.Context, topic string) (*tls.Certificate, string, error) {
+func (s *PgSQLStorage) RetrievePushCert(ctx context.Context, topic string) (*tls.Certificate, string, error) {
 	var certPEM, keyPEM []byte
 	var staleToken int
 	err := s.db.QueryRowContext(
 		ctx,
-		`SELECT cert_pem, key_pem, stale_token FROM push_certs WHERE topic = ?;`,
+		`SELECT cert_pem, key_pem, stale_token FROM push_certs WHERE topic = $1;`,
 		topic,
 	).Scan(&certPEM, &keyPEM, &staleToken)
 	if err != nil {
@@ -26,7 +26,7 @@ func (s *MySQLStorage) RetrievePushCert(ctx context.Context, topic string) (*tls
 	return &cert, strconv.Itoa(staleToken), err
 }
 
-func (s *MySQLStorage) IsPushCertStale(ctx context.Context, topic, staleToken string) (bool, error) {
+func (s *PgSQLStorage) IsPushCertStale(ctx context.Context, topic, staleToken string) (bool, error) {
 	var staleTokenInt, dbStaleToken int
 	staleTokenInt, err := strconv.Atoi(staleToken)
 	if err != nil {
@@ -34,13 +34,13 @@ func (s *MySQLStorage) IsPushCertStale(ctx context.Context, topic, staleToken st
 	}
 	err = s.db.QueryRowContext(
 		ctx,
-		`SELECT stale_token FROM push_certs WHERE topic = ?;`,
+		`SELECT stale_token FROM push_certs WHERE topic = $1;`,
 		topic,
 	).Scan(&dbStaleToken)
 	return dbStaleToken != staleTokenInt, err
 }
 
-func (s *MySQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte) error {
+func (s *PgSQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte) error {
 	topic, err := cryptoutil.TopicFromPEMCert(pemCert)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (s *MySQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte
 INSERT INTO push_certs
     (topic, cert_pem, key_pem, stale_token)
 VALUES
-    (?, ?, ?, 0) AS new
+    ($1, $2, $3, 0) AS new
 ON DUPLICATE KEY
 UPDATE
     cert_pem = new.cert_pem,

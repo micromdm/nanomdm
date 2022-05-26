@@ -1,4 +1,4 @@
-package mysql
+package postgresql
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func enqueue(ctx context.Context, tx *sql.Tx, ids []string, cmd *mdm.Command) er
 	return err
 }
 
-func (m *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *mdm.Command) (map[string]error, error) {
+func (m *PgSQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *mdm.Command) (map[string]error, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (m *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 	return nil, tx.Commit()
 }
 
-func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandResults) error {
+func (s *PgSQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandResults) error {
 	if err := s.updateLastSeen(r); err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ UPDATE
 	return err
 }
 
-func (s *MySQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command, error) {
+func (s *PgSQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command, error) {
 	statusWhere := "status IS NULL"
 	if !skipNotNow {
 		statusWhere = `(` + statusWhere + ` OR status = 'NotNow')`
@@ -100,7 +100,7 @@ func (s *MySQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*md
 	return command, nil
 }
 
-func (s *MySQLStorage) ClearQueue(r *mdm.Request) error {
+func (s *PgSQLStorage) ClearQueue(r *mdm.Request) error {
 	if r.ParentID != "" {
 		return errors.New("can only clear a device channel queue")
 	}

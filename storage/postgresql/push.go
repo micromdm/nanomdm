@@ -1,10 +1,9 @@
-package mysql
+package postgresql
 
 import (
 	"context"
 	"errors"
-	"strings"
-
+	"fmt"
 	"github.com/micromdm/nanomdm/mdm"
 )
 
@@ -12,14 +11,19 @@ import (
 //
 // Note that we may return fewer results than input. The user of this
 // method needs to reconcile that with their requested ids.
-func (s *MySQLStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[string]*mdm.Push, error) {
+func (s *PgSQLStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[string]*mdm.Push, error) {
 	if len(ids) < 1 {
 		return nil, errors.New("no ids provided")
 	}
-	qs := "?" + strings.Repeat(", ?", len(ids)-1)
+	//qs := "?" + strings.Repeat(", ?", len(ids)-1)
+	qs := ""
 	args := make([]interface{}, len(ids))
 	for i, v := range ids {
 		args[i] = v
+		if i > 0 {
+			qs += ","
+		}
+		qs += fmt.Sprintf("$%d", i+1) // $1, $2, $3...
 	}
 	rows, err := s.db.QueryContext(
 		ctx,

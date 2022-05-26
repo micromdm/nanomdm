@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package mysql
+package postgresql
 
 import (
 	"context"
@@ -13,10 +13,10 @@ import (
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage/internal/test"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 )
 
-var flDSN = flag.String("dsn", "", "DSN of test MySQL instance")
+var flDSN = flag.String("dsn", "", "DSN of test PostgreSQL instance")
 
 func loadAuthMsg() (*mdm.Authenticate, error) {
 	b, err := ioutil.ReadFile("../../mdm/testdata/Authenticate.2.plist")
@@ -62,7 +62,7 @@ func newMdmReq() *mdm.Request {
 	}
 }
 
-func enrollTestDevice(storage *MySQLStorage) error {
+func enrollTestDevice(storage *PgSQLStorage) error {
 	authMsg, err := loadAuthMsg()
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func enrollTestDevice(storage *MySQLStorage) error {
 
 func TestQueue(t *testing.T) {
 	if *flDSN == "" {
-		t.Fatal("MySQL DSN flag not provided to test")
+		t.Fatal("PostgreSQL DSN flag not provided to test")
 	}
 
 	storage, err := New(WithDSN(*flDSN))

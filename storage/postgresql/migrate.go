@@ -1,4 +1,4 @@
-package mysql
+package postgresql
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/micromdm/nanomdm/mdm"
 )
 
-func (s *MySQLStorage) RetrieveMigrationCheckins(ctx context.Context, c chan<- interface{}) error {
+func (s *PgSQLStorage) RetrieveMigrationCheckins(ctx context.Context, c chan<- interface{}) error {
 	// TODO: if a TokenUpdate does not include the latest UnlockToken
 	// then we should synthesize a TokenUpdate to transfer it over.
 	deviceRows, err := s.db.QueryContext(

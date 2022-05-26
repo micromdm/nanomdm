@@ -1,4 +1,4 @@
-package mysql
+package postgresql
 
 import (
 	"context"
@@ -8,40 +8,40 @@ import (
 )
 
 // Executes SQL statements that return a single COUNT(*) of rows.
-func (s *MySQLStorage) queryRowContextRowExists(ctx context.Context, query string, args ...interface{}) (bool, error) {
+func (s *PgSQLStorage) queryRowContextRowExists(ctx context.Context, query string, args ...interface{}) (bool, error) {
 	var ct int
 	err := s.db.QueryRowContext(ctx, query, args...).Scan(&ct)
 	return ct > 0, err
 }
 
-func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
+func (s *PgSQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
 	return s.queryRowContextRowExists(
 		r.Context,
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = ?;`,
+		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = $1;`,
 		r.ID,
 	)
 }
 
-func (s *MySQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
+func (s *PgSQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
 	return s.queryRowContextRowExists(
 		r.Context,
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = ?;`,
+		`SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = $1;`,
 		strings.ToLower(hash),
 	)
 }
 
-func (s *MySQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, error) {
+func (s *PgSQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, error) {
 	return s.queryRowContextRowExists(
 		r.Context,
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = ? AND sha256 = ?;`,
+		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = $1 AND sha256 = $2;`,
 		r.ID, strings.ToLower(hash),
 	)
 }
 
-func (s *MySQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
+func (s *PgSQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
 	_, err := s.db.ExecContext(
 		r.Context, `
-INSERT INTO cert_auth_associations (id, sha256) VALUES (?, ?) AS new
+INSERT INTO cert_auth_associations (id, sha256) VALUES ($1, $2) AS new
 ON DUPLICATE KEY
 UPDATE sha256 = new.sha256;`,
 		r.ID,

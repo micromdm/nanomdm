@@ -1,13 +1,13 @@
-package mysql
+package postgresql
 
 import (
 	"github.com/micromdm/nanomdm/mdm"
 )
 
-func (s *MySQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrapToken) error {
+func (s *PgSQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrapToken) error {
 	_, err := s.db.ExecContext(
 		r.Context,
-		`UPDATE devices SET bootstrap_token_b64 = ?, bootstrap_token_at = CURRENT_TIMESTAMP WHERE id = ? LIMIT 1;`,
+		`UPDATE devices SET bootstrap_token_b64 = $1, bootstrap_token_at = CURRENT_TIMESTAMP WHERE id = $2;`,
 		nullEmptyString(msg.BootstrapToken.BootstrapToken.String()),
 		r.ID,
 	)
@@ -17,11 +17,11 @@ func (s *MySQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrap
 	return s.updateLastSeen(r)
 }
 
-func (s *MySQLStorage) RetrieveBootstrapToken(r *mdm.Request, _ *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
+func (s *PgSQLStorage) RetrieveBootstrapToken(r *mdm.Request, _ *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
 	var tokenB64 string
 	err := s.db.QueryRowContext(
 		r.Context,
-		`SELECT bootstrap_token_b64 FROM devices WHERE id = ?;`,
+		`SELECT bootstrap_token_b64 FROM devices WHERE id = $1;`,
 		r.ID,
 	).Scan(&tokenB64)
 	if err != nil {
