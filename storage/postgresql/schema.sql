@@ -22,8 +22,7 @@ CREATE TABLE devices
     bootstrap_token_at  TIMESTAMP NULL,
 
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- TODO  MySQL ON UPDATE CURRENT_TIMESTAMP to pgSQL trigger func
-    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- trigger
 
     PRIMARY KEY (id),
 
@@ -61,8 +60,7 @@ CREATE TABLE users
     user_authenticate_digest_at TIMESTAMP NULL,
 
     created_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- TODO  MySQL ON UPDATE CURRENT_TIMESTAMP to pgSQL trigger func
-    updated_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- trigger
 
     PRIMARY KEY (id, device_id),
     UNIQUE (id),
@@ -296,3 +294,40 @@ CREATE TABLE cert_auth_associations
 ) ,
     CHECK (sha256 != '')
 );
+
+/* creating function to update current_timestamp, works with triggers to tables
+   same as MySQL functionality:
+   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP*/
+CREATE  FUNCTION update_current_timestamp()
+    RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- create triggers to each table containing update_at, can be implemented by one fat func
+-- but made separate for readability
+CREATE TRIGGER update_at_to_current_timestamp BEFORE UPDATE ON devices
+    FOR EACH ROW EXECUTE PROCEDURE update_current_timestamp();
+
+CREATE TRIGGER update_at_to_current_timestamp BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE PROCEDURE update_current_timestamp();
+
+CREATE TRIGGER update_at_to_current_timestamp BEFORE UPDATE ON enrollments
+    FOR EACH ROW EXECUTE PROCEDURE update_current_timestamp();
+
+CREATE TRIGGER update_at_to_current_timestamp BEFORE UPDATE ON commands
+    FOR EACH ROW EXECUTE PROCEDURE update_current_timestamp();
+
+CREATE TRIGGER update_at_to_current_timestamp BEFORE UPDATE ON command_results
+    FOR EACH ROW EXECUTE PROCEDURE update_current_timestamp();
+
+CREATE TRIGGER update_at_to_current_timestamp BEFORE UPDATE ON enrollment_queue
+    FOR EACH ROW EXECUTE PROCEDURE update_current_timestamp();
+
+CREATE TRIGGER update_at_to_current_timestamp BEFORE UPDATE ON push_certs
+    FOR EACH ROW EXECUTE PROCEDURE update_current_timestamp();
+
+CREATE TRIGGER update_at_to_current_timestamp BEFORE UPDATE ON cert_auth_associations
+    FOR EACH ROW EXECUTE PROCEDURE update_current_timestamp();
