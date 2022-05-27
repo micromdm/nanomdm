@@ -274,8 +274,7 @@ CREATE TABLE push_certs
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (topic),
-    CHECK (topic != ''
-) ,
+    CHECK (topic != '') ,
 
     CHECK (SUBSTRING(cert_pem FROM 1 FOR 27) = '-----BEGIN CERTIFICATE-----'),
     CHECK (SUBSTRING(key_pem  FROM 1 FOR  5) = '-----')

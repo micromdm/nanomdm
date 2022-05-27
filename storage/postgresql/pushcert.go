@@ -50,13 +50,25 @@ func (s *PgSQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte
 INSERT INTO push_certs
     (topic, cert_pem, key_pem, stale_token)
 VALUES
-    ($1, $2, $3, 0) AS new
-ON DUPLICATE KEY
-UPDATE
-    cert_pem = new.cert_pem,
-    key_pem = new.key_pem,
-    push_certs.stale_token = push_certs.stale_token + 1;`,
+    ($1, $2, $3, 0) 
+ON CONFLICT (topic) DO
+UPDATE SET
+    cert_pem = EXCLUDED.cert_pem,
+    key_pem = EXCLUDED.key_pem,
+    stale_token = push_certs.stale_token + 1;`,
 		topic, pemCert, pemKey,
 	)
 	return err
 }
+
+/*
+INSERT INTO push_certs
+    (topic, cert_pem, key_pem, stale_token)
+VALUES
+    ('test1', '-----BEGIN CERTIFICATE-----testcert', '-----test_key_pem', 0)
+ON CONFLICT (topic) DO
+UPDATE SET
+    cert_pem = EXCLUDED.cert_pem,
+    key_pem = EXCLUDED.key_pem,
+    stale_token = push_certs.stale_token + 1;
+*/

@@ -38,12 +38,17 @@ func (s *PgSQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, 
 	)
 }
 
+// AssociateCertHash
+// TODO primary key consists of two to cols: id & sha256
+// so when primary key conflict why to update sha256?
 func (s *PgSQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
 	_, err := s.db.ExecContext(
 		r.Context, `
-INSERT INTO cert_auth_associations (id, sha256) VALUES ($1, $2) AS new
-ON DUPLICATE KEY
-UPDATE sha256 = new.sha256;`,
+INSERT INTO cert_auth_associations (id, sha256) 
+VALUES ($1, $2)
+ON CONFLICT ON CONSTRAINT cert_auth_associations_pkey DO
+UPDATE SET
+        sha256 = EXCLUDED.sha256;`,
 		r.ID,
 		strings.ToLower(hash),
 	)

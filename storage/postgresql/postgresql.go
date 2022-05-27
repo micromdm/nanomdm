@@ -89,12 +89,12 @@ func (s *PgSQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 INSERT INTO devices
     (id, identity_cert, serial_number, authenticate, authenticate_at)
 VALUES
-    ($1, $2, $3, $4, CURRENT_TIMESTAMP) AS new
-ON DUPLICATE KEY
-UPDATE
-    identity_cert = new.identity_cert,
-    serial_number = new.serial_number,
-    authenticate = new.authenticate,
+    ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+ON CONFLICT ON CONSTRAINT devices_pkey DO
+UPDATE SET
+    identity_cert = EXCLUDED.identity_cert,
+    serial_number = EXCLUDED.serial_number,
+    authenticate = EXCLUDED.authenticate,
     authenticate_at = CURRENT_TIMESTAMP;`,
 		r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
 	)
@@ -127,13 +127,13 @@ func (s *PgSQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, token_update, token_update_at)
 VALUES
-    ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) AS new
-ON DUPLICATE KEY
-UPDATE
-    device_id = new.device_id,
-    user_short_name = new.user_short_name,
-    user_long_name = new.user_long_name,
-    token_update = new.token_update,
+    ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE 
+SET 
+    device_id = EXCLUDED.device_id,
+    user_short_name = EXCLUDED.user_short_name,
+    user_long_name = EXCLUDED.user_long_name,
+    token_update = EXCLUDED.token_update,
     token_update_at = CURRENT_TIMESTAMP;`,
 		r.ID,
 		r.ParentID,
@@ -167,18 +167,18 @@ func (s *PgSQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 INSERT INTO enrollments
 	(id, device_id, user_id, type, topic, push_magic, token_hex, last_seen_at, token_update_tally)
 VALUES
-	($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, 1) AS new
-ON DUPLICATE KEY
-UPDATE
-    device_id = new.device_id,
-    user_id = new.user_id,
-    type = new.type,
-    topic = new.topic,
-    push_magic = new.push_magic,
-    token_hex = new.token_hex,
+	($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, 1)
+ON CONFLICT ON CONSTRAINT enrollments_pkey DO UPDATE 
+SET
+    device_id = EXCLUDED.device_id,
+    user_id = EXCLUDED.user_id,
+    type = EXCLUDED.type,
+    topic = EXCLUDED.topic,
+    push_magic = EXCLUDED.push_magic,
+    token_hex = EXCLUDED.token_hex,
 	enabled = 1,
 	last_seen_at = CURRENT_TIMESTAMP,
-	enrollments.token_update_tally = enrollments.token_update_tally + 1;`,
+	token_update_tally = enrollments.token_update_tally + 1;`,
 		r.ID,
 		deviceId,
 		nullEmptyString(userId),
@@ -215,13 +215,13 @@ INSERT INTO users
     (id, device_id, user_short_name, user_long_name, `+colName+`, `+colAtName+`)
 VALUES
     ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) AS new
-ON DUPLICATE KEY
-UPDATE
-    device_id = new.device_id,
-    user_short_name = new.user_short_name,
-    user_long_name = new.user_long_name,
-    `+colName+` = new.`+colName+`,
-    `+colAtName+` = new.`+colAtName+`;`,
+ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE 
+SET
+    device_id = EXCLUDED.device_id,
+    user_short_name = EXCLUDED.user_short_name,
+    user_long_name = EXCLUDED.user_long_name,
+    `+colName+` = EXCLUDED.`+colName+`,
+    `+colAtName+` = EXCLUDED.`+colAtName+`;`,
 		r.ID,
 		r.ParentID,
 		nullEmptyString(msg.UserShortName),
