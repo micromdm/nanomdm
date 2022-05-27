@@ -106,7 +106,7 @@ CREATE TABLE enrollments
     enabled            BOOLEAN      NOT NULL DEFAULT TRUE,
     token_update_tally INTEGER      NOT NULL DEFAULT 1,
 
-    last_seen_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at       TIMESTAMP    NOT NULL, -- DEFAULT CURRENT_TIMESTAMP, tests pass, but real test push error
 
     created_at         TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
     updated_at         TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -191,8 +191,7 @@ CREATE TABLE command_results
 
     -- considering not enforcing these CHECKs to make sure we always
     -- capture results in the case they're malformed.
-    CHECK (status != ''
-) ,
+    CHECK (status != '') ,
     CHECK (SUBSTRING(result FROM 1 FOR 5) = '<?xml')
 );
 CREATE INDEX idx_status ON command_results (status);
@@ -284,8 +283,7 @@ CREATE TABLE cert_auth_associations
 
     PRIMARY KEY (id, sha256),
 
-    CHECK (id != ''
-) ,
+    CHECK (id != ''),
     CHECK (sha256 != '')
 );
 

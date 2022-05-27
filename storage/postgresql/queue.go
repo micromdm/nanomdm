@@ -62,7 +62,7 @@ func (s *PgSQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 	// not_now_at field. thus it will only represent the first NotNow.
 	if result.Status == "NotNow" {
 		notNowConstants = "CURRENT_TIMESTAMP, 1"
-		notNowBumpTallySQL = `, command_results.not_now_tally = command_results.not_now_tally + 1`
+		notNowBumpTallySQL = `, not_now_tally = command_results.not_now_tally + 1`
 	}
 	_, err := s.db.ExecContext(
 		r.Context, `
