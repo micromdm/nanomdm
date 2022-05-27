@@ -90,7 +90,7 @@ func (s *PgSQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*md
 	command := new(mdm.Command)
 	err := s.db.QueryRowContext(
 		r.Context,
-		`SELECT command_uuid, request_type, command FROM view_queue WHERE id = $1 AND active = 1 AND `+statusWhere+` LIMIT 1;`,
+		`SELECT command_uuid, request_type, command FROM view_queue WHERE id = $1 AND active = TRUE AND `+statusWhere+` LIMIT 1;`,
 		r.ID,
 	).Scan(&command.CommandUUID, &command.Command.RequestType, &command.Raw)
 	if err != nil {
@@ -113,21 +113,21 @@ func (s *PgSQLStorage) ClearQueue(r *mdm.Request) error {
 	_, err := s.db.ExecContext(
 		r.Context,
 		`
-UPDATE
-    enrollment_queue AS q
-	INNER JOIN enrollments AS e
-	    ON q.id = e.id
-    INNER JOIN commands AS c
-        ON q.command_uuid = c.command_uuid
-    LEFT JOIN command_results r
-        ON r.command_uuid = q.command_uuid AND r.id = q.id
-SET
-    q.active = 0
-WHERE
-    e.device_id = $1 AND
-    active = 1 AND
-    (r.status IS NULL OR r.status = 'NotNow');`,
-		r.ID,
-	)
+UPDATE enrollment_queue
+SET    enrollment_queue.active = FALSE
+WHERE  enrollment_queue.id IN 
+	(SELECT q.id FROM enrollment_queue AS q
+		INNER JOIN enrollments AS e
+			ON q.id = e.id
+		INNER JOIN commands AS c
+			ON q.command_uuid = c.command_uuid
+		LEFT JOIN command_results r
+			ON r.command_uuid = q.command_uuid AND r.id = q.id
+		WHERE 
+			e.device_id = $1 AND
+			active = TRUE AND
+			(r.status IS NULL OR r.status = 'NotNow'))
+;`,
+		r.ID)
 	return err
 }

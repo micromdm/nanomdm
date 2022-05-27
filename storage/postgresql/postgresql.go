@@ -54,7 +54,7 @@ func WithDB(db *sql.DB) Option {
 }
 
 func New(opts ...Option) (*PgSQLStorage, error) {
-	cfg := &config{logger: log.NopLogger, driver: "mysql"}
+	cfg := &config{logger: log.NopLogger, driver: "postgres"}
 	for _, opt := range opts {
 		opt(cfg)
 	}
@@ -84,6 +84,20 @@ func (s *PgSQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 	if r.Certificate != nil {
 		pemCert = cryptoutil.PEMCertificate(r.Certificate.Raw)
 	}
+	/*	_, err := s.db.ExecContext(
+			r.Context, `
+	INSERT INTO devices
+	    (id, identity_cert, serial_number, authenticate, authenticate_at)
+	VALUES
+	    ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+	ON CONFLICT ON CONSTRAINT devices_pkey DO
+	UPDATE SET
+	    identity_cert = EXCLUDED.identity_cert,
+	    serial_number = EXCLUDED.serial_number,
+	    authenticate = EXCLUDED.authenticate,
+	    authenticate_at = CURRENT_TIMESTAMP;`,
+			r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
+		)*/
 	_, err := s.db.ExecContext(
 		r.Context, `
 INSERT INTO devices
@@ -96,7 +110,7 @@ UPDATE SET
     serial_number = EXCLUDED.serial_number,
     authenticate = EXCLUDED.authenticate,
     authenticate_at = CURRENT_TIMESTAMP;`,
-		r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
+		r.ID, nullEmptyString(string(pemCert)), nullEmptyString(msg.SerialNumber), msg.Raw,
 	)
 	return err
 }
@@ -176,7 +190,7 @@ SET
     topic = EXCLUDED.topic,
     push_magic = EXCLUDED.push_magic,
     token_hex = EXCLUDED.token_hex,
-	enabled = 1,
+	enabled = TRUE,
 	last_seen_at = CURRENT_TIMESTAMP,
 	token_update_tally = enrollments.token_update_tally + 1;`,
 		r.ID,
@@ -241,7 +255,7 @@ func (s *PgSQLStorage) Disable(r *mdm.Request) error {
 	}
 	_, err := s.db.ExecContext(
 		r.Context,
-		`UPDATE enrollments SET enabled = 0, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = $1 AND enabled = 1;`,
+		`UPDATE enrollments SET enabled = FALSE, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = $1 AND enabled = TRUE;`,
 		r.ID,
 	)
 	return err

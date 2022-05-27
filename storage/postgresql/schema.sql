@@ -109,7 +109,6 @@ CREATE TABLE enrollments
     last_seen_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     created_at         TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    -- TODO  MySQL ON UPDATE CURRENT_TIMESTAMP to pgSQL trigger func
     updated_at         TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
@@ -146,7 +145,6 @@ CREATE TABLE commands
     command      TEXT         NOT NULL,
 
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- TODO  MySQL ON UPDATE CURRENT_TIMESTAMP to pgSQL trigger func
     updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (command_uuid),
@@ -179,7 +177,6 @@ CREATE TABLE command_results
     not_now_tally INTEGER      NOT NULL DEFAULT 0,
 
     created_at    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    -- TODO trigger on change
     updated_at    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id, command_uuid),
@@ -210,7 +207,6 @@ CREATE TABLE enrollment_queue
     priority     SMALLINT     NOT NULL DEFAULT 0,
 
     created_at   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    -- TODO trigger on update
     updated_at   TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id, command_uuid),
@@ -268,7 +264,6 @@ CREATE TABLE push_certs
     stale_token INTEGER      NOT NULL,
 
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- TODO trigger on update
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (topic),
@@ -285,7 +280,6 @@ CREATE TABLE cert_auth_associations
     sha256     CHAR(64)     NOT NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    --TODO trigger on update
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id, sha256),
