@@ -214,7 +214,7 @@ func (s *PgSQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthen
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, `+colName+`, `+colAtName+`)
 VALUES
-    ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) AS new
+    ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
 ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE 
 SET
     device_id = EXCLUDED.device_id,

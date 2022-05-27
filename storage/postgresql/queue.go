@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
-
 	"github.com/micromdm/nanomdm/mdm"
 )
 
@@ -16,18 +14,22 @@ func enqueue(ctx context.Context, tx *sql.Tx, ids []string, cmd *mdm.Command) er
 	}
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO commands (command_uuid, request_type, command) VALUES (?, ?, ?);`,
+		`INSERT INTO commands (command_uuid, request_type, command) VALUES ($1, $2, $3);`,
 		cmd.CommandUUID, cmd.Command.RequestType, cmd.Raw,
 	)
 	if err != nil {
 		return err
 	}
-	query := `INSERT INTO enrollment_queue (id, command_uuid) VALUES (?, ?)`
-	query += strings.Repeat(", (?, ?)", len(ids)-1)
+	query := `INSERT INTO enrollment_queue (id, command_uuid) VALUES `
 	args := make([]interface{}, len(ids)*2)
 	for i, id := range ids {
-		args[i*2] = id
-		args[i*2+1] = cmd.CommandUUID
+		if i > 0 {
+			query += ","
+		}
+		ind := i * 2
+		query += fmt.Sprintf("($%d, $%d)", ind+1, ind+2)
+		args[ind] = id
+		args[ind+1] = cmd.CommandUUID
 	}
 	_, err = tx.ExecContext(ctx, query+";", args...)
 	return err
@@ -67,11 +69,11 @@ func (s *PgSQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 INSERT INTO command_results
     (id, command_uuid, status, result, not_now_at, not_now_tally)
 VALUES
-    (?, ?, ?, ?, `+notNowConstants+`) AS new
-ON DUPLICATE KEY
-UPDATE
-    status = new.status,
-    result = new.result`+notNowBumpTallySQL+`;`,
+    ($1, $2, $3, $4, `+notNowConstants+`)
+ON CONFLICT ON CONSTRAINT command_results_pkey DO UPDATE 
+SET
+    status = EXCLUDED.status,
+    result = EXCLUDED.result`+notNowBumpTallySQL+`;`,
 		r.ID,
 		result.CommandUUID,
 		result.Status,
@@ -88,7 +90,7 @@ func (s *PgSQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*md
 	command := new(mdm.Command)
 	err := s.db.QueryRowContext(
 		r.Context,
-		`SELECT command_uuid, request_type, command FROM view_queue WHERE id = ? AND active = 1 AND `+statusWhere+` LIMIT 1;`,
+		`SELECT command_uuid, request_type, command FROM view_queue WHERE id = $1 AND active = 1 AND `+statusWhere+` LIMIT 1;`,
 		r.ID,
 	).Scan(&command.CommandUUID, &command.Command.RequestType, &command.Raw)
 	if err != nil {
@@ -122,7 +124,7 @@ UPDATE
 SET
     q.active = 0
 WHERE
-    e.device_id = ? AND
+    e.device_id = $1 AND
     active = 1 AND
     (r.status IS NULL OR r.status = 'NotNow');`,
 		r.ID,
