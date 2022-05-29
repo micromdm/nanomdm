@@ -85,19 +85,19 @@ func (s *PgSQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 		pemCert = cryptoutil.PEMCertificate(r.Certificate.Raw)
 	}
 	/*	_, err := s.db.ExecContext(
-			r.Context, `
-	INSERT INTO devices
-	    (id, identity_cert, serial_number, authenticate, authenticate_at)
-	VALUES
-	    ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-	ON CONFLICT ON CONSTRAINT devices_pkey DO
-	UPDATE SET
-	    identity_cert = EXCLUDED.identity_cert,
-	    serial_number = EXCLUDED.serial_number,
-	    authenticate = EXCLUDED.authenticate,
-	    authenticate_at = CURRENT_TIMESTAMP;`,
-			r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
-		)*/
+				r.Context, `
+		INSERT INTO devices
+		    (id, identity_cert, serial_number, authenticate, authenticate_at)
+		VALUES
+		    ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+		ON CONFLICT ON CONSTRAINT devices_pkey DO
+		UPDATE SET
+		    identity_cert = EXCLUDED.identity_cert,
+		    serial_number = EXCLUDED.serial_number,
+		    authenticate = EXCLUDED.authenticate,
+		    authenticate_at = CURRENT_TIMESTAMP;`,
+				r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
+			)*/
 	_, err := s.db.ExecContext(
 		r.Context, `
 INSERT INTO devices
