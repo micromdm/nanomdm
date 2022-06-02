@@ -1,10 +1,11 @@
-package http
+package mdm
 
 import (
 	"errors"
 	"net/http"
 	"strings"
 
+	mdmhttp "github.com/micromdm/nanomdm/http"
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
@@ -28,7 +29,7 @@ func mdmReqFromHTTPReq(r *http.Request) *mdm.Request {
 func CheckinHandler(svc service.Checkin, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
-		bodyBytes, err := ReadAllAndReplaceBody(r)
+		bodyBytes, err := mdmhttp.ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -52,7 +53,7 @@ func CheckinHandler(svc service.Checkin, logger log.Logger) http.HandlerFunc {
 func CommandAndReportResultsHandler(svc service.CommandAndReportResults, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
-		bodyBytes, err := ReadAllAndReplaceBody(r)
+		bodyBytes, err := mdmhttp.ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

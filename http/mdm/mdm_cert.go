@@ -1,4 +1,4 @@
-package http
+package mdm
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/micromdm/nanomdm/cryptoutil"
+	mdmhttp "github.com/micromdm/nanomdm/http"
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/log/ctxlog"
 )
@@ -80,7 +81,7 @@ func CertExtractMdmSignatureMiddleware(next http.Handler, logger log.Logger) htt
 			next.ServeHTTP(w, r)
 			return
 		}
-		b, err := ReadAllAndReplaceBody(r)
+		b, err := mdmhttp.ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

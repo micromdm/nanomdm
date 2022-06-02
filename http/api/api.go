@@ -1,4 +1,4 @@
-package http
+package api
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/micromdm/nanomdm/cryptoutil"
+	mdmhttp "github.com/micromdm/nanomdm/http"
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
@@ -141,7 +142,7 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 	return func(w http.ResponseWriter, r *http.Request) {
 		ids := strings.Split(r.URL.Path, ",")
 		ctx, logger := setupCtxLog(r.Context(), ids, logger)
-		b, err := ReadAllAndReplaceBody(r)
+		b, err := mdmhttp.ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -295,7 +296,7 @@ func readPEMCertAndKey(input []byte) (cert []byte, key []byte, err error) {
 func StorePushCertHandler(storage storage.PushCertStore, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
-		b, err := ReadAllAndReplaceBody(r)
+		b, err := mdmhttp.ReadAllAndReplaceBody(r)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
