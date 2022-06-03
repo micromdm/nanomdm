@@ -259,7 +259,7 @@ CREATE TABLE push_certs
      * every time push info is requested. This value should be updated
      * every time a push cert is updated (i.e. renwals) and so all
      * push services using this table will know the certificate has
-     * changed and reload it. This is managed by the MySQL backend. */
+     * changed and reload it. This is managed by the PgSQL backend. */
     stale_token INTEGER      NOT NULL,
 
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
