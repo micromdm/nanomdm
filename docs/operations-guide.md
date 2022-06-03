@@ -59,7 +59,7 @@ Configures the MySQL storage backend. The `-dsn` flag should be in the [format t
 Options are specified as a comma-separated list of "key=value" pairs. The mysql backend supports these options:
 
 * `delete=1`, `delete=0`
-  * This option turns on the command and response deleter. When enabled (with `delete=1`) command responses, queued commands, and commands themeselves will be deleted from the database after enrollments have responded to a command.
+  * This option turns on or off the command and response deleter. It is disabled by default. When enabled (with `delete=1`) command responses, queued commands, and commands themeselves will be deleted from the database after enrollments have responded to a command.
 
 *Example:* `-storage mysql -dsn nanomdm:nanomdm/mymdmdb -storage-options delete=1`
 
