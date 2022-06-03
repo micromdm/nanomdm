@@ -257,7 +257,7 @@ CREATE TABLE push_certs
     /* stale_token is a simple value that coordinates push certificates
      * across the SQL backend. The push service checks this value
      * every time push info is requested. This value should be updated
-     * every time a push cert is updated (i.e. renwals) and so all
+     * every time a push cert is updated (i.e. renewals) and so all
      * push services using this table will know the certificate has
      * changed and reload it. This is managed by the PgSQL backend. */
     stale_token INTEGER      NOT NULL,
