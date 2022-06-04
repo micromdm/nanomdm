@@ -110,7 +110,7 @@ UPDATE SET
     serial_number = EXCLUDED.serial_number,
     authenticate = EXCLUDED.authenticate,
     authenticate_at = CURRENT_TIMESTAMP;`,
-		r.ID, nullEmptyString(string(pemCert)), nullEmptyString(msg.SerialNumber), msg.Raw,
+		r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
 	)
 	return err
 }
