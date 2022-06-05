@@ -67,7 +67,6 @@ func enrollTestDevice(storage *PgSQLStorage) error {
 	if err != nil {
 		return err
 	}
-	//fmt.Println(*authMsg)
 	err = storage.StoreAuthenticate(newMdmReq(), authMsg)
 	if err != nil {
 		return err

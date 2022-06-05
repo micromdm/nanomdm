@@ -1,42 +1,40 @@
+/* Requires PostgreSQL 9.5 or later.
+ * From PostgreSQL documentation: ON CONFLICT clause is only available from PostgreSQL 9.5
+ */
+
 CREATE TABLE devices
 (
     id                  VARCHAR(255) NOT NULL,
 
-    identity_cert       TEXT NULL,
+    identity_cert       TEXT         NULL,
 
     serial_number       VARCHAR(127) NULL,
 
     -- If the (iOS, iPadOS) device sent an UnlockToken in the TokenUpdate
     -- TODO: Consider using a TEXT field and encoding the binary
-    unlock_token        TEXT NULL,
-    unlock_token_at     TIMESTAMP NULL,
+    unlock_token        TEXT         NULL,
+    unlock_token_at     TIMESTAMP    NULL,
 
     -- The last raw Authenticate for this device
     authenticate        TEXT         NOT NULL,
     authenticate_at     TIMESTAMP    NOT NULL,
     -- The last raw TokenUpdate for this device
-    token_update        TEXT NULL,
-    token_update_at     TIMESTAMP NULL,
+    token_update        TEXT         NULL,
+    token_update_at     TIMESTAMP    NULL,
 
-    bootstrap_token_b64 TEXT NULL,
-    bootstrap_token_at  TIMESTAMP NULL,
+    bootstrap_token_b64 TEXT         NULL,
+    bootstrap_token_at  TIMESTAMP    NULL,
 
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- trigger
 
     PRIMARY KEY (id),
 
-    CHECK (identity_cert IS NULL OR
-           SUBSTRING(identity_cert FROM 1 FOR 27) = '-----BEGIN CERTIFICATE-----'),
-
-    CHECK (serial_number IS NULL OR serial_number != ''
-) ,
-
+    CHECK (identity_cert IS NULL OR SUBSTRING(identity_cert FROM 1 FOR 27) = '-----BEGIN CERTIFICATE-----'),
+    CHECK (serial_number IS NULL OR serial_number != ''),
     CHECK (unlock_token IS NULL OR LENGTH(unlock_token) > 0),
-
     CHECK (authenticate != ''),
     CHECK (token_update IS NULL OR token_update != ''),
-
     CHECK (bootstrap_token_b64 IS NULL OR bootstrap_token_b64 != '')
 );
 CREATE INDEX serial_number ON devices (serial_number);
@@ -50,14 +48,14 @@ CREATE TABLE users
     user_long_name              VARCHAR(255) NULL,
 
     -- The last raw TokenUpdate for this user
-    token_update                TEXT NULL,
-    token_update_at             TIMESTAMP NULL,
+    token_update                TEXT         NULL,
+    token_update_at             TIMESTAMP    NULL,
 
     -- The last raw UserAuthenticate (and optional digest) for this user
-    user_authenticate           TEXT NULL,
-    user_authenticate_at        TIMESTAMP NULL,
-    user_authenticate_digest    TEXT NULL,
-    user_authenticate_digest_at TIMESTAMP NULL,
+    user_authenticate           TEXT         NULL,
+    user_authenticate_at        TIMESTAMP    NULL,
+    user_authenticate_digest    TEXT         NULL,
+    user_authenticate_digest_at TIMESTAMP    NULL,
 
     created_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- trigger
@@ -69,13 +67,10 @@ CREATE TABLE users
         REFERENCES devices (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
 
-    CHECK (user_short_name IS NULL OR user_short_name != ''
-) ,
-    CHECK (user_long_name  IS NULL OR user_long_name  != ''),
-
+    CHECK (user_short_name IS NULL OR user_short_name != ''),
+    CHECK (user_long_name IS NULL OR user_long_name != ''),
     CHECK (token_update IS NULL OR token_update != ''),
-
-    CHECK (user_authenticate        IS NULL OR user_authenticate        != ''),
+    CHECK (user_authenticate IS NULL OR user_authenticate != ''),
     CHECK (user_authenticate_digest IS NULL OR user_authenticate_digest != '')
 );
 
@@ -106,14 +101,13 @@ CREATE TABLE enrollments
     enabled            BOOLEAN      NOT NULL DEFAULT TRUE,
     token_update_tally INTEGER      NOT NULL DEFAULT 1,
 
-    last_seen_at       TIMESTAMP    NOT NULL, -- DEFAULT CURRENT_TIMESTAMP, tests pass, but real test push error
+    last_seen_at       TIMESTAMP    NOT NULL, -- TODO: additional tests with real device and integration tests.
 
     created_at         TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
     updated_at         TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
-    CHECK (id != ''
-) ,
+    CHECK (id != ''),
 
     FOREIGN KEY (device_id)
         REFERENCES devices (id)
@@ -125,15 +119,13 @@ CREATE TABLE enrollments
     UNIQUE (user_id),
 
     CHECK (type != ''),
-
     CHECK (topic != ''),
     CHECK (push_magic != ''),
     CHECK (token_hex != '')
 );
 CREATE INDEX idx_type ON enrollments (type);
 
-
-/* Commands stand alone. By themsevles they aren't associated with
+/* Commands stand alone. By themselves they aren't associated with
  * a device, a result (response), etc. Joining other tables is required
  * for more context.
  */
@@ -149,7 +141,7 @@ CREATE TABLE commands
 
     PRIMARY KEY (command_uuid),
 
-    CHECK (command_uuid != '') ,
+    CHECK (command_uuid != ''),
     CHECK (request_type != ''),
     CHECK (SUBSTRING(command FROM 1 FOR 5) = '<?xml')
 );
@@ -173,7 +165,7 @@ CREATE TABLE command_results
     status        VARCHAR(31)  NOT NULL,
     result        TEXT         NOT NULL,
 
-    not_now_at    TIMESTAMP NULL,
+    not_now_at    TIMESTAMP    NULL,
     not_now_tally INTEGER      NOT NULL DEFAULT 0,
 
     created_at    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
@@ -191,7 +183,7 @@ CREATE TABLE command_results
 
     -- considering not enforcing these CHECKs to make sure we always
     -- capture results in the case they're malformed.
-    CHECK (status != '') ,
+    CHECK (status != ''),
     CHECK (SUBSTRING(result FROM 1 FOR 5) = '<?xml')
 );
 CREATE INDEX idx_status ON command_results (status);
@@ -224,8 +216,7 @@ CREATE TABLE enrollment_queue
  * those that have received no result yet) will have a status of NULL
  * (due to the LEFT JOIN against results).
  */
-CREATE
-OR REPLACE VIEW view_queue AS
+CREATE OR REPLACE VIEW view_queue AS
 SELECT q.id,
        q.created_at,
        q.active,
@@ -266,10 +257,10 @@ CREATE TABLE push_certs
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (topic),
-    CHECK (topic != '') ,
+    CHECK (topic != ''),
 
     CHECK (SUBSTRING(cert_pem FROM 1 FOR 27) = '-----BEGIN CERTIFICATE-----'),
-    CHECK (SUBSTRING(key_pem  FROM 1 FOR  5) = '-----')
+    CHECK (SUBSTRING(key_pem FROM 1 FOR 5) = '-----')
 );
 
 
@@ -290,11 +281,12 @@ CREATE TABLE cert_auth_associations
 /* creating function to update current_timestamp, works with triggers to tables
    same as MySQL functionality:
    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP*/
-CREATE  FUNCTION update_current_timestamp()
-    RETURNS TRIGGER AS $$
+CREATE FUNCTION update_current_timestamp()
+    RETURNS TRIGGER AS
+    $$
 BEGIN
     NEW.updated_at = now();
-    RETURN NEW;
+RETURN NEW;
 END;
 $$ language 'plpgsql';
 
