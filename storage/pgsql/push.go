@@ -1,9 +1,11 @@
-package postgresql
+package pgsql
 
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/micromdm/nanomdm/mdm"
 )
 
@@ -15,21 +17,25 @@ func (s *PgSQLStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[
 	if len(ids) < 1 {
 		return nil, errors.New("no ids provided")
 	}
-	//qs := "?" + strings.Repeat(", ?", len(ids)-1)
-	qs := ""
+
+	// previous: `SELECT id, topic, push_magic, token_hex FROM enrollments WHERE id IN (`+qs+`);`,
+	// refactor all strings concatenations with strings.Builder which is more efficient
+	var qs strings.Builder
+
+	qs.WriteString(`SELECT id, topic, push_magic, token_hex FROM enrollments WHERE id IN (`)
 	args := make([]interface{}, len(ids))
 	for i, v := range ids {
 		args[i] = v
 		if i > 0 {
-			qs += ","
+			qs.WriteString(",")
 		}
-		qs += fmt.Sprintf("$%d", i+1) // $1, $2, $3...
+		// can be a bit faster than fmt.Fprintf(&qs, "$%d", i+1)
+		qs.WriteString("$")
+		qs.WriteString(strconv.Itoa(i + 1))
 	}
-	rows, err := s.db.QueryContext(
-		ctx,
-		`SELECT id, topic, push_magic, token_hex FROM enrollments WHERE id IN (`+qs+`);`,
-		args...,
-	)
+	qs.WriteString(`);`)
+
+	rows, err := s.db.QueryContext(ctx, qs.String(), args...)
 	if err != nil {
 		return nil, err
 	}

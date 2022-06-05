@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package postgresql
+package pgsql
 
 import (
 	"context"
@@ -10,10 +10,9 @@ import (
 	"io/ioutil"
 	"testing"
 
+	_ "github.com/lib/pq"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage/internal/test"
-
-	_ "github.com/lib/pq"
 )
 
 var flDSN = flag.String("dsn", "", "DSN of test PostgreSQL instance")

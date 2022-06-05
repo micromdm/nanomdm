@@ -11,7 +11,7 @@ import (
 	"github.com/micromdm/nanomdm/storage/allmulti"
 	"github.com/micromdm/nanomdm/storage/file"
 	"github.com/micromdm/nanomdm/storage/mysql"
-	"github.com/micromdm/nanomdm/storage/postgresql"
+	"github.com/micromdm/nanomdm/storage/pgsql"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -74,12 +74,12 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 				return nil, err
 			}
 			mdmStorage = append(mdmStorage, mysqlStorage)
-		case "postgresql":
-			postgresqlStorage, err := postgresqlStorageConfig(dsn, options, logger)
+		case "pgsql":
+			pgsqlStorage, err := pgsqlStorageConfig(dsn, options, logger)
 			if err != nil {
 				return nil, err
 			}
-			mdmStorage = append(mdmStorage, postgresqlStorage)
+			mdmStorage = append(mdmStorage, pgsqlStorage)
 		default:
 			return nil, fmt.Errorf("unknown storage: %s", storage)
 		}
@@ -117,13 +117,13 @@ func mysqlStorageConfig(dsn, options string, logger log.Logger) (*mysql.MySQLSto
 	return mysql.New(opts...)
 }
 
-func postgresqlStorageConfig(dsn, options string, logger log.Logger) (*postgresql.PgSQLStorage, error) {
+func pgsqlStorageConfig(dsn, options string, logger log.Logger) (*pgsql.PgSQLStorage, error) {
 	if options != "" {
 		return nil, NoStorageOptions
 	}
-	opts := []postgresql.Option{
-		postgresql.WithDSN(dsn),
-		postgresql.WithLogger(logger.With("storage", "postgresql")),
+	opts := []pgsql.Option{
+		pgsql.WithDSN(dsn),
+		pgsql.WithLogger(logger.With("storage", "pgsql")),
 	}
-	return postgresql.New(opts...)
+	return pgsql.New(opts...)
 }

@@ -56,6 +56,14 @@ Configures the MySQL storage backend. The `-dsn` flag should be in the [format t
 
 *Example:* `-storage mysql -dsn nanomdm:nanomdm/mymdmdb`
 
+#### pgsql storage backend
+
+* `-storage pgsql`
+
+Configures the PostgreSQL storage backend. The `-dsn` flag should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with the [schema.sql](../storage/pgsql/schema.sql) file that corresponds to your NanoMDM version. Also make sure you apply any schema changes for each updated version (i.e. execute the numbered schema change files). PostgreSQL 9.5 or later is required.
+
+*Example:* `-storage pgsql -dsn nanomdm:nanomdm/pgmdmdb`
+
 #### multi-storage backend
 
 You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-dsn` flag and so forth.
