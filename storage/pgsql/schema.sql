@@ -12,7 +12,7 @@ CREATE TABLE devices
 
     -- If the (iOS, iPadOS) device sent an UnlockToken in the TokenUpdate
     -- TODO: Consider using a TEXT field and encoding the binary
-    unlock_token        TEXT         NULL,
+    unlock_token        BYTEA         NULL,
     unlock_token_at     TIMESTAMP    NULL,
 
     -- The last raw Authenticate for this device

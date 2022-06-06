@@ -121,27 +121,25 @@ func (s *PgSQLStorage) ClearQueue(r *mdm.Request) error {
 	if r.ParentID != "" {
 		return errors.New("can only clear a device channel queue")
 	}
-	// Because we're joining on and WHERE-ing by the enrollments table
-	// this will clear (mark inactive) the queue of not only this
-	// device ID, but all user-channel enrollments with a 'parent' ID of
-	// this device, too.
+	// PostgreSQL UPDATE differs from MySQL, uses "FROM" specific
+	// to pgsql extension
 	_, err := s.db.ExecContext(
 		r.Context,
 		`
-UPDATE
-    enrollment_queue AS q
+UPDATE enrollment_queue
+SET active = FALSE
+FROM enrollment_queue  AS q
 	INNER JOIN enrollments AS e
-	    ON q.id = e.id
-    INNER JOIN commands AS c
-        ON q.command_uuid = c.command_uuid
-    LEFT JOIN command_results r
-        ON r.command_uuid = q.command_uuid AND r.id = q.id
-SET
-    q.active = FALSE
-WHERE
+		ON q.id = e.id
+	INNER JOIN commands AS c
+		ON q.command_uuid = c.command_uuid
+	LEFT JOIN command_results r
+		ON r.command_uuid = q.command_uuid AND r.id = q.id
+WHERE 
     e.device_id = $1 AND
-    active = TRUE AND
-    (r.status IS NULL OR r.status = 'NotNow');`,
+    enrollment_queue.active = TRUE AND
+    (r.status IS NULL OR r.status = 'NotNow') AND 
+    enrollment_queue.id = q.id;`,
 		r.ID)
 	return err
 }

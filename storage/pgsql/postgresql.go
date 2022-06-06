@@ -104,12 +104,14 @@ UPDATE SET
 func (s *PgSQLStorage) storeDeviceTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
 	query := `UPDATE devices SET token_update = $1, token_update_at = CURRENT_TIMESTAMP`
 	where := ` WHERE id = $2;`
-	args := []interface{}{msg.Raw, r.ID}
+	args := []interface{}{msg.Raw}
 	// separately store the Unlock Token per MDM spec
 	if len(msg.UnlockToken) > 0 {
-		query += `, unlock_token = $3, unlock_token_at = CURRENT_TIMESTAMP `
+		query += `, unlock_token = $2, unlock_token_at = CURRENT_TIMESTAMP `
 		args = append(args, msg.UnlockToken)
+		where = ` WHERE id = $3;`
 	}
+	args = append(args, r.ID)
 	_, err := s.db.ExecContext(r.Context, query+where, args...)
 	return err
 }
