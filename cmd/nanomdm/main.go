@@ -14,6 +14,8 @@ import (
 	"github.com/micromdm/nanomdm/certverify"
 	"github.com/micromdm/nanomdm/cmd/cli"
 	mdmhttp "github.com/micromdm/nanomdm/http"
+	httpapi "github.com/micromdm/nanomdm/http/api"
+	httpmdm "github.com/micromdm/nanomdm/http/mdm"
 	"github.com/micromdm/nanomdm/log/stdlogfmt"
 	"github.com/micromdm/nanomdm/push/buford"
 	pushsvc "github.com/micromdm/nanomdm/push/service"
@@ -119,28 +121,28 @@ func main() {
 		var mdmHandler http.Handler
 		if *flCheckin {
 			// if we use the check-in handler then only handle commands
-			mdmHandler = mdmhttp.CommandAndReportResultsHandler(mdmService, logger.With("handler", "command"))
+			mdmHandler = httpmdm.CommandAndReportResultsHandler(mdmService, logger.With("handler", "command"))
 		} else {
 			// if we don't use a check-in handler then do both
-			mdmHandler = mdmhttp.CheckinAndCommandHandler(mdmService, logger.With("handler", "checkin-command"))
+			mdmHandler = httpmdm.CheckinAndCommandHandler(mdmService, logger.With("handler", "checkin-command"))
 		}
-		mdmHandler = mdmhttp.CertVerifyMiddleware(mdmHandler, verifier, logger.With("handler", "cert-verify"))
+		mdmHandler = httpmdm.CertVerifyMiddleware(mdmHandler, verifier, logger.With("handler", "cert-verify"))
 		if *flCertHeader != "" {
-			mdmHandler = mdmhttp.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger.With("handler", "cert-extract"))
+			mdmHandler = httpmdm.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger.With("handler", "cert-extract"))
 		} else {
-			mdmHandler = mdmhttp.CertExtractMdmSignatureMiddleware(mdmHandler, logger.With("handler", "cert-extract"))
+			mdmHandler = httpmdm.CertExtractMdmSignatureMiddleware(mdmHandler, logger.With("handler", "cert-extract"))
 		}
 		mux.Handle(endpointMDM, mdmHandler)
 
 		if *flCheckin {
 			// if we specified a separate check-in handler, set it up
 			var checkinHandler http.Handler
-			checkinHandler = mdmhttp.CheckinHandler(mdmService, logger.With("handler", "checkin"))
-			checkinHandler = mdmhttp.CertVerifyMiddleware(checkinHandler, verifier, logger.With("handler", "cert-verify"))
+			checkinHandler = httpmdm.CheckinHandler(mdmService, logger.With("handler", "checkin"))
+			checkinHandler = httpmdm.CertVerifyMiddleware(checkinHandler, verifier, logger.With("handler", "cert-verify"))
 			if *flCertHeader != "" {
-				checkinHandler = mdmhttp.CertExtractPEMHeaderMiddleware(checkinHandler, *flCertHeader, logger.With("handler", "cert-extract"))
+				checkinHandler = httpmdm.CertExtractPEMHeaderMiddleware(checkinHandler, *flCertHeader, logger.With("handler", "cert-extract"))
 			} else {
-				checkinHandler = mdmhttp.CertExtractMdmSignatureMiddleware(checkinHandler, logger.With("handler", "cert-extract"))
+				checkinHandler = httpmdm.CertExtractMdmSignatureMiddleware(checkinHandler, logger.With("handler", "cert-extract"))
 			}
 			mux.Handle(endpointCheckin, checkinHandler)
 		}
@@ -155,14 +157,14 @@ func main() {
 
 		// register API handler for push cert storage/upload.
 		var pushCertHandler http.Handler
-		pushCertHandler = mdmhttp.StorePushCertHandler(mdmStorage, logger.With("handler", "store-cert"))
+		pushCertHandler = httpapi.StorePushCertHandler(mdmStorage, logger.With("handler", "store-cert"))
 		pushCertHandler = mdmhttp.BasicAuthMiddleware(pushCertHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(endpointAPIPushCert, pushCertHandler)
 
 		// register API handler for push notifications.
 		// we strip the prefix to use the path as an id.
 		var pushHandler http.Handler
-		pushHandler = mdmhttp.PushHandler(pushService, logger.With("handler", "push"))
+		pushHandler = httpapi.PushHandler(pushService, logger.With("handler", "push"))
 		pushHandler = http.StripPrefix(endpointAPIPush, pushHandler)
 		pushHandler = mdmhttp.BasicAuthMiddleware(pushHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(endpointAPIPush, pushHandler)
@@ -170,7 +172,7 @@ func main() {
 		// register API handler for new command queueing.
 		// we strip the prefix to use the path as an id.
 		var enqueueHandler http.Handler
-		enqueueHandler = mdmhttp.RawCommandEnqueueHandler(mdmStorage, pushService, logger.With("handler", "enqueue"))
+		enqueueHandler = httpapi.RawCommandEnqueueHandler(mdmStorage, pushService, logger.With("handler", "enqueue"))
 		enqueueHandler = http.StripPrefix(endpointAPIEnqueue, enqueueHandler)
 		enqueueHandler = mdmhttp.BasicAuthMiddleware(enqueueHandler, apiUsername, *flAPIKey, "nanomdm")
 		mux.Handle(endpointAPIEnqueue, enqueueHandler)
@@ -185,7 +187,7 @@ func main() {
 			// generate "enrollments" then this effively allows us to
 			// migrate MDM enrollments between servers.
 			var migHandler http.Handler
-			migHandler = mdmhttp.CheckinHandler(nano, logger.With("handler", "migration"))
+			migHandler = httpmdm.CheckinHandler(nano, logger.With("handler", "migration"))
 			migHandler = mdmhttp.BasicAuthMiddleware(migHandler, apiUsername, *flAPIKey, "nanomdm")
 			mux.Handle(endpointAPIMigration, migHandler)
 		}
