@@ -1,4 +1,4 @@
-// Package pgsql stores and retrieves MDM data from SQL
+// Package pgsql stores and retrieves MDM data from PostgresSQL
 package pgsql
 
 import (
