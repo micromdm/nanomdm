@@ -113,21 +113,60 @@ func mysqlStorageConfig(dsn, options string, logger log.Logger) (*mysql.MySQLSto
 		mysql.WithLogger(logger),
 	}
 	if options != "" {
-		for k, v := range splitOptions(options) {
-			switch k {
-			case "delete":
-				if v == "1" {
-					opts = append(opts, mysql.WithDeleteCommands())
-					logger.Debug("msg", "deleting commands")
-				} else if v != "0" {
-					return nil, fmt.Errorf("invalid value for delete option: %q", v)
-				}
-			default:
-				return nil, fmt.Errorf("invalid option: %q", k)
-			}
+		if ok, err := checkBoolOption(deleteOption, options); ok {
+			opts = append(opts, mysql.WithDeleteCommands())
+			logger.Debug("msg", "deleting commands")
+		} else if err != nil {
+			return nil, err
 		}
 	}
 	return mysql.New(opts...)
+}
+
+func pgsqlStorageConfig(dsn, options string, logger log.Logger) (*pgsql.PgSQLStorage, error) {
+	logger = logger.With("storage", "pgsql")
+	opts := []pgsql.Option{
+		pgsql.WithDSN(dsn),
+		pgsql.WithLogger(logger),
+	}
+	if options != "" {
+		if ok, err := checkBoolOption(deleteOption, options); ok {
+			opts = append(opts, pgsql.WithDeleteCommands())
+			logger.Debug("msg", "deleting commands")
+		} else if err != nil {
+			return nil, err
+		}
+	}
+	return pgsql.New(opts...)
+}
+
+type storageOption string
+
+const (
+	deleteOption storageOption = "delete"
+)
+
+// checkBoolOption checks by name for bool option, returns:
+// true: "true", "t", or "1"
+// false: "false", "f", or "0"
+// option name and value case-insensitive
+func checkBoolOption(so storageOption, options string) (bool, error) {
+	for k, v := range splitOptions(options) {
+		k := strings.ToLower(k)
+		if so != storageOption(k) {
+			continue
+		}
+		v := strings.ToLower(v)
+		switch v {
+		case "true", "t", "1":
+			return true, nil
+		case "false", "f", "0":
+			return false, nil
+		default:
+			return false, fmt.Errorf("invalid value for %s option: %q", so, v)
+		}
+	}
+	return false, fmt.Errorf("option not found: %s", so)
 }
 
 func splitOptions(s string) map[string]string {
@@ -141,15 +180,4 @@ func splitOptions(s string) map[string]string {
 		out[optKAndV[0]] = optKAndV[1]
 	}
 	return out
-}
-
-func pgsqlStorageConfig(dsn, options string, logger log.Logger) (*pgsql.PgSQLStorage, error) {
-	if options != "" {
-		return nil, NoStorageOptions
-	}
-	opts := []pgsql.Option{
-		pgsql.WithDSN(dsn),
-		pgsql.WithLogger(logger.With("storage", "pgsql")),
-	}
-	return pgsql.New(opts...)
 }

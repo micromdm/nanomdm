@@ -64,12 +64,66 @@ func (s *PgSQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 	return nil, tx.Commit()
 }
 
+func (s *PgSQLStorage) deleteCommand(ctx context.Context, tx *sql.Tx, id, uuid string) error {
+	_, err := tx.ExecContext(ctx, `
+DELETE FROM enrollment_queue
+WHERE id =$1 AND command_uuid =$2;`, id, uuid)
+	if err != nil {
+		return err
+	}
+	// delete command result (i.e. NotNows) and this queued command
+	_, err = tx.ExecContext(ctx, `
+DELETE FROM command_results
+WHERE id =$1 AND command_uuid =$2;`, id, uuid)
+	if err != nil {
+		return err
+	}
+
+	// now delete the actual command if no enrollments have it queued
+	// nor are there any results for it.
+	_, err = tx.ExecContext(
+		ctx, `
+DELETE FROM commands
+USING
+        commands AS c
+    LEFT JOIN enrollment_queue AS q
+        ON q.command_uuid = c.command_uuid
+    LEFT JOIN command_results AS r
+        ON r.command_uuid = c.command_uuid
+WHERE
+    c.command_uuid =$1 AND
+    q.command_uuid IS NULL AND
+    r.command_uuid IS NULL AND
+    commands.command_uuid = c.command_uuid;
+`,
+		uuid,
+	)
+	return err
+}
+
+func (s *PgSQLStorage) deleteCommandTx(r *mdm.Request, result *mdm.CommandResults) error {
+	tx, err := s.db.BeginTx(r.Context, nil)
+	if err != nil {
+		return err
+	}
+	if err = s.deleteCommand(r.Context, tx, r.ID, result.CommandUUID); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
+		}
+		return err
+	}
+	return tx.Commit()
+}
+
 func (s *PgSQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandResults) error {
 	if err := s.updateLastSeen(r); err != nil {
 		return err
 	}
 	if result.Status == "Idle" {
 		return nil
+	}
+	if s.rm && result.Status != "NotNow" {
+		return s.deleteCommandTx(r, result)
 	}
 	notNowConstants := "NULL, 0"
 	notNowBumpTallySQL := ""
