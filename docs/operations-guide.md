@@ -131,19 +131,19 @@ NanoMDM supports a MicroMDM-compatible [webhook callback](https://github.com/mic
 
 * Endpoint: `/mdm`
 
-The primary MDM endpoint is `/mdm` and needs to correspond to the `ServerURL` key in the enrollment profile. Both command & result handling as well as check-in handling happens on at this endpoint by default. Note that if the `-checkin` switch is turned on then this endpoint will only handle command & result requests (having assumed that you updated your enrollment profile to include a separate `CheckInURL` key). Note the `-disable-mdm` switch will turn off this endpoint.
+The primary MDM endpoint is `/mdm` and needs to correspond to the `ServerURL` key in the enrollment profile. Both command & result handling as well as check-in handling happens on this endpoint by default. Note that if the `-checkin` switch is turned on then this endpoint will only handle command & result requests (having assumed that you updated your enrollment profile to include a separate `CheckInURL` key). Note the `-disable-mdm` switch will turn off this endpoint.
 
 ### MDM Check-in
 
 * Endpoint: `/checkin`
 
-This switch enables the separate MDM check-in endpoint and if enables needs to correspond to the `CheckInURL` key in the enrollment profile. By default MDM check-ins are handled by the `/mdm` endpoint unless this switch is turned on in which case this endpoint handles them. This endpoint is disabled unless the `-checkin` switch is turned on. Note the `-disable-mdm` switch will turn off this endpoint.
+The MDM check-in endpoint, if enabled, needs to correspond to the `CheckInURL` key in the enrollment profile. By default MDM check-ins are handled by the `/mdm` endpoint unless this switch is turned on in which case this endpoint handles them. This endpoint is disabled unless the `-checkin` switch is turned on. Note the `-disable-mdm` switch will turn off this endpoint.
 
 ### Push Cert
 
 * Endpoint: `/v1/pushcert`
 
-The push cert API endpoint allows for uploading an APNS push certificate. It takes a concatenated PEM-encoded APNs push certificate and private key as its HTTP body. A quick way to utilize this endpoint is to use `curl`. For example:
+The push cert API endpoint allows for uploading an APNS push certificate. It takes a concatenated PEM-encoded APNs push certificate and private key as its HTTP body. Note the private key should not be encrypted. A quick way to utilize this endpoint is to use `curl`. For example:
 
 ```bash
 $ cat /path/to/push.pem /path/to/push.key | curl -T - -u nanomdm:nanomdm 'http://127.0.0.1:9000/v1/pushcert'
@@ -158,7 +158,7 @@ Here the `-T -` switch to `curl` tells it to take the standard-input and use it 
 
 * Endpoint: `/v1/push/`
 
-The push API endpoint sends APNs push notifications to enrollments (which ask the MDM client to connect to the MDM server). This is a simple 
+The push API endpoint sends APNs push notifications to enrollments (which ask the MDM client to connect to the MDM server). This is a simple endpoint that takes enrollment IDs on the URL path:
 
 ```bash
 $ curl -u nanomdm:nanomdm 'http://127.0.0.1:9000/v1/push/99385AF6-44CB-5621-A678-A321F4D9A2C8'
@@ -194,10 +194,10 @@ $ curl -u nanomdm:nanomdm '[::1]:9000/v1/push/99385AF6-44CB-5621-A678-A321F4D9A2
 
 * Endpoint: `/v1/enqueue/`
 
-The enqueue API endpoint allows sending of commands to enrollments. It takes a raw command Plist input as the HTTP body. The `tools/cmdr.py` script helps generate basic MDM commands. For example (the `-r` switch picks a random read-only MDM command):
+The enqueue API endpoint allows sending of commands to enrollments. It takes a raw command Plist input as the HTTP body. The [`cmdr.py` script](tools/cmdr.py) helps generate basic MDM commands. For example:
 
 ```bash
-$ ./tools/cmdr.py -r
+$ ./cmdr.py -r
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -213,10 +213,12 @@ $ ./tools/cmdr.py -r
 </plist>
 ```
 
+(Note the `-r` switch here picks a random read-only MDM command)
+
 Then, to submit a command to a NanoMDM enrollment:
 
 ```bash
-$ ./tools/cmdr.py -r | curl -T - -u nanomdm:nanomm 'http://127.0.0.1:9000/v1/enqueue/E9085AF6-DCCB-5661-A678-BCE8F4D9A2C8'
+$ ./cmdr.py -r | curl -T - -u nanomdm:nanomm 'http://127.0.0.1:9000/v1/enqueue/E9085AF6-DCCB-5661-A678-BCE8F4D9A2C8'
 {
 	"status": {
 		"E9085AF6-DCCB-5661-A678-BCE8F4D9A2C8": {
@@ -233,7 +235,7 @@ Here we successfully queued a command to an enrollment ID (UDID) `E9085AF6-DCCB-
 Note here, too, we can queue a command to multiple enrollments:
 
 ```bash
-$ ./tools/cmdr.py -r | curl -T - -u nanomdm:nanomm 'http://127.0.0.1:9000/v1/enqueue/99385AF6-44CB-5621-A678-A321F4D9A2C8,E9085AF6-DCCB-5661-A678-BCE8F4D9A2C8'
+$ ./cmdr.py -r | curl -T - -u nanomdm:nanomm 'http://127.0.0.1:9000/v1/enqueue/99385AF6-44CB-5621-A678-A321F4D9A2C8,E9085AF6-DCCB-5661-A678-BCE8F4D9A2C8'
 
 	"status": {
 		"99385AF6-44CB-5621-A678-A321F4D9A2C8": {
@@ -251,7 +253,7 @@ $ ./tools/cmdr.py -r | curl -T - -u nanomdm:nanomm 'http://127.0.0.1:9000/v1/enq
 Finally you can skip sending the push notification request by appending `?nopush=1` to the URI:
 
 ```bash
-$ ./tools/cmdr.py -r | curl -v -T - -u nanomdm:nanomdm '[::1]:9000/v1/enqueue/99385AF6-44CB-5621-A678-A321F4D9A2C8?nopush=1'
+$ ./cmdr.py -r | curl -v -T - -u nanomdm:nanomdm '[::1]:9000/v1/enqueue/99385AF6-44CB-5621-A678-A321F4D9A2C8?nopush=1'
 {
 	"no_push": true,
 	"command_uuid": "598544b5-b681-4ce2-8914-ba7f45ff5c02",
