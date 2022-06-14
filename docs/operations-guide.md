@@ -194,7 +194,7 @@ $ curl -u nanomdm:nanomdm '[::1]:9000/v1/push/99385AF6-44CB-5621-A678-A321F4D9A2
 
 * Endpoint: `/v1/enqueue/`
 
-The enqueue API endpoint allows sending of commands to enrollments. It takes a raw command Plist input as the HTTP body. The [`cmdr.py` script](tools/cmdr.py) helps generate basic MDM commands. For example:
+The enqueue API endpoint allows sending of commands to enrollments. It takes a raw command Plist input as the HTTP body. The [`cmdr.py` script](../tools/cmdr.py) helps generate basic MDM commands. For example:
 
 ```bash
 $ ./cmdr.py -r
