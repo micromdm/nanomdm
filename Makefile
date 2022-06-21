@@ -12,6 +12,10 @@ NANO2NANO=\
 	nano2nano-darwin-arm64 \
 	nano2nano-linux-amd64
 
+SUPPLEMENTAL=\
+	tools/cmdr.py \
+	docs/enroll.mobileconfig
+
 my: nanomdm-$(OSARCH) nano2nano-$(OSARCH)
 
 docker: nanomdm-linux-amd64 nano2nano-linux-amd64
@@ -22,20 +26,27 @@ $(NANOMDM): cmd/nanomdm
 $(NANO2NANO): cmd/nano2nano
 	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$(subst .exe,,$@))) go build $(LDFLAGS) -o $@ ./$<
 
-%-$(VERSION).zip: %.exe
-	rm -f $@
-	zip $@ $<
+nanomdm-%-$(VERSION).zip: nanomdm-%.exe nano2nano-%.exe $(SUPPLEMENTAL)
+	rm -rf $(subst .zip,,$@)
+	mkdir $(subst .zip,,$@)
+	ln $^ $(subst .zip,,$@)
+	zip -r $@ $(subst .zip,,$@)
+	rm -rf $(subst .zip,,$@)
 
-%-$(VERSION).zip: %
-	rm -f $@
-	zip $@ $<
+nanomdm-%-$(VERSION).zip: nanomdm-% nano2nano-% $(SUPPLEMENTAL)
+	rm -rf $(subst .zip,,$@)
+	mkdir $(subst .zip,,$@)
+	ln $^ $(subst .zip,,$@)
+	zip -r $@ $(subst .zip,,$@)
+	rm -rf $(subst .zip,,$@)
 
 clean:
-	rm -f nanomdm-* nano2nano-*
+	rm -rf nanomdm-* nano2nano-*
 
 release: \
-	$(foreach bin,$(NANOMDM),$(subst .exe,,$(bin))-$(VERSION).zip) \
-	$(foreach bin,$(NANO2NANO),$(subst .exe,,$(bin))-$(VERSION).zip)
+	nanomdm-darwin-amd64-$(VERSION).zip \
+	nanomdm-darwin-arm64-$(VERSION).zip \
+	nanomdm-linux-amd64-$(VERSION).zip
 
 test:
 	go test -v -cover -race ./...
