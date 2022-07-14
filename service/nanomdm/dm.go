@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"path"
 
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
@@ -16,28 +15,26 @@ import (
 const enrollmentIDHeader = "X-Enrollment-ID"
 
 type DeclarativeManagementHTTPCaller struct {
-	urlPrefix string
-	client    *http.Client
+	url    *url.URL
+	client *http.Client
 }
 
 // NewDeclarativeManagementHTTPCaller creates a new DeclarativeManagementHTTPCaller
-func NewDeclarativeManagementHTTPCaller(urlPrefix string) *DeclarativeManagementHTTPCaller {
-	return &DeclarativeManagementHTTPCaller{
-		urlPrefix: urlPrefix,
-		client:    http.DefaultClient,
-	}
+func NewDeclarativeManagementHTTPCaller(urlPrefix string, client *http.Client) (*DeclarativeManagementHTTPCaller, error) {
+	url, err := url.Parse(urlPrefix)
+	return &DeclarativeManagementHTTPCaller{url: url, client: client}, err
 }
 
 // DeclarativeManagement calls out to an HTTP URL to handle the actual Declarative Management protocol
 func (c *DeclarativeManagementHTTPCaller) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
-	if c.urlPrefix == "" {
+	if c.url == nil {
 		return nil, errors.New("missing URL")
 	}
-	u, err := url.Parse(c.urlPrefix)
+	endpointURL, err := url.Parse(message.Endpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing endpoint URL: %w", err)
 	}
-	u.Path = path.Join(u.Path, message.Endpoint)
+	u := c.url.ResolveReference(endpointURL)
 	method := http.MethodGet
 	if len(message.Data) > 0 {
 		method = http.MethodPut

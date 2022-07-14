@@ -95,7 +95,10 @@ func main() {
 	nanoOpts := []nanomdm.Option{nanomdm.WithLogger(logger.With("service", "nanomdm"))}
 	if *flDMURLPfx != "" {
 		logger.Debug("msg", "declarative management setup", "url", *flDMURLPfx)
-		dm := nanomdm.NewDeclarativeManagementHTTPCaller(*flDMURLPfx)
+		dm, err := nanomdm.NewDeclarativeManagementHTTPCaller(*flDMURLPfx, http.DefaultClient)
+		if err != nil {
+			stdlog.Fatal(err)
+		}
 		nanoOpts = append(nanoOpts, nanomdm.WithDeclarativeManagement(dm))
 	}
 	nano := nanomdm.New(mdmStorage, nanoOpts...)
