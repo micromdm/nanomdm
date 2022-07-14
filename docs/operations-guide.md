@@ -2,6 +2,22 @@
 
 This is a brief overview of the various command-line switches and HTTP endpoints (including APIs) available to NanoMDM.
 
+## Enrollment IDs
+
+First, an aside on NanoMDM enrollment IDs:
+
+Generally speaking in Apple MDM there are two types of MDM "channels" — the device channel and user channel. The device channel has different styles of enrollment. For example a traditional MDM device enrollment which would use the `UDID` field or a User Enrollment (for BYOD) which use the `EnrollmentID` field. Then, for the user channel there's an optional `UserID` field. This field changes context if it's a Shared iPad enrollment.
+
+NanoMDM tries to reduce this complexity by collapsing these various identifiers into a single "enrollment ID" which is a single string that identifies unique enrollments. This same enrollment ID is used for targeting commands and pushes to devices. In the code we ["resolve"](https://github.com/micromdm/nanomdm/blob/5a0a160c8d89259bdd5feca346c0a9c4a93f95cc/mdm/type.go#L69) the various identifiers to their channel- and enrollment-types and then the core NanoMDM service ["normalizes"](https://github.com/micromdm/nanomdm/blob/5a0a160c8d89259bdd5feca346c0a9c4a93f95cc/service/nanomdm/service.go#L34-L45) the resolved IDs into enrollment IDs. The enrollment IDs look a bit like this:
+
+| Type    | Platform | ID Format     | ID Example |
+| ------- | -------- | ------------- | ------- |
+| Device  | macOS    | <UUID>        | `470E005B-17C1-4537-BBB3-0EBC340D432A` |
+| User    | macOS    | <UUID>:<UUID> | `470E005B-17C1-4537-BBB3-0EBC340D432A:F151140B-3988-45A9-9471-E96B49F27D93` |
+| Device  | iOS      | <UUID>        | `8b3b8ba3783e9ade1dae4fbb944ab3afc0ce5b69` |
+| User Enrollment (Device) | iOS | <UUID> | `b318edb72b556059a013368e3150050c5f74a2c6` |
+| Shared iPad | iOS  | <UUID>:<AppleID> | `68656c6c6f776f726c6468656c6c6f776f726c64:appleid@example.com` |
+
 ## Switches
 
 ###  -api string
