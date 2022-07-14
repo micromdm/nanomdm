@@ -4,6 +4,11 @@ import (
 	"testing"
 )
 
+func TestNilResolved(t *testing.T) {
+	var e *Enrollment
+	_ = e.Resolved()
+}
+
 func TestResolved(t *testing.T) {
 	for _, test := range []struct {
 		testName  string

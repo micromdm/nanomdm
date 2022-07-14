@@ -67,6 +67,9 @@ func (resolved *ResolvedEnrollment) Validate() error {
 
 // Resolved assembles a ResolvedEnrollment from an Enrollment
 func (e *Enrollment) Resolved() (r *ResolvedEnrollment) {
+	if e == nil {
+		return
+	}
 	if e.UDID != "" {
 		r = new(ResolvedEnrollment)
 		r.Type = Device
