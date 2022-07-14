@@ -10,13 +10,13 @@ Generally speaking in Apple MDM there are two types of MDM "channels" — the de
 
 NanoMDM tries to reduce this complexity by collapsing these various identifiers into a single "enrollment ID" which is a single string that identifies unique enrollments. This same enrollment ID is used for targeting commands and pushes to devices. In the code we ["resolve"](https://github.com/micromdm/nanomdm/blob/5a0a160c8d89259bdd5feca346c0a9c4a93f95cc/mdm/type.go#L69) the various identifiers to their channel- and enrollment-types and then the core NanoMDM service ["normalizes"](https://github.com/micromdm/nanomdm/blob/5a0a160c8d89259bdd5feca346c0a9c4a93f95cc/service/nanomdm/service.go#L34-L45) the resolved IDs into enrollment IDs. The enrollment IDs look a bit like this:
 
-| Type    | Platform | ID Format     | ID Example |
+| Type    | Platform | ID Normalized | ID Example |
 | ------- | -------- | ------------- | ------- |
-| Device  | macOS    | <UUID>        | `470E005B-17C1-4537-BBB3-0EBC340D432A` |
-| User    | macOS    | <UUID>:<UUID> | `470E005B-17C1-4537-BBB3-0EBC340D432A:F151140B-3988-45A9-9471-E96B49F27D93` |
-| Device  | iOS      | <UUID>        | `8b3b8ba3783e9ade1dae4fbb944ab3afc0ce5b69` |
-| User Enrollment (Device) | iOS | <UUID> | `b318edb72b556059a013368e3150050c5f74a2c6` |
-| Shared iPad | iOS  | <UUID>:<AppleID> | `68656c6c6f776f726c6468656c6c6f776f726c64:appleid@example.com` |
+| Device  | macOS    | `UUID`        | `470E005B-17C1-4537-BBB3-0EBC340D432A` |
+| User    | macOS    | `UUID:UUID` | `470E005B-17C1-4537-BBB3-0EBC340D432A:F151140B-3988-45A9-9471-E96B49F27D93` |
+| Device  | iOS      | `UUID`        | `8b3b8ba3783e9ade1dae4fbb944ab3afc0ce5b69` |
+| User Enrollment (Device) | iOS | `UUID` | `b318edb72b556059a013368e3150050c5f74a2c6` |
+| Shared iPad | iOS  | `UUID:ShortName` | `68656c6c6f776f726c6468656c6c6f776f726c64:appleid@example.com` |
 
 ## Switches
 
