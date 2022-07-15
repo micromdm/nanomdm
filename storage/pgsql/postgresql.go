@@ -1,5 +1,5 @@
-// Package mysql stores and retrieves MDM data from MySQL
-package mysql
+// Package pgsql stores and retrieves MDM data from PostgresSQL
+package pgsql
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 
 var ErrNoCert = errors.New("no certificate in MDM Request")
 
-type MySQLStorage struct {
+type PgSQLStorage struct {
 	logger log.Logger
 	db     *sql.DB
 	rm     bool
@@ -61,8 +61,8 @@ func WithDeleteCommands() Option {
 	}
 }
 
-func New(opts ...Option) (*MySQLStorage, error) {
-	cfg := &config{logger: log.NopLogger, driver: "mysql"}
+func New(opts ...Option) (*PgSQLStorage, error) {
+	cfg := &config{logger: log.NopLogger, driver: "postgres"}
 	for _, opt := range opts {
 		opt(cfg)
 	}
@@ -76,7 +76,7 @@ func New(opts ...Option) (*MySQLStorage, error) {
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
-	return &MySQLStorage{db: cfg.db, logger: cfg.logger, rm: cfg.rm}, nil
+	return &PgSQLStorage{db: cfg.db, logger: cfg.logger, rm: cfg.rm}, nil
 }
 
 // nullEmptyString returns a NULL string if s is empty.
@@ -87,7 +87,7 @@ func nullEmptyString(s string) sql.NullString {
 	}
 }
 
-func (s *MySQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
+func (s *PgSQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
 	var pemCert []byte
 	if r.Certificate != nil {
 		pemCert = cryptoutil.PEMCertificate(r.Certificate.Raw)
@@ -97,33 +97,34 @@ func (s *MySQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 INSERT INTO devices
     (id, identity_cert, serial_number, authenticate, authenticate_at)
 VALUES
-    (?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
-ON DUPLICATE KEY
-UPDATE
-    identity_cert = new.identity_cert,
-    serial_number = new.serial_number,
-    authenticate = new.authenticate,
+    ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+ON CONFLICT ON CONSTRAINT devices_pkey DO
+UPDATE SET
+    identity_cert = EXCLUDED.identity_cert,
+    serial_number = EXCLUDED.serial_number,
+    authenticate = EXCLUDED.authenticate,
     authenticate_at = CURRENT_TIMESTAMP;`,
-		r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
+		r.ID, nullEmptyString(string(pemCert)), nullEmptyString(msg.SerialNumber), msg.Raw,
 	)
 	return err
 }
 
-func (s *MySQLStorage) storeDeviceTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
-	query := `UPDATE devices SET token_update = ?, token_update_at = CURRENT_TIMESTAMP`
+func (s *PgSQLStorage) storeDeviceTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
+	query := `UPDATE devices SET token_update = $1, token_update_at = CURRENT_TIMESTAMP`
+	where := ` WHERE id = $2;`
 	args := []interface{}{msg.Raw}
 	// separately store the Unlock Token per MDM spec
 	if len(msg.UnlockToken) > 0 {
-		query += `, unlock_token = ?, unlock_token_at = CURRENT_TIMESTAMP`
+		query += `, unlock_token = $2, unlock_token_at = CURRENT_TIMESTAMP `
 		args = append(args, msg.UnlockToken)
+		where = ` WHERE id = $3;`
 	}
-	query += ` WHERE id = ? LIMIT 1;`
 	args = append(args, r.ID)
-	_, err := s.db.ExecContext(r.Context, query, args...)
+	_, err := s.db.ExecContext(r.Context, query+where, args...)
 	return err
 }
 
-func (s *MySQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
+func (s *PgSQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
 	// there shouldn't be an Unlock Token on the user channel, but
 	// complain if there is to warn an admin
 	if len(msg.UnlockToken) > 0 {
@@ -136,13 +137,13 @@ func (s *MySQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, token_update, token_update_at)
 VALUES
-    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
-ON DUPLICATE KEY
-UPDATE
-    device_id = new.device_id,
-    user_short_name = new.user_short_name,
-    user_long_name = new.user_long_name,
-    token_update = new.token_update,
+    ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE 
+SET 
+    device_id = EXCLUDED.device_id,
+    user_short_name = EXCLUDED.user_short_name,
+    user_long_name = EXCLUDED.user_long_name,
+    token_update = EXCLUDED.token_update,
     token_update_at = CURRENT_TIMESTAMP;`,
 		r.ID,
 		r.ParentID,
@@ -153,7 +154,7 @@ UPDATE
 	return err
 }
 
-func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
+func (s *PgSQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
 	var err error
 	var deviceId, userId string
 	resolved := (&msg.Enrollment).Resolved()
@@ -176,18 +177,18 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 INSERT INTO enrollments
 	(id, device_id, user_id, type, topic, push_magic, token_hex, last_seen_at, token_update_tally)
 VALUES
-	(?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1) AS new
-ON DUPLICATE KEY
-UPDATE
-    device_id = new.device_id,
-    user_id = new.user_id,
-    type = new.type,
-    topic = new.topic,
-    push_magic = new.push_magic,
-    token_hex = new.token_hex,
-	enabled = 1,
+	($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, 1)
+ON CONFLICT ON CONSTRAINT enrollments_pkey DO UPDATE 
+SET
+    device_id = EXCLUDED.device_id,
+    user_id = EXCLUDED.user_id,
+    type = EXCLUDED.type,
+    topic = EXCLUDED.topic,
+    push_magic = EXCLUDED.push_magic,
+    token_hex = EXCLUDED.token_hex,
+	enabled = TRUE,
 	last_seen_at = CURRENT_TIMESTAMP,
-	enrollments.token_update_tally = enrollments.token_update_tally + 1;`,
+	token_update_tally = enrollments.token_update_tally + 1;`,
 		r.ID,
 		deviceId,
 		nullEmptyString(userId),
@@ -199,17 +200,17 @@ UPDATE
 	return err
 }
 
-func (s *MySQLStorage) RetrieveTokenUpdateTally(ctx context.Context, id string) (int, error) {
+func (s *PgSQLStorage) RetrieveTokenUpdateTally(ctx context.Context, id string) (int, error) {
 	var tally int
 	err := s.db.QueryRowContext(
 		ctx,
-		`SELECT token_update_tally FROM enrollments WHERE id = ?;`,
+		`SELECT token_update_tally FROM enrollments WHERE id = $1;`,
 		id,
 	).Scan(&tally)
 	return tally, err
 }
 
-func (s *MySQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
+func (s *PgSQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
 	colName := "user_authenticate"
 	colAtName := "user_authenticate_at"
 	// if the DigestResponse is empty then this is the first (of two)
@@ -223,14 +224,14 @@ func (s *MySQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthen
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, `+colName+`, `+colAtName+`)
 VALUES
-    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
-ON DUPLICATE KEY
-UPDATE
-    device_id = new.device_id,
-    user_short_name = new.user_short_name,
-    user_long_name = new.user_long_name,
-    `+colName+` = new.`+colName+`,
-    `+colAtName+` = new.`+colAtName+`;`,
+    ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE 
+SET
+    device_id = EXCLUDED.device_id,
+    user_short_name = EXCLUDED.user_short_name,
+    user_long_name = EXCLUDED.user_long_name,
+    `+colName+` = EXCLUDED.`+colName+`,
+    `+colAtName+` = EXCLUDED.`+colAtName+`;`,
 		r.ID,
 		r.ParentID,
 		nullEmptyString(msg.UserShortName),
@@ -244,22 +245,22 @@ UPDATE
 }
 
 // Disable can be called for an Authenticate or CheckOut message
-func (s *MySQLStorage) Disable(r *mdm.Request) error {
+func (s *PgSQLStorage) Disable(r *mdm.Request) error {
 	if r.ParentID != "" {
 		return errors.New("can only disable a device channel")
 	}
 	_, err := s.db.ExecContext(
 		r.Context,
-		`UPDATE enrollments SET enabled = 0, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = ? AND enabled = 1;`,
+		`UPDATE enrollments SET enabled = FALSE, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = $1 AND enabled = TRUE;`,
 		r.ID,
 	)
 	return err
 }
 
-func (s *MySQLStorage) updateLastSeen(r *mdm.Request) (err error) {
+func (s *PgSQLStorage) updateLastSeen(r *mdm.Request) (err error) {
 	_, err = s.db.ExecContext(
 		r.Context,
-		`UPDATE enrollments SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		`UPDATE enrollments SET last_seen_at = CURRENT_TIMESTAMP WHERE id = $1`,
 		r.ID,
 	)
 	if err != nil {

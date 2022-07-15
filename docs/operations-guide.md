@@ -79,6 +79,20 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
 
 *Example:* `-storage mysql -dsn nanomdm:nanomdm/mymdmdb -storage-options delete=1`
 
+#### pgsql storage backend
+
+* `-storage pgsql`
+
+Configures the PostgreSQL storage backend. The `-dsn` flag should be in the [format the SQL driver expects](https://pkg.go.dev/github.com/lib/pq#pkg-overview). Be sure to create your tables with the [schema.sql](../storage/pgsql/schema.sql) file that corresponds to your NanoMDM version. Also make sure you apply any schema changes for each updated version (i.e. execute the numbered schema change files). PostgreSQL 9.5 or later is required.
+
+*Example:* `-storage pgsql -dsn postgres://postgres:toor@localhost:5432/nanomdm?sslmode=disable`
+
+Options are specified as a comma-separated list of "key=value" pairs. The pgsql backend supports these options:
+* `delete=1`, `delete=0`
+    * This option turns on or off the command and response deleter. It is disabled by default. When enabled (with `delete=1`) command responses, queued commands, and commands themselves will be deleted from the database after enrollments have responded to a command.
+
+*Example:* `-storage pgsql -dsn postgres://postgres:toor@localhost/nanomdm -storage-options delete=1`
+
 #### multi-storage backend
 
 You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-dsn` flag and so forth.
