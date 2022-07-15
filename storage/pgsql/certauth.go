@@ -44,7 +44,7 @@ func (s *PgSQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
 		r.Context, `
 INSERT INTO cert_auth_associations (id, sha256) 
 VALUES ($1, $2)
-ON CONFLICT ON CONSTRAINT cert_auth_associations_pkey DO NOTHING;`,
+ON CONFLICT ON CONSTRAINT cert_auth_associations_pkey DO UPDATE SET updated_at=now();`,
 		r.ID,
 		strings.ToLower(hash),
 	)
