@@ -1,4 +1,4 @@
-// Package mysql Package mysql stores and retrieves MDM data from MySQL
+// Package mysql stores and retrieves MDM data from MySQL
 package mysql
 
 import (
