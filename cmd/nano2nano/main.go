@@ -36,7 +36,7 @@ func main() {
 		return
 	}
 
-	logger := stdlogfmt.New(stdlog.Default(), *flDebug)
+	logger := stdlogfmt.New(stdlogfmt.WithDebugFlag(*flDebug))
 
 	var skipServer bool
 	if *flURL == "" || *flAPIKey == "" {

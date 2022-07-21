@@ -72,7 +72,7 @@ func main() {
 		stdlog.Fatal("nothing for server to do")
 	}
 
-	logger := stdlogfmt.New(stdlog.Default(), *flDebug)
+	logger := stdlogfmt.New(stdlogfmt.WithDebugFlag(*flDebug))
 
 	if *flRootsPath == "" {
 		stdlog.Fatal("must supply CA cert path flag")
