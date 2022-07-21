@@ -53,10 +53,13 @@ type ctxKeyTraceID struct{}
 
 // TraceLoggingMiddleware sets up a trace ID in the request context and
 // logs HTTP requests.
-func TraceLoggingMiddleware(next http.Handler, logger log.Logger, newTrace func() string) http.HandlerFunc {
+func TraceLoggingMiddleware(next http.Handler, logger log.Logger, newTrace func(*http.Request) string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), ctxKeyTraceID{}, newTrace())
-		ctx = ctxlog.AddFunc(ctx, ctxlog.SimpleStringFunc("trace_id", ctxKeyTraceID{}))
+		ctx := r.Context()
+		if newTrace != nil {
+			ctx = context.WithValue(r.Context(), ctxKeyTraceID{}, newTrace(r))
+			ctx = ctxlog.AddFunc(ctx, ctxlog.SimpleStringFunc("trace_id", ctxKeyTraceID{}))
+		}
 
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {

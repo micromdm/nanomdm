@@ -213,7 +213,7 @@ func main() {
 // Currently this just makes a random string. This would be better
 // served by e.g. https://github.com/oklog/ulid or something like
 // https://opentelemetry.io/ someday.
-func newTraceID() string {
+func newTraceID(_ *http.Request) string {
 	b := make([]byte, 8)
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
