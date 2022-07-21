@@ -149,6 +149,9 @@ func (w *checkinUnmarshaller) UnmarshalPlist(f func(interface{}) error) error {
 func DecodeCheckin(rawMessage []byte) (message interface{}, err error) {
 	w := &checkinUnmarshaller{raw: rawMessage}
 	err = plist.Unmarshal(rawMessage, w)
+	if err != nil {
+		err = &ParseError{Err: err, Body: rawMessage}
+	}
 	message = w.message
 	return
 }

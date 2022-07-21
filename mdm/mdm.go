@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/x509"
 	"errors"
+	"fmt"
 )
 
 // Enrollment represents the various enrollment-related data sent with requests.
@@ -58,4 +59,17 @@ func (r *Request) Clone() *Request {
 	r2 := new(Request)
 	*r2 = *r
 	return r2
+}
+
+type ParseError struct {
+	Err  error
+	Body []byte
+}
+
+func (e *ParseError) Unwrap() error {
+	return e.Err
+}
+
+func (e *ParseError) Error() string {
+	return fmt.Sprintf("parse error: %s: raw body: %v", e.Err, string(e.Body))
 }
