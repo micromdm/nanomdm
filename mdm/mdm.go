@@ -61,15 +61,18 @@ func (r *Request) Clone() *Request {
 	return r2
 }
 
+// ParseError represents a failure to parse an MDM structure (usually Apple Plist)
 type ParseError struct {
 	Err  error
-	Body []byte
+	Content []byte
 }
 
+// Unwrap returns the underlying error of the ParseError
 func (e *ParseError) Unwrap() error {
 	return e.Err
 }
 
+// Error formats the ParseError as a string
 func (e *ParseError) Error() string {
-	return fmt.Sprintf("parse error: %s: raw body: %v", e.Err, string(e.Body))
+	return fmt.Sprintf("parse error: %v: raw content: %v", e.Err, string(e.Content))
 }

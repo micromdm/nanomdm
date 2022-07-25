@@ -35,7 +35,7 @@ func DecodeCommandResults(rawResults []byte) (results *CommandResults, err error
 	results = new(CommandResults)
 	err = plist.Unmarshal(rawResults, results)
 	if err != nil {
-		return nil, &ParseError{Err: err, Body: rawResults}
+		return nil, &ParseError{Err: err, Content: rawResults}
 	}
 	results.Raw = rawResults
 	if results.Status == "" {
@@ -58,7 +58,7 @@ func DecodeCommand(rawCommand []byte) (command *Command, err error) {
 	command = new(Command)
 	err = plist.Unmarshal(rawCommand, command)
 	if err != nil {
-		return nil, &ParseError{Err: err, Body: rawCommand}
+		return nil, &ParseError{Err: err, Content: rawCommand}
 	}
 	command.Raw = rawCommand
 	if command.CommandUUID == "" || command.Command.RequestType == "" {
