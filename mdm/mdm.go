@@ -63,7 +63,7 @@ func (r *Request) Clone() *Request {
 
 // ParseError represents a failure to parse an MDM structure (usually Apple Plist)
 type ParseError struct {
-	Err  error
+	Err     error
 	Content []byte
 }
 
