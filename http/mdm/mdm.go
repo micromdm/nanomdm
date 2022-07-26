@@ -2,6 +2,7 @@ package mdm
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -42,13 +43,13 @@ func CheckinHandler(svc service.Checkin, logger log.Logger) http.HandlerFunc {
 			var statusErr *service.HTTPStatusError
 			if errors.As(err, &statusErr) {
 				httpStatus = statusErr.Status
-				err = statusErr.Unwrap()
+				err = fmt.Errorf("HTTP error: %w", statusErr.Unwrap())
 			}
 			// manualy unwrapping the `StatusErr` is not necessary as `errors.As` manually unwraps
 			var parseErr *mdm.ParseError
 			if errors.As(err, &parseErr) {
 				logs = append(logs, "content", string(parseErr.Content))
-				err = statusErr.Unwrap()
+				err = fmt.Errorf("parse error: %w", parseErr.Unwrap())
 			}
 			logs = append(logs, "http_status", httpStatus, "err", err)
 			logger.Info(logs...)
@@ -75,12 +76,12 @@ func CommandAndReportResultsHandler(svc service.CommandAndReportResults, logger 
 			var statusErr *service.HTTPStatusError
 			if errors.As(err, &statusErr) {
 				httpStatus = statusErr.Status
-				err = statusErr.Unwrap()
+				err = fmt.Errorf("HTTP error: %w", statusErr.Unwrap())
 			}
 			var parseErr *mdm.ParseError
 			if errors.As(err, &parseErr) {
 				logs = append(logs, "content", string(parseErr.Content))
-				err = parseErr.Unwrap()
+				err = fmt.Errorf("parse error: %w", parseErr.Unwrap())
 			}
 			logs = append(logs, "http_status", httpStatus, "err", err)
 			logger.Info(logs...)
