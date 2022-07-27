@@ -2,6 +2,7 @@ package mdm
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -37,12 +38,21 @@ func CheckinHandler(svc service.Checkin, logger log.Logger) http.HandlerFunc {
 		}
 		respBytes, err := service.CheckinRequest(svc, mdmReqFromHTTPReq(r), bodyBytes)
 		if err != nil {
-			logger.Info("msg", "check-in request", "err", err)
+			logs := []interface{}{"msg", "check-in request"}
 			httpStatus := http.StatusInternalServerError
 			var statusErr *service.HTTPStatusError
 			if errors.As(err, &statusErr) {
 				httpStatus = statusErr.Status
+				err = fmt.Errorf("HTTP error: %w", statusErr.Unwrap())
 			}
+			// manualy unwrapping the `StatusErr` is not necessary as `errors.As` manually unwraps
+			var parseErr *mdm.ParseError
+			if errors.As(err, &parseErr) {
+				logs = append(logs, "content", string(parseErr.Content))
+				err = fmt.Errorf("parse error: %w", parseErr.Unwrap())
+			}
+			logs = append(logs, "http_status", httpStatus, "err", err)
+			logger.Info(logs...)
 			http.Error(w, http.StatusText(httpStatus), httpStatus)
 		}
 		w.Write(respBytes)
@@ -61,12 +71,20 @@ func CommandAndReportResultsHandler(svc service.CommandAndReportResults, logger 
 		}
 		respBytes, err := service.CommandAndReportResultsRequest(svc, mdmReqFromHTTPReq(r), bodyBytes)
 		if err != nil {
-			logger.Info("msg", "command report results", "err", err)
+			logs := []interface{}{"msg", "command report results"}
 			httpStatus := http.StatusInternalServerError
 			var statusErr *service.HTTPStatusError
 			if errors.As(err, &statusErr) {
 				httpStatus = statusErr.Status
+				err = fmt.Errorf("HTTP error: %w", statusErr.Unwrap())
 			}
+			var parseErr *mdm.ParseError
+			if errors.As(err, &parseErr) {
+				logs = append(logs, "content", string(parseErr.Content))
+				err = fmt.Errorf("parse error: %w", parseErr.Unwrap())
+			}
+			logs = append(logs, "http_status", httpStatus, "err", err)
+			logger.Info(logs...)
 			http.Error(w, http.StatusText(httpStatus), httpStatus)
 		}
 		w.Write(respBytes)
