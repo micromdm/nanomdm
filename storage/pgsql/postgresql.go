@@ -4,6 +4,7 @@ package pgsql
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"errors"
 	"fmt"
 
@@ -12,6 +13,11 @@ import (
 	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 )
+
+// Schema holds the schema for the NanoMDM PostgresSQL storage.
+//
+//go:embed schema.sql
+var Schema string
 
 var ErrNoCert = errors.New("no certificate in MDM Request")
 
