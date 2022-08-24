@@ -82,9 +82,12 @@ func main() {
 	if err != nil {
 		stdlog.Fatal(err)
 	}
-	intsPEM, err := os.ReadFile(*flIntsPath)
-	if err != nil {
-		stdlog.Fatal(err)
+	var intsPEM []byte
+	if *flIntsPath != "" {
+		intsPEM, err = os.ReadFile(*flIntsPath)
+		if err != nil {
+			stdlog.Fatal(err)
+		}
 	}
 	verifier, err := certverify.NewPoolVerifier(caPEM, intsPEM, x509.ExtKeyUsageClientAuth)
 	if err != nil {
