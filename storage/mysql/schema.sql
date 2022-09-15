@@ -1,4 +1,4 @@
-CREATE TABLE devices (
+CREATE TABLE nano_devices (
     id VARCHAR(255) NOT NULL,
 
     identity_cert TEXT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE devices (
 );
 
 
-CREATE TABLE users (
+CREATE TABLE nano_users (
     id        VARCHAR(255) NOT NULL,
     device_id VARCHAR(255) NOT NULL,
 
@@ -63,7 +63,7 @@ CREATE TABLE users (
     PRIMARY KEY (id, device_id),
 
     FOREIGN KEY (device_id)
-        REFERENCES devices (id)
+        REFERENCES nano_devices (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
 
     CHECK (user_short_name IS NULL OR user_short_name != ''),
@@ -79,7 +79,7 @@ CREATE TABLE users (
 /* This table represents enrollments which are an amalgamation of
  * both device and user enrollments.
  */
-CREATE TABLE enrollments (
+CREATE TABLE nano_enrollments (
     -- The enrollment ID of this enrollment
     id        VARCHAR(255) NOT NULL,
     -- The "device" enrollment ID of this enrollment. This will be
@@ -111,11 +111,11 @@ CREATE TABLE enrollments (
     CHECK (id != ''),
 
     FOREIGN KEY (device_id)
-        REFERENCES devices (id)
+        REFERENCES nano_devices (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
 
     FOREIGN KEY (user_id)
-        REFERENCES users (id)
+        REFERENCES nano_users (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     UNIQUE (user_id),
 
@@ -132,7 +132,7 @@ CREATE TABLE enrollments (
  * a device, a result (response), etc. Joining other tables is required
  * for more context.
  */
-CREATE TABLE commands (
+CREATE TABLE nano_commands (
     command_uuid VARCHAR(127) NOT NULL,
     request_type VARCHAR(63)  NOT NULL,
     -- Raw command Plist
@@ -160,7 +160,7 @@ CREATE TABLE commands (
  * means we lose insight into when NotNows happen once a command is
  * Acknowledged.
  */
-CREATE TABLE command_results (
+CREATE TABLE nano_command_results (
     id           VARCHAR(255) NOT NULL,
     command_uuid VARCHAR(127) NOT NULL,
     status       VARCHAR(31)  NOT NULL,
@@ -175,11 +175,11 @@ CREATE TABLE command_results (
     PRIMARY KEY (id, command_uuid),
 
     FOREIGN KEY (id)
-        REFERENCES enrollments (id)
+        REFERENCES nano_enrollments (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
 
     FOREIGN KEY (command_uuid)
-        REFERENCES commands (command_uuid)
+        REFERENCES nano_commands (command_uuid)
         ON DELETE CASCADE ON UPDATE CASCADE,
 
     -- considering not enforcing these CHECKs to make sure we always
@@ -190,7 +190,7 @@ CREATE TABLE command_results (
 );
 
 
-CREATE TABLE enrollment_queue (
+CREATE TABLE nano_enrollment_queue (
     id           VARCHAR(255) NOT NULL,
     command_uuid VARCHAR(127) NOT NULL,
 
@@ -203,11 +203,11 @@ CREATE TABLE enrollment_queue (
     PRIMARY KEY (id, command_uuid),
 
     FOREIGN KEY (id)
-        REFERENCES enrollments (id)
+        REFERENCES nano_enrollments (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
 
     FOREIGN KEY (command_uuid)
-        REFERENCES commands (command_uuid)
+        REFERENCES nano_commands (command_uuid)
         ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -216,7 +216,7 @@ CREATE TABLE enrollment_queue (
  * those that have received no result yet) will have a status of NULL
  * (due to the LEFT JOIN against results).
  */
-CREATE OR REPLACE VIEW view_queue AS
+CREATE OR REPLACE VIEW nano_view_queue AS
 SELECT
     q.id,
     q.created_at,
@@ -229,19 +229,19 @@ SELECT
     r.status,
     r.result
 FROM
-    enrollment_queue AS q
+    nano_enrollment_queue AS q
 
-        INNER JOIN commands AS c
+        INNER JOIN nano_commands AS c
         ON q.command_uuid = c.command_uuid
 
-        LEFT JOIN command_results r
+        LEFT JOIN nano_command_results r
         ON r.command_uuid = q.command_uuid AND r.id = q.id
 ORDER BY
     q.priority DESC,
     q.created_at;
 
 
-CREATE TABLE push_certs (
+CREATE TABLE nano_push_certs (
     topic VARCHAR(255) NOT NULL,
 
     cert_pem TEXT NOT NULL,
@@ -266,7 +266,7 @@ CREATE TABLE push_certs (
 );
 
 
-CREATE TABLE cert_auth_associations (
+CREATE TABLE nano_cert_auth_associations (
     id     VARCHAR(255) NOT NULL,
     sha256 CHAR(64)     NOT NULL,
 

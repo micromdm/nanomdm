@@ -17,7 +17,7 @@ func (s *MySQLStorage) queryRowContextRowExists(ctx context.Context, query strin
 func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
 	return s.queryRowContextRowExists(
 		r.Context,
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = ?;`,
+		`SELECT COUNT(*) FROM nano_cert_auth_associations WHERE id = ?;`,
 		r.ID,
 	)
 }
@@ -25,7 +25,7 @@ func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, er
 func (s *MySQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
 	return s.queryRowContextRowExists(
 		r.Context,
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = ?;`,
+		`SELECT COUNT(*) FROM nano_cert_auth_associations WHERE sha256 = ?;`,
 		strings.ToLower(hash),
 	)
 }
@@ -33,7 +33,7 @@ func (s *MySQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
 func (s *MySQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, error) {
 	return s.queryRowContextRowExists(
 		r.Context,
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = ? AND sha256 = ?;`,
+		`SELECT COUNT(*) FROM nano_cert_auth_associations WHERE id = ? AND sha256 = ?;`,
 		r.ID, strings.ToLower(hash),
 	)
 }
@@ -41,7 +41,7 @@ func (s *MySQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, 
 func (s *MySQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
 	_, err := s.db.ExecContext(
 		r.Context, `
-INSERT INTO cert_auth_associations (id, sha256) VALUES (?, ?) AS new
+INSERT INTO nano_cert_auth_associations (id, sha256) VALUES (?, ?) AS new
 ON DUPLICATE KEY
 UPDATE sha256 = new.sha256;`,
 		r.ID,

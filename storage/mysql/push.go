@@ -23,7 +23,7 @@ func (s *MySQLStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[
 	}
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT id, topic, push_magic, token_hex FROM enrollments WHERE id IN (`+qs+`);`,
+		`SELECT id, topic, push_magic, token_hex FROM nano_enrollments WHERE id IN (`+qs+`);`,
 		args...,
 	)
 	if err != nil {

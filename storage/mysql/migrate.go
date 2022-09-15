@@ -11,7 +11,7 @@ func (s *MySQLStorage) RetrieveMigrationCheckins(ctx context.Context, c chan<- i
 	// then we should synthesize a TokenUpdate to transfer it over.
 	deviceRows, err := s.db.QueryContext(
 		ctx,
-		`SELECT authenticate, token_update FROM devices;`,
+		`SELECT authenticate, token_update FROM nano_devices;`,
 	)
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ func (s *MySQLStorage) RetrieveMigrationCheckins(ctx context.Context, c chan<- i
 	}
 	userRows, err := s.db.QueryContext(
 		ctx,
-		`SELECT token_update FROM users;`,
+		`SELECT token_update FROM nano_users;`,
 	)
 	if err != nil {
 		return err

@@ -16,13 +16,13 @@ func enqueue(ctx context.Context, tx *sql.Tx, ids []string, cmd *mdm.Command) er
 	}
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO commands (command_uuid, request_type, command) VALUES (?, ?, ?);`,
+		`INSERT INTO nano_commands (command_uuid, request_type, command) VALUES (?, ?, ?);`,
 		cmd.CommandUUID, cmd.Command.RequestType, cmd.Raw,
 	)
 	if err != nil {
 		return err
 	}
-	query := `INSERT INTO enrollment_queue (id, command_uuid) VALUES (?, ?)`
+	query := `INSERT INTO nano_enrollment_queue (id, command_uuid) VALUES (?, ?)`
 	query += strings.Repeat(", (?, ?)", len(ids)-1)
 	args := make([]interface{}, len(ids)*2)
 	for i, id := range ids {
@@ -54,8 +54,8 @@ func (s *MySQLStorage) deleteCommand(ctx context.Context, tx *sql.Tx, id, uuid s
 DELETE
     q, r
 FROM
-    enrollment_queue AS q
-    LEFT JOIN command_results AS r
+    nano_enrollment_queue AS q
+    LEFT JOIN nano_command_results AS r
         ON q.command_uuid = r.command_uuid AND r.id = q.id
 WHERE
     q.id = ? AND q.command_uuid = ?;
@@ -72,10 +72,10 @@ WHERE
 DELETE
     c
 FROM
-    commands AS c
-    LEFT JOIN enrollment_queue AS q
+    nano_commands AS c
+    LEFT JOIN nano_enrollment_queue AS q
         ON q.command_uuid = c.command_uuid
-    LEFT JOIN command_results AS r
+    LEFT JOIN nano_command_results AS r
         ON r.command_uuid = c.command_uuid
 WHERE
     c.command_uuid = ? AND
@@ -117,11 +117,11 @@ func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 	// not_now_at field. thus it will only represent the first NotNow.
 	if result.Status == "NotNow" {
 		notNowConstants = "CURRENT_TIMESTAMP, 1"
-		notNowBumpTallySQL = `, command_results.not_now_tally = command_results.not_now_tally + 1`
+		notNowBumpTallySQL = `, nano_command_results.not_now_tally = nano_command_results.not_now_tally + 1`
 	}
 	_, err := s.db.ExecContext(
 		r.Context, `
-INSERT INTO command_results
+INSERT INTO nano_command_results
     (id, command_uuid, status, result, not_now_at, not_now_tally)
 VALUES
     (?, ?, ?, ?, `+notNowConstants+`) AS new
@@ -145,7 +145,7 @@ func (s *MySQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*md
 	command := new(mdm.Command)
 	err := s.db.QueryRowContext(
 		r.Context,
-		`SELECT command_uuid, request_type, command FROM view_queue WHERE id = ? AND active = 1 AND `+statusWhere+` LIMIT 1;`,
+		`SELECT command_uuid, request_type, command FROM nano_view_queue WHERE id = ? AND active = 1 AND `+statusWhere+` LIMIT 1;`,
 		r.ID,
 	).Scan(&command.CommandUUID, &command.Command.RequestType, &command.Raw)
 	if err != nil {
@@ -169,12 +169,12 @@ func (s *MySQLStorage) ClearQueue(r *mdm.Request) error {
 		r.Context,
 		`
 UPDATE
-    enrollment_queue AS q
-	INNER JOIN enrollments AS e
-	    ON q.id = e.id
-    INNER JOIN commands AS c
+    nano_enrollment_queue AS q
+    INNER JOIN nano_enrollments AS e
+        ON q.id = e.id
+    INNER JOIN nano_commands AS c
         ON q.command_uuid = c.command_uuid
-    LEFT JOIN command_results r
+    LEFT JOIN nano_command_results r
         ON r.command_uuid = q.command_uuid AND r.id = q.id
 SET
     q.active = 0

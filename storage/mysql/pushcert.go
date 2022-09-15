@@ -13,7 +13,7 @@ func (s *MySQLStorage) RetrievePushCert(ctx context.Context, topic string) (*tls
 	var staleToken int
 	err := s.db.QueryRowContext(
 		ctx,
-		`SELECT cert_pem, key_pem, stale_token FROM push_certs WHERE topic = ?;`,
+		`SELECT cert_pem, key_pem, stale_token FROM nano_push_certs WHERE topic = ?;`,
 		topic,
 	).Scan(&certPEM, &keyPEM, &staleToken)
 	if err != nil {
@@ -34,7 +34,7 @@ func (s *MySQLStorage) IsPushCertStale(ctx context.Context, topic, staleToken st
 	}
 	err = s.db.QueryRowContext(
 		ctx,
-		`SELECT stale_token FROM push_certs WHERE topic = ?;`,
+		`SELECT stale_token FROM nano_push_certs WHERE topic = ?;`,
 		topic,
 	).Scan(&dbStaleToken)
 	return dbStaleToken != staleTokenInt, err
@@ -47,7 +47,7 @@ func (s *MySQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte
 	}
 	_, err = s.db.ExecContext(
 		ctx, `
-INSERT INTO push_certs
+INSERT INTO nano_push_certs
     (topic, cert_pem, key_pem, stale_token)
 VALUES
     (?, ?, ?, 0) AS new

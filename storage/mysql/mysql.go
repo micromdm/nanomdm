@@ -100,7 +100,7 @@ func (s *MySQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 	}
 	_, err := s.db.ExecContext(
 		r.Context, `
-INSERT INTO devices
+INSERT INTO nano_devices
     (id, identity_cert, serial_number, authenticate, authenticate_at)
 VALUES
     (?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
@@ -116,7 +116,7 @@ UPDATE
 }
 
 func (s *MySQLStorage) storeDeviceTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
-	query := `UPDATE devices SET token_update = ?, token_update_at = CURRENT_TIMESTAMP`
+	query := `UPDATE nano_devices SET token_update = ?, token_update_at = CURRENT_TIMESTAMP`
 	args := []interface{}{msg.Raw}
 	// separately store the Unlock Token per MDM spec
 	if len(msg.UnlockToken) > 0 {
@@ -139,7 +139,7 @@ func (s *MySQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 	}
 	_, err := s.db.ExecContext(
 		r.Context, `
-INSERT INTO users
+INSERT INTO nano_users
     (id, device_id, user_short_name, user_long_name, token_update, token_update_at)
 VALUES
     (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
@@ -179,7 +179,7 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 	}
 	_, err = s.db.ExecContext(
 		r.Context, `
-INSERT INTO enrollments
+INSERT INTO nano_enrollments
 	(id, device_id, user_id, type, topic, push_magic, token_hex, last_seen_at, token_update_tally)
 VALUES
 	(?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1) AS new
@@ -191,9 +191,9 @@ UPDATE
     topic = new.topic,
     push_magic = new.push_magic,
     token_hex = new.token_hex,
-	enabled = 1,
-	last_seen_at = CURRENT_TIMESTAMP,
-	enrollments.token_update_tally = enrollments.token_update_tally + 1;`,
+    enabled = 1,
+    last_seen_at = CURRENT_TIMESTAMP,
+    token_update_tally = nano_enrollments.token_update_tally + 1;`,
 		r.ID,
 		deviceId,
 		nullEmptyString(userId),
@@ -226,7 +226,7 @@ func (s *MySQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthen
 	}
 	_, err := s.db.ExecContext(
 		r.Context, `
-INSERT INTO users
+INSERT INTO nano_users
     (id, device_id, user_short_name, user_long_name, `+colName+`, `+colAtName+`)
 VALUES
     (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
@@ -256,7 +256,7 @@ func (s *MySQLStorage) Disable(r *mdm.Request) error {
 	}
 	_, err := s.db.ExecContext(
 		r.Context,
-		`UPDATE enrollments SET enabled = 0, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = ? AND enabled = 1;`,
+		`UPDATE nano_enrollments SET enabled = 0, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = ? AND enabled = 1;`,
 		r.ID,
 	)
 	return err
@@ -265,7 +265,7 @@ func (s *MySQLStorage) Disable(r *mdm.Request) error {
 func (s *MySQLStorage) updateLastSeen(r *mdm.Request) (err error) {
 	_, err = s.db.ExecContext(
 		r.Context,
-		`UPDATE enrollments SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		`UPDATE nano_enrollments SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?`,
 		r.ID,
 	)
 	if err != nil {
