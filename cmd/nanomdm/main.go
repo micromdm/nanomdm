@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/micromdm/nanomdm/certverify"
-	"github.com/micromdm/nanomdm/cmd/cli"
+	"github.com/micromdm/nanomdm/cli"
 	mdmhttp "github.com/micromdm/nanomdm/http"
 	httpapi "github.com/micromdm/nanomdm/http/api"
 	httpmdm "github.com/micromdm/nanomdm/http/mdm"
