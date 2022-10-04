@@ -99,6 +99,22 @@ Options are specified as a comma-separated list of "key=value" pairs. The pgsql 
 
 *Example:* `-storage pgsql -dsn postgres://postgres:toor@localhost/nanomdm -storage-options delete=1`
 
+#### mongodb storage backend
+
+* `-storage mongodb`
+
+Configures the MongoDB storage backend. The `-dsn` flag should be in the [mongodb connection URI](https://www.mongodb.com/docs/drivers/go/current/fundamentals/connection/#connection-uri). The username and password should be omitted from the URI and specified in the `-storage-options` flag.
+
+*Example:* `-storage mongodb -dsn mongodb://localhost:27017`
+
+Options are specified as a comma-separated list of "key=value" pairs. The mongodb backend supports these options:
+* `username=user`
+    * This option specifies the username to utilize when connecting to mongo
+* `password=hunter2`
+    * This option specifies the password to utilize when connecting to mongo
+
+*Example:* `-storage mongodb -dsn mongodb://localhost:27017 -storage-options username=root,password=root`
+
 #### multi-storage backend
 
 You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-dsn` flag and so forth.
