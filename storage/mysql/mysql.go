@@ -209,7 +209,7 @@ func (s *MySQLStorage) RetrieveTokenUpdateTally(ctx context.Context, id string) 
 	var tally int
 	err := s.db.QueryRowContext(
 		ctx,
-		`SELECT token_update_tally FROM enrollments WHERE id = ?;`,
+		`SELECT token_update_tally FROM nano_enrollments WHERE id = ?;`,
 		id,
 	).Scan(&tally)
 	return tally, err
