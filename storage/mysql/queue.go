@@ -124,11 +124,11 @@ func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 INSERT INTO nano_command_results
     (id, command_uuid, status, result, not_now_at, not_now_tally)
 VALUES
-    (?, ?, ?, ?, `+notNowConstants+`) AS new
+    (?, ?, ?, ?, `+notNowConstants+`)
 ON DUPLICATE KEY
 UPDATE
-    status = new.status,
-    result = new.result`+notNowBumpTallySQL+`;`,
+    status = VALUES(status),
+    result = VALUES(result)`+notNowBumpTallySQL+`;`,
 		r.ID,
 		result.CommandUUID,
 		result.Status,
