@@ -27,7 +27,7 @@ func (m MongoDBStorage) IsPushCertStale(ctx context.Context, topic string, stale
 		"topic": topic,
 	}
 	res := PushCertRecord{}
-	err := m.PushCertCollection.FindOne(context.TODO(), filter, options.FindOne().SetSort(latestSort)).Decode(&res)
+	err := m.PushCertCollection.FindOne(ctx, filter, options.FindOne().SetSort(latestSort)).Decode(&res)
 	if err != nil {
 		return false, err
 	}
@@ -39,7 +39,7 @@ func (m MongoDBStorage) RetrievePushCert(ctx context.Context, topic string) (cer
 		"topic": topic,
 	}
 	res := PushCertRecord{}
-	err = m.PushCertCollection.FindOne(context.TODO(), filter, options.FindOne().SetSort(latestSort)).Decode(&res)
+	err = m.PushCertCollection.FindOne(ctx, filter, options.FindOne().SetSort(latestSort)).Decode(&res)
 	if err != nil {
 		return nil, "", err
 	}
@@ -58,7 +58,7 @@ func (m MongoDBStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byt
 		return err
 	}
 
-	_, err = m.PushCertCollection.InsertOne(context.TODO(), PushCertRecord{
+	_, err = m.PushCertCollection.InsertOne(ctx, PushCertRecord{
 		Timestamp:   strconv.FormatInt(time.Now().UnixNano(), 10),
 		Certificate: string(pemCert),
 		PrivateKey:  string(pemKey),

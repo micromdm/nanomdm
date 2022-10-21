@@ -16,13 +16,13 @@ func (m MongoDBStorage) RetrievePushInfo(ctx context.Context, ids []string) (map
 			"$in": ids,
 		},
 	}
-	cursor, err := m.CheckinCollection.Find(context.TODO(), filter)
+	cursor, err := m.CheckinCollection.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 
 	records := []DeviceCheckinRecord{}
-	err = cursor.All(context.TODO(), &records)
+	err = cursor.All(ctx, &records)
 	if err != nil {
 		return nil, err
 	}
