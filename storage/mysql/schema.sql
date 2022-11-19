@@ -202,6 +202,8 @@ CREATE TABLE enrollment_queue (
 
     PRIMARY KEY (id, command_uuid),
 
+    INDEX (priority DESC, created_at),
+
     FOREIGN KEY (id)
         REFERENCES enrollments (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
