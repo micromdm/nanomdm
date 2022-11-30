@@ -69,18 +69,20 @@ WHERE
 	// nor are there any results for it.
 	_, err = tx.ExecContext(
 		ctx, `
-DELETE
-    c
-FROM
-    commands AS c
-    LEFT JOIN enrollment_queue AS q
-        ON q.command_uuid = c.command_uuid
-    LEFT JOIN command_results AS r
-        ON r.command_uuid = c.command_uuid
-WHERE
-    c.command_uuid = ? AND
-    q.command_uuid IS NULL AND
-    r.command_uuid IS NULL;
+DELETE FROM commands AS c
+WHERE command_uuid = ?
+AND NOT EXISTS (
+    SELECT 1
+    FROM enrollment_queue
+    WHERE command_uuid = c.command_uuid
+    FOR UPDATE
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM command_results
+    WHERE command_uuid = c.command_uuid
+    FOR UPDATE
+);
 `,
 		uuid,
 	)
