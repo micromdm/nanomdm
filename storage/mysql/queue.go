@@ -48,8 +48,16 @@ func (m *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 }
 
 func (s *MySQLStorage) deleteCommand(ctx context.Context, tx *sql.Tx, id, uuid string) error {
-	// delete command result (i.e. NotNows) and this queued command
+	// first, place a record lock on the command so that multiple devices
+	// trying to each delete it do not race
 	_, err := tx.ExecContext(
+		ctx, `
+SELECT command_uuid FROM commands WHERE command_uuid = ? FOR UPDATE;
+`,
+		uuid,
+	)
+	// delete command result (i.e. NotNows) and this queued command
+	_, err = tx.ExecContext(
 		ctx, `
 DELETE
     q, r
