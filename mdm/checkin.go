@@ -26,6 +26,8 @@ type Authenticate struct {
 	// Fields that may be present but are not strictly required for the
 	// operation of the MDM protocol. Nice-to-haves.
 	SerialNumber string
+	Model        string
+	ModelName    string
 }
 
 type b64Data []byte
