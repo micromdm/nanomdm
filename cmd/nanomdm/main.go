@@ -50,7 +50,8 @@ func main() {
 		flListen     = flag.String("listen", ":9000", "HTTP listen address")
 		flAPIKey     = flag.String("api", "", "API key for API endpoints")
 		flVersion    = flag.Bool("version", false, "print version")
-		flRootsPath  = flag.String("ca", "", "path to CA cert for verification")
+		flRootsPath  = flag.String("ca", "", "path to PEM CA cert(s)")
+		flIntsPath   = flag.String("intermediate", "", "path to PEM intermediate cert(s)")
 		flWebhook    = flag.String("webhook-url", "", "URL to send requests to")
 		flCertHeader = flag.String("cert-header", "", "HTTP header containing URL-escaped TLS client certificate")
 		flDebug      = flag.Bool("debug", false, "log debug messages")
@@ -81,7 +82,14 @@ func main() {
 	if err != nil {
 		stdlog.Fatal(err)
 	}
-	verifier, err := certverify.NewPoolVerifier(caPEM, x509.ExtKeyUsageClientAuth)
+	var intsPEM []byte
+	if *flIntsPath != "" {
+		intsPEM, err = os.ReadFile(*flIntsPath)
+		if err != nil {
+			stdlog.Fatal(err)
+		}
+	}
+	verifier, err := certverify.NewPoolVerifier(caPEM, intsPEM, x509.ExtKeyUsageClientAuth)
 	if err != nil {
 		stdlog.Fatal(err)
 	}

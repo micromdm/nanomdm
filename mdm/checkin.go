@@ -23,6 +23,12 @@ type Authenticate struct {
 	Topic string
 	Raw   []byte `plist:"-"` // Original Authenticate XML plist
 
+	// Additional fields required in AuthenticateRequest as specified
+	// in the Apple documentation.
+	DeviceName string
+	Model      string
+	ModelName  string
+
 	// Fields that may be present but are not strictly required for the
 	// operation of the MDM protocol. Nice-to-haves.
 	SerialNumber string
@@ -149,6 +155,9 @@ func (w *checkinUnmarshaller) UnmarshalPlist(f func(interface{}) error) error {
 func DecodeCheckin(rawMessage []byte) (message interface{}, err error) {
 	w := &checkinUnmarshaller{raw: rawMessage}
 	err = plist.Unmarshal(rawMessage, w)
+	if err != nil {
+		err = &ParseError{Err: err, Content: rawMessage}
+	}
 	message = w.message
 	return
 }

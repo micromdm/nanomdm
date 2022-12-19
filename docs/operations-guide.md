@@ -28,9 +28,15 @@ API authorization in NanoMDM is simply HTTP Basic authentication using "nanomdm"
 
 ### -ca string
 
-* Path to CA cert for verification
+* path to PEM CA cert(s)
 
-NanoMDM validates that the device identity certificate is issued from specific CAs. This switch is the path to a file of PEM-encoded CAs to validate against.
+NanoMDM validates that the device identity certificate is issued from specific CAs. This switch is the path to a file of PEM-encoded CAs to validate enrollments against.
+
+### -intermediate string
+
+* path to PEM intermediate cert(s)
+
+NanoMDM validates that the device identity certificate is issued from specific CAs. This switch is the path to a file of PEM-encoded intermediate certificates that can be used to build a chain of trust to the CAs to validate enrollments against.
 
 ### -cert-header string
 
