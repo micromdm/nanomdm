@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/micromdm/nanomdm/storage"
 	"github.com/micromdm/nanomdm/storage/allmulti"
 	"github.com/micromdm/nanomdm/storage/file"
+	"github.com/micromdm/nanomdm/storage/mongodb"
 	"github.com/micromdm/nanomdm/storage/mysql"
 	"github.com/micromdm/nanomdm/storage/pgsql"
 
@@ -80,6 +82,12 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 				return nil, err
 			}
 			mdmStorage = append(mdmStorage, pgsqlStorage)
+		case "mongodb":
+			mongodbStorage, err := mongodbStorageConfig(dsn, options)
+			if err != nil {
+				return nil, err
+			}
+			mdmStorage = append(mdmStorage, mongodbStorage)
 		default:
 			return nil, fmt.Errorf("unknown storage: %s", storage)
 		}
@@ -165,4 +173,21 @@ func pgsqlStorageConfig(dsn, options string, logger log.Logger) (*pgsql.PgSQLSto
 		}
 	}
 	return pgsql.New(opts...)
+}
+
+func mongodbStorageConfig(dsn, options string) (*mongodb.MongoDBStorage, error) {
+	var username, password string
+	if options != "" {
+		for k, v := range splitOptions(options) {
+			switch k {
+			case "username":
+				username = v
+			case "password":
+				password = v
+			default:
+				return nil, fmt.Errorf("invalid option: %q", k)
+			}
+		}
+	}
+	return mongodb.New(context.TODO(), dsn, username, password)
 }
