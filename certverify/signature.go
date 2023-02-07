@@ -18,6 +18,9 @@ func NewSignatureVerifier(rootPEM []byte) (*SignatureVerifier, error) {
 	if err != nil {
 		return nil, err
 	}
+	if ca == nil {
+		return nil, errors.New("nil PEM certificate")
+	}
 	return &SignatureVerifier{ca: ca}, nil
 }
 
