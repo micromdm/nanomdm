@@ -146,20 +146,28 @@ UPDATE
 }
 
 func (s *MySQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command, error) {
-	statusWhere := "status IS NULL"
-	if !skipNotNow {
-		statusWhere = `(` + statusWhere + ` OR status = 'NotNow')`
-	}
 	command := new(mdm.Command)
 	err := s.db.QueryRowContext(
-		r.Context,
-		`SELECT command_uuid, request_type, command FROM view_queue WHERE id = ? AND active = 1 AND `+statusWhere+` LIMIT 1;`,
-		r.ID,
+		r.Context, `
+SELECT c.command_uuid, c.request_type, c.command
+FROM enrollment_queue AS q
+    INNER JOIN commands AS c
+        ON q.command_uuid = c.command_uuid
+    LEFT JOIN command_results r
+        ON r.command_uuid = q.command_uuid AND r.id = q.id
+WHERE q.id = ?
+    AND q.active = 1
+    AND (r.status IS NULL OR (r.status = 'NotNow' AND NOT ?))
+ORDER BY
+    q.priority DESC,
+    q.created_at
+LIMIT 1;`,
+		r.ID, skipNotNow,
 	).Scan(&command.CommandUUID, &command.Command.RequestType, &command.Raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
 		return nil, err
 	}
 	return command, nil
