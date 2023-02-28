@@ -59,15 +59,19 @@ func CheckinRequest(svc Checkin, r *mdm.Request, bodyBytes []byte) ([]byte, erro
 			err = fmt.Errorf("setbootstraptoken service: %w", err)
 		}
 	case *mdm.GetBootstrapToken:
+		// https://developer.apple.com/documentation/devicemanagement/get_bootstrap_token
 		var bsToken *mdm.BootstrapToken
 		bsToken, err = svc.GetBootstrapToken(r, m)
 		if err != nil {
 			err = fmt.Errorf("getbootstraptoken service: %w", err)
 			break
 		}
-		respBytes, err = plist.Marshal(bsToken)
-		if err != nil {
-			err = fmt.Errorf("marshal bootstrap token: %w", err)
+		// If there is no bsToken, return an empty body
+		if bsToken != nil {
+			respBytes, err = plist.Marshal(bsToken)
+			if err != nil {
+				err = fmt.Errorf("marshal bootstrap token: %w", err)
+			}
 		}
 	case *mdm.DeclarativeManagement:
 		respBytes, err = svc.DeclarativeManagement(r, m)
