@@ -21,7 +21,7 @@ var version = "unknown"
 func main() {
 	cliStorage := cli.NewStorage()
 	flag.Var(&cliStorage.Storage, "storage", "name of storage backend")
-	flag.Var(&cliStorage.DSN, "dsn", "data source name (e.g. connection string or path)")
+	flag.Var(&cliStorage.DSN, "storage-dsn", "data source name (e.g. connection string or path)")
 	flag.Var(&cliStorage.Options, "storage-options", "storage backend options")
 	var (
 		flVersion = flag.Bool("version", false, "print version")

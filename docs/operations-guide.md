@@ -58,56 +58,58 @@ By default NanoMDM uses a single HTTP endpoint (`/mdm` — see below) for both c
 
 Enable additional debug logging.
 
-### -storage, -dsn, & -storage-options
+### -storage, -storage-dsn, & -storage-options
 
-The `-storage`, `-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage file -dsn db` meaning we use the `file` storage backend with `db` as its DSN.
+The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage file -storage-dsn db` meaning we use the `file` storage backend with `db` as its DSN.
+
+_Note:_ NanoMDM versions v0.5.0 and below used the `-dsn` flag while later versions switched to the `-storage-dsn` flag.
 
 #### file storage backend
 
 * `-storage file`
 
-Configures the `file` storage backend. This manages enrollment and command data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-dsn` flag specifies the filesystem directory for the database. The `file` backend has no storage options.
+Configures the `file` storage backend. This manages enrollment and command data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database. The `file` backend has no storage options.
 
-*Example:* `-storage file -dsn /path/to/my/db`
+*Example:* `-storage file -storage-dsn /path/to/my/db`
 
 #### mysql storage backend
 
 * `-storage mysql`
 
-Configures the MySQL storage backend. The `-dsn` flag should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with the [schema.sql](../storage/mysql/schema.sql) file that corresponds to your NanoMDM version. Also make sure you apply any schema changes for each updated version (i.e. execute the numbered schema change files). MySQL 8.0.19 or later is required.
+Configures the MySQL storage backend. The `-storage-dsn` flag should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create your tables with the [schema.sql](../storage/mysql/schema.sql) file that corresponds to your NanoMDM version. Also make sure you apply any schema changes for each updated version (i.e. execute the numbered schema change files). MySQL 8.0.19 or later is required.
 
-*Example:* `-storage mysql -dsn nanomdm:nanomdm/mymdmdb`
+*Example:* `-storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb`
 
 Options are specified as a comma-separated list of "key=value" pairs. The mysql backend supports these options:
 
 * `delete=1`, `delete=0`
   * This option turns on or off the command and response deleter. It is disabled by default. When enabled (with `delete=1`) command responses, queued commands, and commands themeselves will be deleted from the database after enrollments have responded to a command.
 
-*Example:* `-storage mysql -dsn nanomdm:nanomdm/mymdmdb -storage-options delete=1`
+*Example:* `-storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb -storage-options delete=1`
 
 #### pgsql storage backend
 
 * `-storage pgsql`
 
-Configures the PostgreSQL storage backend. The `-dsn` flag should be in the [format the SQL driver expects](https://pkg.go.dev/github.com/lib/pq#pkg-overview). Be sure to create your tables with the [schema.sql](../storage/pgsql/schema.sql) file that corresponds to your NanoMDM version. Also make sure you apply any schema changes for each updated version (i.e. execute the numbered schema change files). PostgreSQL 9.5 or later is required.
+Configures the PostgreSQL storage backend. The `-storage-dsn` flag should be in the [format the SQL driver expects](https://pkg.go.dev/github.com/lib/pq#pkg-overview). Be sure to create your tables with the [schema.sql](../storage/pgsql/schema.sql) file that corresponds to your NanoMDM version. Also make sure you apply any schema changes for each updated version (i.e. execute the numbered schema change files). PostgreSQL 9.5 or later is required.
 
-*Example:* `-storage pgsql -dsn postgres://postgres:toor@localhost:5432/nanomdm?sslmode=disable`
+*Example:* `-storage pgsql -storage-dsn postgres://postgres:toor@localhost:5432/nanomdm`
 
 Options are specified as a comma-separated list of "key=value" pairs. The pgsql backend supports these options:
 * `delete=1`, `delete=0`
     * This option turns on or off the command and response deleter. It is disabled by default. When enabled (with `delete=1`) command responses, queued commands, and commands themselves will be deleted from the database after enrollments have responded to a command.
 
-*Example:* `-storage pgsql -dsn postgres://postgres:toor@localhost/nanomdm -storage-options delete=1`
+*Example:* `-storage pgsql -storage-dsn postgres://postgres:toor@localhost/nanomdm -storage-options delete=1`
 
 #### multi-storage backend
 
-You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-dsn` flag and so forth.
+You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-storage-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-storage-dsn` flag and so forth.
 
 Be aware that only the first storage backend will be "used" when interacting with the system, all other storage backends are called to, but any *results* are discarded. In other words consider them write-only. Also beware that you will have very bizaare results if you change to using multiple storage backends in the midst of existing enrollments. You will receive errors about missing database rows or data. A storage backend needs to be around when a device (or all devices) initially enroll(s). There is no "sync" or backfill system with multiple storage backends (see the migration ability if you need this).
 
 The multi-storage backend is really only useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps creating a new storage backend).
 
-For example to use both a `file` *and* `mysql` backend your command line might look like: `-storage file -dsn db -storage mysql -dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN.
+For example to use both a `file` *and* `mysql` backend your command line might look like: `-storage file -storage-dsn db -storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN.
 
 ### -dump
 
@@ -327,9 +329,9 @@ The `nano2nano` tool extracts migration enrollment data from a given storage bac
 
 Enable additional debug logging.
 
-### -storage, -dsn, & -storage-options
+### -storage, -storage-dsn, & -storage-options
 
-See the "-storage, -dsn, & -storage-options" section, above, for NanoMDM. The syntax and capabilities are the same.
+See the "-storage, -storage-dsn, & -storage-options" section, above, for NanoMDM. The syntax and capabilities are the same.
 
 ### -key string
 
@@ -352,7 +354,7 @@ Print version and exit.
 ## Example usage
 
 ```bash
-$ ./nano2nano-darwin-amd64 -storage file -dsn db -url 'http://127.0.0.1:9010/migration' -key nanomdm -debug
+$ ./nano2nano-darwin-amd64 -storage file -storage-dsn db -url 'http://127.0.0.1:9010/migration' -key nanomdm -debug
 2021/06/04 14:29:54 level=info msg=storage setup storage=file
 2021/06/04 14:29:54 level=info checkin=Authenticate device_id=99385AF6-44CB-5621-A678-A321F4D9A2C8 type=Device
 2021/06/04 14:29:54 level=info checkin=TokenUpdate device_id=99385AF6-44CB-5621-A678-A321F4D9A2C8 type=Device

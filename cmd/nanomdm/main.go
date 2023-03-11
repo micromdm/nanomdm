@@ -44,7 +44,8 @@ const (
 func main() {
 	cliStorage := cli.NewStorage()
 	flag.Var(&cliStorage.Storage, "storage", "name of storage backend")
-	flag.Var(&cliStorage.DSN, "dsn", "data source name (e.g. connection string or path)")
+	flag.Var(&cliStorage.DSN, "storage-dsn", "data source name (e.g. connection string or path)")
+	flag.Var(&cliStorage.DSN, "dsn", "data source name; deprecated: use -storage-dsn")
 	flag.Var(&cliStorage.Options, "storage-options", "storage backend options")
 	var (
 		flListen     = flag.String("listen", ":9000", "HTTP listen address")
