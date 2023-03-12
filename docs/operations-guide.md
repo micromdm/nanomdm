@@ -42,7 +42,7 @@ NanoMDM validates that the device identity certificate is issued from specific C
 
 * HTTP header containing URL-escaped TLS client certificate
 
-By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices)). This corresponds to the `SignMessage` key being set to true in the enrollment profile.
+By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices). This corresponds to the `SignMessage` key being set to true in the enrollment profile.
 
 With the `-cert-header` switch you can specify the name of an HTTP header that is passed to NanoMDM to read the client identity certificate. This is ostensibly to support Nginx' [$ssl_client_escaped_cert](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) in a [proxy_set_header](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header) directive. Though any reverse proxy setting a similar header could be used, of course. The `SignMessage` key in the enrollment profile should be set appropriately.
 
