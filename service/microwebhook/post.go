@@ -27,6 +27,7 @@ func postWebhookEvent(
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("unexpected HTTP status %d %s", resp.StatusCode, resp.Status)
 	}

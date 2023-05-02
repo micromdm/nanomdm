@@ -6,7 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	stdlog "log"
 	"net/http"
 
@@ -119,7 +119,7 @@ func httpPut(client *http.Client, url string, key string, sendBytes []byte) erro
 		return err
 	}
 	defer res.Body.Close()
-	_, err = ioutil.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}

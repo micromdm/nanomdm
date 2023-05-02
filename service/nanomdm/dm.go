@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -51,11 +51,11 @@ func (c *DeclarativeManagementHTTPCaller) DeclarativeManagement(r *mdm.Request, 
 	if err != nil {
 		return nil, err
 	}
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return bodyBytes, service.NewHTTPStatusError(
 			resp.StatusCode,
