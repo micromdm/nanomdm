@@ -3,7 +3,6 @@ package nanopush
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,21 +12,66 @@ import (
 )
 
 func TestPush(t *testing.T) {
-	deviceToken := "c2732227a1d8021cfaf781d71fb2f908c61f5861079a00954a5453f1d0281433"
-	pushMagic := "47250C9C-1B37-4381-98A9-0B8315A441C7"
-	topic := "com.example.apns-topic"
-	payload := []byte(`{"mdm":"` + pushMagic + `"}`)
+	// our "raw" push info
+	devicePushInfoStrings := [][]string{
+		{
+			"c2732227a1d8021cfaf781d71fb2f908c61f5861079a00954a5453f1d0281433",
+			"47250C9C-1B37-4381-98A9-0B8315A441C7",
+			"com.example.apns-topic",
+		},
+	}
+
+	// test a single push
+	t.Run("single-push", func(t *testing.T) {
+		testPushDevices(t, devicePushInfoStrings)
+	})
+
+	devicePushInfoStrings = append(devicePushInfoStrings, []string{
+		"7f1839ca30d5c6d36d6ae426258c4306c14eca90afd709a07375a85ad5a11c69",
+		"1C0B33FD-9336-4A7A-A080-7BEA9BD032EC",
+		"com.example.apns-topic",
+	})
+
+	// test a multiple push
+	t.Run("multiple-push", func(t *testing.T) {
+		testPushDevices(t, devicePushInfoStrings)
+	})
+}
+
+func testPushDevices(t *testing.T, input [][]string) {
+	// assemble it into a list and map
+	devices := make(map[string]*mdm.Push)
+	var pushInfos []*mdm.Push
+	for _, devicePushInfos := range input {
+		pushInfo := &mdm.Push{
+			PushMagic: devicePushInfos[1],
+			Topic:     devicePushInfos[2],
+		}
+		pushInfo.SetTokenString(devicePushInfos[0])
+		devices[devicePushInfos[0]] = pushInfo
+		pushInfos = append(pushInfos, pushInfo)
+	}
+
 	apnsID := "922D9F1F-B82E-B337-EDC9-DB4FC8527676"
 
 	handler := http.NewServeMux()
-	server := httptest.NewServer(handler)
-	defer server.Close()
 
 	handler.HandleFunc("/3/device/", func(w http.ResponseWriter, r *http.Request) {
-		expectURL := fmt.Sprintf("/3/device/%s", deviceToken)
-		if have, want := r.URL.String(), expectURL; have != want {
-			t.Errorf("url: have %q, want %q", have, want)
+		url := r.URL.String()
+		var device string
+		var pushMagic string
+		if len(url) > 11 && url[:10] == "/3/device/" {
+			device = url[10:]
+			if _, ok := devices[device]; !ok {
+				t.Errorf("device id not present: %s", device)
+			} else {
+				pushMagic = devices[device].PushMagic
+			}
+		} else {
+			t.Fatal("invalid URL form")
 		}
+
+		payload := []byte(`{"mdm":"` + pushMagic + `"}`)
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -40,28 +84,27 @@ func TestPush(t *testing.T) {
 		w.Header().Set("apns-id", apnsID)
 	})
 
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
 	prov := &Provider{
 		baseURL: server.URL,
 		client:  http.DefaultClient,
 	}
 
-	pushInfo := &mdm.Push{
-		PushMagic: pushMagic,
-		Topic:     topic,
-	}
-	pushInfo.SetTokenString(deviceToken)
-
-	resp, err := prov.Push(context.Background(), []*mdm.Push{pushInfo})
+	resp, err := prov.Push(context.Background(), pushInfos)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	result, ok := resp[deviceToken]
-	if !ok || result == nil {
-		t.Fatal("device token not found (or is nil) in response")
+	for k, v := range resp {
+		if _, ok := devices[k]; !ok || v == nil {
+			t.Errorf("device not found (or is nil): %s", k)
+		} else {
+			if have, want := v.Id, apnsID; have != want {
+				t.Errorf("url: have %q, want %q", have, want)
+			}
+		}
 	}
 
-	if have, want := result.Id, apnsID; have != want {
-		t.Errorf("url: have %q, want %q", have, want)
-	}
 }

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -72,9 +71,6 @@ func (p *Provider) do(ctx context.Context, pushInfo *mdm.Push) *push.Response {
 	jsonPayload := []byte(`{"mdm":"` + pushInfo.PushMagic + `"}`)
 
 	url := p.baseURL + "/3/device/" + pushInfo.Token.String()
-	if rand.Intn(2) == 0 {
-		url += "x"
-	}
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonPayload))
 
 	if err != nil {
