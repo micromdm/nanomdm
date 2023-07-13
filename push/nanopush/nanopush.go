@@ -3,17 +3,11 @@
 package nanopush
 
 import (
-	"bytes"
-	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/push"
 	"golang.org/x/net/http2"
 )
@@ -33,7 +27,6 @@ func ClientWithCert(client *http.Client, cert *tls.Certificate) (*http.Client, e
 	config := &tls.Config{
 		Certificates: []tls.Certificate{*cert},
 	}
-	config.BuildNameToCertificate()
 	if client.Transport == nil {
 		client.Transport = &http.Transport{}
 	}
@@ -52,6 +45,7 @@ func defaultNewClient(cert *tls.Certificate) (*http.Client, error) {
 type Factory struct {
 	newClient  NewClient
 	expiration time.Duration
+	workers    int
 }
 
 type Option func(*Factory)
@@ -71,10 +65,18 @@ func WithExpiration(expiration time.Duration) Option {
 	}
 }
 
+// WithWorkers sets how many worker goroutines to use when sending pushes.
+func WithWorkers(workers int) Option {
+	return func(f *Factory) {
+		f.workers = workers
+	}
+}
+
 // NewFactory creates a new Factory.
 func NewFactory(opts ...Option) *Factory {
 	f := &Factory{
 		newClient: defaultNewClient,
+		workers:   5,
 	}
 	for _, opt := range opts {
 		opt(f)
@@ -84,53 +86,12 @@ func NewFactory(opts ...Option) *Factory {
 
 // NewPushProvider generates a new PushProvider given a tls keypair.
 func (f *Factory) NewPushProvider(cert *tls.Certificate) (push.PushProvider, error) {
-	p := &Provider{expiration: f.expiration}
+	p := &Provider{
+		expiration: f.expiration,
+		workers:    f.workers,
+		baseURL:    Production,
+	}
 	var err error
 	p.client, err = f.newClient(cert)
 	return p, err
-}
-
-type Provider struct {
-	client     *http.Client
-	expiration time.Duration
-}
-
-func (p *Provider) do1(ctx context.Context, pushInfo *mdm.Push) *push.Response {
-	payload := []byte(`{"mdm":"` + pushInfo.PushMagic + `"}`)
-	url := fmt.Sprintf("%s/3/device/%s", "https://api.push.apple.com", pushInfo.Token.String())
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payload))
-	if err != nil {
-		return &push.Response{Err: err}
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if p.expiration > 0 {
-		exp := time.Now().Add(p.expiration)
-		req.Header.Set("apns-expiration", strconv.FormatInt(exp.Unix(), 10))
-	}
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return &push.Response{Err: err}
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		// TODO: better parsing!
-		bodyR, _ := io.ReadAll(resp.Body)
-		return &push.Response{Err: fmt.Errorf("invalid status code: %d: %s", resp.StatusCode, string(bodyR))}
-	}
-	return &push.Response{Id: resp.Header.Get("apns-id")}
-
-}
-
-func (p *Provider) Push(pushInfos []*mdm.Push) (map[string]*push.Response, error) {
-	if len(pushInfos) < 1 {
-		return nil, errors.New("no push data provided")
-	}
-	ret := make(map[string]*push.Response)
-	for _, pushInfo := range pushInfos {
-		if pushInfo == nil {
-			continue
-		}
-		ret[pushInfo.Token.String()] = p.do1(context.TODO(), pushInfo)
-	}
-	return ret, nil
 }

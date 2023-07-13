@@ -18,7 +18,7 @@ import (
 	"github.com/micromdm/nanomdm/http/authproxy"
 	httpmdm "github.com/micromdm/nanomdm/http/mdm"
 	"github.com/micromdm/nanomdm/log/stdlogfmt"
-	"github.com/micromdm/nanomdm/push/buford"
+	"github.com/micromdm/nanomdm/push/nanopush"
 	pushsvc "github.com/micromdm/nanomdm/push/service"
 	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/service/certauth"
@@ -191,7 +191,7 @@ func main() {
 		const apiUsername = "nanomdm"
 
 		// create our push provider and push service
-		pushProviderFactory := buford.NewPushProviderFactory()
+		pushProviderFactory := nanopush.NewFactory()
 		pushService := pushsvc.New(mdmStorage, mdmStorage, pushProviderFactory, logger.With("service", "push"))
 
 		// register API handler for push cert storage/upload.
