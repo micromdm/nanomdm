@@ -2,6 +2,7 @@ package nanopush
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -49,7 +50,7 @@ func TestPush(t *testing.T) {
 	}
 	pushInfo.SetTokenString(deviceToken)
 
-	resp, err := prov.Push([]*mdm.Push{pushInfo})
+	resp, err := prov.Push(context.Background(), []*mdm.Push{pushInfo})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -173,8 +173,7 @@ func (p *Provider) pushConcurrent(ctx context.Context, pushInfos []*mdm.Push) (m
 }
 
 // Push sends APNs pushes to MDM enrollments.
-func (p *Provider) Push(pushInfos []*mdm.Push) (map[string]*push.Response, error) {
-	ctx := context.TODO()
+func (p *Provider) Push(ctx context.Context, pushInfos []*mdm.Push) (map[string]*push.Response, error) {
 	if len(pushInfos) < 1 {
 		return nil, errors.New("no push data provided")
 	} else if len(pushInfos) == 1 {

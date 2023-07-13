@@ -102,7 +102,7 @@ func (s *PushService) pushSingle(ctx context.Context, pushInfo *mdm.Push) (map[s
 	if err != nil {
 		return nil, err
 	}
-	return prov.Push([]*mdm.Push{pushInfo})
+	return prov.Push(ctx, []*mdm.Push{pushInfo})
 }
 
 // pushMulti sends pushes to (potentially) multiple push providers
@@ -128,7 +128,7 @@ func (s *PushService) pushMulti(ctx context.Context, pushInfos []*mdm.Push) (map
 		}
 		topicPushCt += 1
 		go func(prov push.PushProvider, pushInfos []*mdm.Push, feedback chan<- pushFeedback, topic string) {
-			resp, err := prov.Push(pushInfos)
+			resp, err := prov.Push(ctx, pushInfos)
 			feedback <- pushFeedback{
 				Responses: resp,
 				Err:       err,
