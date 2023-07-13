@@ -21,6 +21,7 @@ func TestPush(t *testing.T) {
 
 	handler := http.NewServeMux()
 	server := httptest.NewServer(handler)
+	defer server.Close()
 
 	handler.HandleFunc("/3/device/", func(w http.ResponseWriter, r *http.Request) {
 		expectURL := fmt.Sprintf("/3/device/%s", deviceToken)
