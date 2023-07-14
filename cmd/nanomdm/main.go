@@ -169,6 +169,7 @@ func main() {
 			if err != nil {
 				stdlog.Fatal(err)
 			}
+			authProxyHandler = http.StripPrefix(endpointAuthProxy, authProxyHandler)
 			authProxyHandler = httpmdm.CertWithEnrollmentIDMiddleware(authProxyHandler, certauth.HashCert, mdmStorage, true, logger.With("handler", "with-enrollment-id"))
 			authProxyHandler = httpmdm.CertVerifyMiddleware(authProxyHandler, verifier, logger.With("handler", "cert-verify"))
 			if *flCertHeader != "" {
