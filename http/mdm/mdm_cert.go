@@ -10,9 +10,12 @@ import (
 	mdmhttp "github.com/micromdm/nanomdm/http"
 	"github.com/micromdm/nanomdm/log"
 	"github.com/micromdm/nanomdm/log/ctxlog"
+	"github.com/micromdm/nanomdm/storage"
 )
 
 type contextKeyCert struct{}
+
+var contextEnrollmentID struct{}
 
 // CertExtractPEMHeaderMiddleware extracts the MDM enrollment identity
 // certificate from the request into the HTTP request context. It looks
@@ -126,5 +129,70 @@ func CertVerifyMiddleware(next http.Handler, verifier CertVerifier, logger log.L
 			return
 		}
 		next.ServeHTTP(w, r)
+	}
+}
+
+// GetEnrollmentID retrieves the MDM enrollment ID from ctx.
+func GetEnrollmentID(ctx context.Context) string {
+	id, _ := ctx.Value(contextEnrollmentID).(string)
+	return id
+}
+
+type HashFn func(*x509.Certificate) string
+
+// WithEnrollmentIDMiddleware tries to associate the enrollment ID to the request context.
+// It does this by looking up the certificate on the context, hashing it with
+// hasher, looking up the hash in storage, and setting the ID on the context.
+//
+// The next handler will be called even if cert or ID is not found unless
+// enforce is true. This way next is able to use the existence of the ID on
+// the context to make its own decisions.
+func WithEnrollmentIDMiddleware(next http.Handler, hasher HashFn, store storage.CertAuthRetriever, enforce bool, logger log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cert := GetCert(r.Context())
+		if cert == nil {
+			if enforce {
+				ctxlog.Logger(r.Context(), logger).Info(
+					"err", "missing certificate",
+				)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusBadRequest)
+				return
+			} else {
+				ctxlog.Logger(r.Context(), logger).Debug(
+					"msg", "missing certificate",
+				)
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		if store == nil || hasher == nil {
+			panic("store nor hasher must not be nil")
+		}
+		mr, err := store.EnrollmentFromHash(r.Context(), hasher(cert))
+		if err != nil {
+			ctxlog.Logger(r.Context(), logger).Info(
+				"msg", "retreiving enrollment from hash",
+				"err", err,
+			)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		if mr == nil || mr.ID == "" {
+			if enforce {
+				ctxlog.Logger(r.Context(), logger).Info(
+					"err", "missing enrollment id",
+				)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusBadRequest)
+				return
+			} else {
+				ctxlog.Logger(r.Context(), logger).Debug(
+					"msg", "missing enrollment id",
+				)
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		ctx := context.WithValue(r.Context(), contextEnrollmentID, mr.ID)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"os"
 	"path"
@@ -67,4 +68,24 @@ func (s *FileStorage) AssociateCertHash(r *mdm.Request, hash string) error {
 	}
 	e := s.newEnrollment(r.ID)
 	return e.writeFile(CertAuthFilename, []byte(hash))
+}
+
+func (s *FileStorage) EnrollmentFromHash(_ context.Context, hash string) (*mdm.Request, error) {
+	f, err := os.Open(path.Join(s.path, CertAuthAssociationsFilename))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		text := scanner.Text()
+		if strings.Contains(text, hash) {
+			split := strings.Split(text, ",")
+			if len(split) < 2 {
+				return nil, errors.New("hash and enrollment id not present on line")
+			}
+			return &mdm.Request{EnrollID: &mdm.EnrollID{ID: split[0]}}, nil
+		}
+	}
+	return nil, nil
 }

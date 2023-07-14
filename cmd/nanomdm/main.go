@@ -15,6 +15,7 @@ import (
 	"github.com/micromdm/nanomdm/cli"
 	mdmhttp "github.com/micromdm/nanomdm/http"
 	httpapi "github.com/micromdm/nanomdm/http/api"
+	"github.com/micromdm/nanomdm/http/authproxy"
 	httpmdm "github.com/micromdm/nanomdm/http/mdm"
 	"github.com/micromdm/nanomdm/log/stdlogfmt"
 	"github.com/micromdm/nanomdm/push/buford"
@@ -33,6 +34,8 @@ var version = "unknown"
 const (
 	endpointMDM     = "/mdm"
 	endpointCheckin = "/checkin"
+
+	endpointAuthProxy = "/authproxy/"
 
 	endpointAPIPushCert  = "/v1/pushcert"
 	endpointAPIPush      = "/v1/push/"
@@ -62,6 +65,7 @@ func main() {
 		flMigration  = flag.Bool("migration", false, "HTTP endpoint for enrollment migrations")
 		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
 		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
+		flAuthProxy  = flag.String("auth-proxy", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
 	)
 	flag.Parse()
 
@@ -157,6 +161,22 @@ func main() {
 				checkinHandler = httpmdm.CertExtractMdmSignatureMiddleware(checkinHandler, logger.With("handler", "cert-extract"))
 			}
 			mux.Handle(endpointCheckin, checkinHandler)
+		}
+
+		if *flAuthProxy != "" {
+			var authProxyHandler http.Handler
+			authProxyHandler, err = authproxy.New(*flAuthProxy, logger.With("handler", "authproxy"))
+			if err != nil {
+				stdlog.Fatal(err)
+			}
+			authProxyHandler = httpmdm.CertWithEnrollmentIDMiddleware(authProxyHandler, certauth.HashCert, mdmStorage, true, logger.With("handler", "with-enrollment-id"))
+			authProxyHandler = httpmdm.CertVerifyMiddleware(authProxyHandler, verifier, logger.With("handler", "cert-verify"))
+			if *flCertHeader != "" {
+				authProxyHandler = httpmdm.CertExtractPEMHeaderMiddleware(authProxyHandler, *flCertHeader, logger.With("handler", "cert-extract"))
+			} else {
+				authProxyHandler = httpmdm.CertExtractMdmSignatureMiddleware(authProxyHandler, logger.With("handler", "cert-extract"))
+			}
+			mux.Handle(endpointAuthProxy, authProxyHandler)
 		}
 	}
 
