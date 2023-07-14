@@ -140,14 +140,14 @@ func GetEnrollmentID(ctx context.Context) string {
 
 type HashFn func(*x509.Certificate) string
 
-// WithEnrollmentIDMiddleware tries to associate the enrollment ID to the request context.
+// CertWithEnrollmentIDMiddleware tries to associate the enrollment ID to the request context.
 // It does this by looking up the certificate on the context, hashing it with
 // hasher, looking up the hash in storage, and setting the ID on the context.
 //
 // The next handler will be called even if cert or ID is not found unless
 // enforce is true. This way next is able to use the existence of the ID on
 // the context to make its own decisions.
-func WithEnrollmentIDMiddleware(next http.Handler, hasher HashFn, store storage.CertAuthRetriever, enforce bool, logger log.Logger) http.HandlerFunc {
+func CertWithEnrollmentIDMiddleware(next http.Handler, hasher HashFn, store storage.CertAuthRetriever, enforce bool, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cert := GetCert(r.Context())
 		if cert == nil {
