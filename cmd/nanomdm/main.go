@@ -119,6 +119,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	if !*flDisableMDM {
+
 		var mdmService service.CheckinAndCommandService = nano
 		if *flWebhook != "" {
 			webhookService := microwebhook.New(*flWebhook, mdmStorage)
@@ -133,6 +134,16 @@ func main() {
 			mdmService = dump.New(mdmService, os.Stdout)
 		}
 
+		certAuthMiddleware := func(h http.Handler) http.Handler {
+			h = httpmdm.CertVerifyMiddleware(h, verifier, logger.With("handler", "cert-verify"))
+			if *flCertHeader != "" {
+				h = httpmdm.CertExtractPEMHeaderMiddleware(h, *flCertHeader, logger.With("handler", "cert-extract"))
+			} else {
+				h = httpmdm.CertExtractMdmSignatureMiddleware(h, logger.With("handler", "cert-extract"))
+			}
+			return h
+		}
+
 		// register 'core' MDM HTTP handler
 		var mdmHandler http.Handler
 		if *flCheckin {
@@ -142,24 +153,14 @@ func main() {
 			// if we don't use a check-in handler then do both
 			mdmHandler = httpmdm.CheckinAndCommandHandler(mdmService, logger.With("handler", "checkin-command"))
 		}
-		mdmHandler = httpmdm.CertVerifyMiddleware(mdmHandler, verifier, logger.With("handler", "cert-verify"))
-		if *flCertHeader != "" {
-			mdmHandler = httpmdm.CertExtractPEMHeaderMiddleware(mdmHandler, *flCertHeader, logger.With("handler", "cert-extract"))
-		} else {
-			mdmHandler = httpmdm.CertExtractMdmSignatureMiddleware(mdmHandler, logger.With("handler", "cert-extract"))
-		}
+		mdmHandler = certAuthMiddleware(mdmHandler)
 		mux.Handle(endpointMDM, mdmHandler)
 
 		if *flCheckin {
 			// if we specified a separate check-in handler, set it up
 			var checkinHandler http.Handler
 			checkinHandler = httpmdm.CheckinHandler(mdmService, logger.With("handler", "checkin"))
-			checkinHandler = httpmdm.CertVerifyMiddleware(checkinHandler, verifier, logger.With("handler", "cert-verify"))
-			if *flCertHeader != "" {
-				checkinHandler = httpmdm.CertExtractPEMHeaderMiddleware(checkinHandler, *flCertHeader, logger.With("handler", "cert-extract"))
-			} else {
-				checkinHandler = httpmdm.CertExtractMdmSignatureMiddleware(checkinHandler, logger.With("handler", "cert-extract"))
-			}
+			checkinHandler = certAuthMiddleware(checkinHandler)
 			mux.Handle(endpointCheckin, checkinHandler)
 		}
 
@@ -171,12 +172,7 @@ func main() {
 			}
 			authProxyHandler = http.StripPrefix(endpointAuthProxy, authProxyHandler)
 			authProxyHandler = httpmdm.CertWithEnrollmentIDMiddleware(authProxyHandler, certauth.HashCert, mdmStorage, true, logger.With("handler", "with-enrollment-id"))
-			authProxyHandler = httpmdm.CertVerifyMiddleware(authProxyHandler, verifier, logger.With("handler", "cert-verify"))
-			if *flCertHeader != "" {
-				authProxyHandler = httpmdm.CertExtractPEMHeaderMiddleware(authProxyHandler, *flCertHeader, logger.With("handler", "cert-extract"))
-			} else {
-				authProxyHandler = httpmdm.CertExtractMdmSignatureMiddleware(authProxyHandler, logger.With("handler", "cert-extract"))
-			}
+			authProxyHandler = certAuthMiddleware(authProxyHandler)
 			mux.Handle(endpointAuthProxy, authProxyHandler)
 		}
 	}
