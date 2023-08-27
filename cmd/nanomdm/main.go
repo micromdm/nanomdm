@@ -65,7 +65,7 @@ func main() {
 		flMigration  = flag.Bool("migration", false, "HTTP endpoint for enrollment migrations")
 		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
 		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
-		flAuthProxy  = flag.String("auth-proxy", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
+		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
 	)
 	flag.Parse()
 
@@ -119,7 +119,6 @@ func main() {
 	mux := http.NewServeMux()
 
 	if !*flDisableMDM {
-
 		var mdmService service.CheckinAndCommandService = nano
 		if *flWebhook != "" {
 			webhookService := microwebhook.New(*flWebhook, mdmStorage)
@@ -134,6 +133,7 @@ func main() {
 			mdmService = dump.New(mdmService, os.Stdout)
 		}
 
+		// helper for authorizing MDM clients requests
 		certAuthMiddleware := func(h http.Handler) http.Handler {
 			h = httpmdm.CertVerifyMiddleware(h, verifier, logger.With("handler", "cert-verify"))
 			if *flCertHeader != "" {
@@ -170,6 +170,7 @@ func main() {
 			if err != nil {
 				stdlog.Fatal(err)
 			}
+			logger.Debug("msg", "authproxy setup", "url", *flAuthProxy)
 			authProxyHandler = http.StripPrefix(endpointAuthProxy, authProxyHandler)
 			authProxyHandler = httpmdm.CertWithEnrollmentIDMiddleware(authProxyHandler, certauth.HashCert, mdmStorage, true, logger.With("handler", "with-enrollment-id"))
 			authProxyHandler = certAuthMiddleware(authProxyHandler)
