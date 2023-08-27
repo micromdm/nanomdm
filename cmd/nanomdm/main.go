@@ -44,6 +44,11 @@ const (
 	endpointAPIVersion   = "/version"
 )
 
+const (
+	EnrollmentIDHeader = "X-Enrollment-ID"
+	TraceIDHeader      = "X-Trace-ID"
+)
+
 func main() {
 	cliStorage := cli.NewStorage()
 	flag.Var(&cliStorage.Storage, "storage", "name of storage backend")
@@ -166,7 +171,11 @@ func main() {
 
 		if *flAuthProxy != "" {
 			var authProxyHandler http.Handler
-			authProxyHandler, err = authproxy.New(*flAuthProxy, logger.With("handler", "authproxy"))
+			authProxyHandler, err = authproxy.New(*flAuthProxy,
+				authproxy.WithLogger(logger.With("handler", "authproxy")),
+				authproxy.WithHeaderFunc(EnrollmentIDHeader, httpmdm.GetEnrollmentID),
+				authproxy.WithHeaderFunc(TraceIDHeader, mdmhttp.GetTraceID),
+			)
 			if err != nil {
 				stdlog.Fatal(err)
 			}
