@@ -35,9 +35,9 @@ func (ms *MultiAllStorage) AssociateCertHash(r *mdm.Request, hash string) error 
 	return err
 }
 
-func (ms *MultiAllStorage) EnrollmentFromHash(ctx context.Context, hash string) (*mdm.Request, error) {
+func (ms *MultiAllStorage) EnrollmentFromHash(ctx context.Context, hash string) (string, error) {
 	val, err := ms.execStores(ctx, func(s storage.AllStorage) (interface{}, error) {
 		return s.EnrollmentFromHash(ctx, hash)
 	})
-	return val.(*mdm.Request), err
+	return val.(string), err
 }

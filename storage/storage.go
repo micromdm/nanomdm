@@ -66,10 +66,9 @@ type CertAuthStore interface {
 }
 
 type CertAuthRetriever interface {
-	// EnrollmentFromHash retrieves an MDM request from a cert hash.
-	// Implementations should return a nil pointer if no result is found.
-	// The ID member ought to be populated when non-nil.
-	EnrollmentFromHash(ctx context.Context, hash string) (*mdm.Request, error)
+	// EnrollmentFromHash retrieves an enrollment ID from a cert hash.
+	// Implementations should return an empty string if no result is found.
+	EnrollmentFromHash(ctx context.Context, hash string) (string, error)
 }
 
 // StoreMigrator retrieves MDM check-ins

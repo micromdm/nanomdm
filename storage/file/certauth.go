@@ -70,10 +70,10 @@ func (s *FileStorage) AssociateCertHash(r *mdm.Request, hash string) error {
 	return e.writeFile(CertAuthFilename, []byte(hash))
 }
 
-func (s *FileStorage) EnrollmentFromHash(_ context.Context, hash string) (*mdm.Request, error) {
+func (s *FileStorage) EnrollmentFromHash(_ context.Context, hash string) (string, error) {
 	f, err := os.Open(path.Join(s.path, CertAuthAssociationsFilename))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -82,10 +82,10 @@ func (s *FileStorage) EnrollmentFromHash(_ context.Context, hash string) (*mdm.R
 		if strings.Contains(text, hash) {
 			split := strings.Split(text, ",")
 			if len(split) < 2 {
-				return nil, errors.New("hash and enrollment id not present on line")
+				return "", errors.New("hash and enrollment id not present on line")
 			}
-			return &mdm.Request{EnrollID: &mdm.EnrollID{ID: split[0]}}, nil
+			return split[0], nil
 		}
 	}
-	return nil, nil
+	return "", nil
 }

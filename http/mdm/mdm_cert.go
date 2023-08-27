@@ -168,7 +168,7 @@ func CertWithEnrollmentIDMiddleware(next http.Handler, hasher HashFn, store stor
 				return
 			}
 		}
-		mr, err := store.EnrollmentFromHash(r.Context(), hasher(cert))
+		id, err := store.EnrollmentFromHash(r.Context(), hasher(cert))
 		if err != nil {
 			ctxlog.Logger(r.Context(), logger).Info(
 				"msg", "retreiving enrollment from hash",
@@ -177,7 +177,7 @@ func CertWithEnrollmentIDMiddleware(next http.Handler, hasher HashFn, store stor
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		if mr == nil || mr.ID == "" {
+		if id == "" {
 			if enforce {
 				ctxlog.Logger(r.Context(), logger).Info(
 					"err", "missing enrollment id",
@@ -192,7 +192,7 @@ func CertWithEnrollmentIDMiddleware(next http.Handler, hasher HashFn, store stor
 				return
 			}
 		}
-		ctx := context.WithValue(r.Context(), contextEnrollmentID, mr.ID)
+		ctx := context.WithValue(r.Context(), contextEnrollmentID, id)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

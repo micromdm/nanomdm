@@ -53,7 +53,7 @@ ON CONFLICT ON CONSTRAINT cert_auth_associations_pkey DO UPDATE SET updated_at=n
 	return err
 }
 
-func (s *PgSQLStorage) EnrollmentFromHash(ctx context.Context, hash string) (*mdm.Request, error) {
+func (s *PgSQLStorage) EnrollmentFromHash(ctx context.Context, hash string) (string, error) {
 	var id string
 	err := s.db.QueryRowContext(
 		ctx,
@@ -61,7 +61,7 @@ func (s *PgSQLStorage) EnrollmentFromHash(ctx context.Context, hash string) (*md
 		hash,
 	).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		return "", nil
 	}
-	return &mdm.Request{EnrollID: &mdm.EnrollID{ID: id}}, err
+	return id, err
 }

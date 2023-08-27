@@ -52,7 +52,7 @@ UPDATE sha256 = new.sha256;`,
 	return err
 }
 
-func (s *MySQLStorage) EnrollmentFromHash(ctx context.Context, hash string) (*mdm.Request, error) {
+func (s *MySQLStorage) EnrollmentFromHash(ctx context.Context, hash string) (string, error) {
 	var id string
 	err := s.db.QueryRowContext(
 		ctx,
@@ -60,7 +60,7 @@ func (s *MySQLStorage) EnrollmentFromHash(ctx context.Context, hash string) (*md
 		hash,
 	).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		return "", nil
 	}
-	return &mdm.Request{EnrollID: &mdm.EnrollID{ID: id}}, err
+	return id, err
 }
