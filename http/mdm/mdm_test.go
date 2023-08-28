@@ -49,7 +49,7 @@ func TestCertWithEnrollmentIDMiddleware(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	// we requested enforcement, so make sure we get a BadResponse
+	// we requested enforcement, and did not include a cert, so make sure we get a BadResponse
 	if have, want := rr.Code, http.StatusBadRequest; have != want {
 		t.Errorf("have: %d, want: %d", have, want)
 	}
@@ -59,6 +59,7 @@ func TestCertWithEnrollmentIDMiddleware(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// mock "cert"
 	req = req.WithContext(context.WithValue(req.Context(), contextKeyCert{}, &x509.Certificate{}))
 
 	rr = httptest.NewRecorder()
