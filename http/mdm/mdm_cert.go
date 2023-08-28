@@ -158,6 +158,8 @@ func CertWithEnrollmentIDMiddleware(next http.Handler, hasher HashFn, store stor
 				ctxlog.Logger(r.Context(), logger).Info(
 					"err", "missing certificate",
 				)
+				// we cannot send a 401 to the client as it has MDM protocol semantics
+				// i.e. the device may unenroll
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusBadRequest)
 				return
 			} else {
