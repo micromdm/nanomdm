@@ -327,6 +327,8 @@ If the `-auth-proxy-url` flag is provided then URLs that begin with `/authproxy/
 
 This feature is ostensibly to support Declarative Device Management and in particular the ability for some "Asset" declarations to use "MDM" authentication for their content. For example the `com.apple.asset.data` declaration supports an [Authentication key](https://github.com/apple/device-management/blob/2bb1726786047949b5b1aa923be33b9ba0f83e37/declarative/declarations/assets/data.yaml#L40-L54) for configuring this ability.
 
+As an example example if this feature is enabled and a request comes to the server as `/authproxy/foo/bar` and the `-auth-proxy-url` was set to, say, `http://[::1]:9008` then NanoMDM will reverse proxy this URL to `http://[::1]:9008/foo/bar`. An HTP 502 Bad Gateway response is sent back to the client for any issues proxying.
+
 # Enrollment Migration (nano2nano)
 
 The `nano2nano` tool extracts migration enrollment data from a given storage backend and sends it to a NanoMDM migration endpoint. In this way you can effectively migrate between database backends. For example if you started with a `file` backend you could migrate to a `mysql` backend and vice versa. Note that MDM servers must have *exactly* the same server URL for migrations to operate.
