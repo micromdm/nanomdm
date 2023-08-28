@@ -1,6 +1,8 @@
 package allmulti
 
 import (
+	"context"
+
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage"
 )
@@ -31,4 +33,11 @@ func (ms *MultiAllStorage) AssociateCertHash(r *mdm.Request, hash string) error 
 		return nil, s.AssociateCertHash(r, hash)
 	})
 	return err
+}
+
+func (ms *MultiAllStorage) EnrollmentFromHash(ctx context.Context, hash string) (string, error) {
+	val, err := ms.execStores(ctx, func(s storage.AllStorage) (interface{}, error) {
+		return s.EnrollmentFromHash(ctx, hash)
+	})
+	return val.(string), err
 }

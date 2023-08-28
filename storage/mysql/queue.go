@@ -19,9 +19,6 @@ func enqueue(ctx context.Context, tx *sql.Tx, ids []string, cmd *mdm.Command) er
 		`INSERT INTO commands (command_uuid, request_type, command) VALUES (?, ?, ?);`,
 		cmd.CommandUUID, cmd.Command.RequestType, cmd.Raw,
 	)
-	if err != nil {
-		return err
-	}
 	query := `INSERT INTO enrollment_queue (id, command_uuid) VALUES (?, ?)`
 	query += strings.Repeat(", (?, ?)", len(ids)-1)
 	args := make([]interface{}, len(ids)*2)
