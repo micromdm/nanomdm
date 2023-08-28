@@ -56,6 +56,9 @@ SELECT command_uuid FROM commands WHERE command_uuid = ? FOR UPDATE;
 `,
 		uuid,
 	)
+	if err != nil {
+		return err
+	}
 	// delete command result (i.e. NotNows) and this queued command
 	_, err = tx.ExecContext(
 		ctx, `
