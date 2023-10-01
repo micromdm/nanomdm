@@ -15,7 +15,7 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: setup go
       uses: actions/setup-go@v4
@@ -59,7 +59,7 @@ jobs:
       MYSQL_PWD: nanomdm
       PORT: 3800
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: setup go
       uses: actions/setup-go@v4
