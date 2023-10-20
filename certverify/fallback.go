@@ -29,13 +29,13 @@ func NewFallbackVerifier(verifiers ...CertVerifier) *FallbackVerifier {
 // If all verifiers return non-nil ("fail") then an error for all
 // verifiers will be returned.
 func (v *FallbackVerifier) Verify(ctx context.Context, cert *x509.Certificate) error {
-	errs := make([]string, len(v.verifiers))
+	var errs []string
 	for i, verifier := range v.verifiers {
 		err := verifier.Verify(ctx, cert)
 		if err == nil {
 			return nil
 		}
-		errs[i] = fmt.Sprintf("fallback error (%d): %v", i, err)
+		errs = append(errs, fmt.Sprintf("fallback error (%d): %v", i, err))
 	}
 	return errors.New(strings.Join(errs, "; "))
 }
