@@ -12,6 +12,15 @@ A quick guide to get NanoMDM up and running using ngrok.
 - [Operations Guide](docs/operations-guide.md)  
 A brief overview of the various command-line switches and HTTP endpoints and APIs available to NanoMDM.
 
+## Getting the latest version
+
+* Release `.zip` files containing the server and supplementals should be attached to every [GitHub release](https://github.com/micromdm/nanomdm/releases).
+  * Release zips are also [published](https://github.com/micromdm/nanomdm/actions) for every `main` branch commit.
+* A Docker container is built and [published to the GHCR.io](http://ghcr.io/micromdm/nanomdm) registry for every release.
+  * `docker pull ghcr.io/micromdm/nanomdm:latest` — `docker run ghcr.io/micromdm/nanocmd:latest`
+  * A Docker container is also published for every `main` branch commit (and tagged with `:main`)
+* If you have a [Go toolchain installed](https://go.dev/doc/install) you can checkout the source and simply run `make`.
+
 ## Features
 
 - Horizontal scaling: zero/minimal local state. Persistence in storage layers. MySQL and PostgreSQL backends provided in the box.

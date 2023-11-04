@@ -1,0 +1,28 @@
+FROM --platform=$BUILDPLATFORM golang:1.19 AS builder
+
+WORKDIR /go/app
+
+COPY . .
+
+ARG TARGETOS TARGETARCH
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 make \
+        nanomdm-$TARGETOS-$TARGETARCH \
+        nano2nano-$TARGETOS-$TARGETARCH
+
+FROM gcr.io/distroless/static
+
+ARG TARGETOS TARGETARCH
+
+COPY --from=builder /go/app/nanomdm-$TARGETOS-$TARGETARCH /app/nanomdm
+COPY --from=builder /go/app/nano2nano-$TARGETOS-$TARGETARCH /app/nano2nano
+
+EXPOSE 9000
+
+VOLUME ["/app/db"]
+
+WORKDIR /app
+
+ENTRYPOINT ["/app/nanomdm"]
