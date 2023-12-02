@@ -8,7 +8,7 @@ require (
 	github.com/groob/plist v0.0.0-20220217120414-63fa881b19a5
 	github.com/lib/pq v1.10.9
 	github.com/smallstep/pkcs7 v0.0.0-20231107075624-be1870d87d13
-	golang.org/x/net v0.0.0-20191009170851-d66e71096ffb
+	golang.org/x/net v0.19.0
 )
 
-require golang.org/x/text v0.3.0 // indirect
+require golang.org/x/text v0.14.0 // indirect
