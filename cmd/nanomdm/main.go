@@ -71,7 +71,7 @@ func main() {
 		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
 		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
 		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
-		flUAZLChal   = flag.Bool("", false, "reply with zero-length DigestChallenge for UserAuthenticate")
+		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
 	)
 	flag.Parse()
 
