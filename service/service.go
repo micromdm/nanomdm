@@ -11,6 +11,12 @@ type DeclarativeManagement interface {
 	DeclarativeManagement(*mdm.Request, *mdm.DeclarativeManagement) ([]byte, error)
 }
 
+// GetToken is the interface for handling a GetToken check-in message.
+// See https://developer.apple.com/documentation/devicemanagement/get_token
+type GetToken interface {
+	GetToken(*mdm.Request, *mdm.GetToken) (*mdm.GetTokenResponse, error)
+}
+
 // Checkin represents the various check-in requests.
 // See https://developer.apple.com/documentation/devicemanagement/check-in
 type Checkin interface {
@@ -21,6 +27,7 @@ type Checkin interface {
 	GetBootstrapToken(*mdm.Request, *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error)
 	UserAuthenticate(*mdm.Request, *mdm.UserAuthenticate) ([]byte, error)
 	DeclarativeManagement
+	GetToken
 }
 
 // CommandAndReportResults represents the command report and next-command request.
