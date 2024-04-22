@@ -173,7 +173,9 @@ Enables the authentication proxy and reverse proxies HTTP requests from the serv
 
 * reply with zero-length DigestChallenge for UserAuthenticate
 
-By default NanoMDM will response to the `UserAuthenticate` message with an HTTP 410 response effectively declining management of the MDM user. Enabling this option turns on the "zero-length" Digest Challenge mode where reply with an empty Digest Challenge to enable management each time a client enrolls. See also [Apple's discussion of UserAthenticate](https://developer.apple.com/documentation/devicemanagement/userauthenticate#discussion) for more information.
+By default NanoMDM will respond to a `UserAuthenticate` message with an HTTP 410. This effectively declines management of that the user channel for that MDM user. Enabling this option turns on the "zero-length" Digest Challenge mode where NanoMDM replies with an empty Digest Challenge to enable management each time a client enrolls.
+
+Note that the `UserAuthenticate` message is only for "directory" MDM users and not the "primary" MDM user enrollment. See also [Apple's discussion of UserAthenticate](https://developer.apple.com/documentation/devicemanagement/userauthenticate#discussion) for more information.
 
 ## HTTP endpoints & APIs
 
