@@ -8,32 +8,35 @@ import (
 	"github.com/micromdm/nanomdm/service"
 )
 
+// StaticToken holds static token bytes.
 type StaticToken struct {
 	token []byte
 }
 
+// NewStaticToken creates a new static token handler.
 func NewStaticToken(token []byte) *StaticToken {
 	return &StaticToken{token: token}
 }
 
+// GetToken always responds with the static token bytes.
 func (t *StaticToken) GetToken(_ *mdm.Request, _ *mdm.GetToken) (*mdm.GetTokenResponse, error) {
 	return &mdm.GetTokenResponse{TokenData: t.token}, nil
 }
 
-// TokenServiceTypeMux is a middleware multiplexer for GetToken check-in messages.
+// TokenMux is a middleware multiplexer for GetToken check-in messages.
 // A TokenServiceType string is associated with a GetToken handler and
-// then dispatched appropriately with a matching TokenServiceType.
-type TokenServiceTypeMux struct {
+// then dispatched appropriately.
+type TokenMux struct {
 	typesMu sync.RWMutex
 	types   map[string]service.GetToken
 }
 
-// NewTokenServiceTypeMux creates a new TokenServiceTypeMux.
-func NewTokenServiceTypeMux() *TokenServiceTypeMux { return &TokenServiceTypeMux{} }
+// NewTokenMux creates a new TokenMux.
+func NewTokenMux() *TokenMux { return &TokenMux{} }
 
 // Handle registers a GetToken handler for the given service type.
 // See https://developer.apple.com/documentation/devicemanagement/gettokenrequest
-func (mux *TokenServiceTypeMux) Handle(serviceType string, handler service.GetToken) {
+func (mux *TokenMux) Handle(serviceType string, handler service.GetToken) {
 	if serviceType == "" {
 		panic("tokenmux: invalid service type")
 	}
@@ -51,19 +54,18 @@ func (mux *TokenServiceTypeMux) Handle(serviceType string, handler service.GetTo
 }
 
 // GetToken is the middleware that dispatches a GetToken handler based on service type.
-func (mux *TokenServiceTypeMux) GetToken(r *mdm.Request, t *mdm.GetToken) (*mdm.GetTokenResponse, error) {
-	var next service.GetToken
-	var serviceType string
-	if t != nil {
-		serviceType = t.TokenServiceType
+func (mux *TokenMux) GetToken(r *mdm.Request, t *mdm.GetToken) (*mdm.GetTokenResponse, error) {
+	if t == nil {
+		return nil, fmt.Errorf("nil MDM GetToken")
 	}
+	var next service.GetToken
 	mux.typesMu.RLock()
 	if mux.types != nil {
-		next = mux.types[serviceType]
+		next = mux.types[t.TokenServiceType]
 	}
 	mux.typesMu.RUnlock()
 	if next == nil {
-		return nil, fmt.Errorf("no handler for TokenServiceType: %v", serviceType)
+		return nil, fmt.Errorf("no handler for TokenServiceType: %v", t.TokenServiceType)
 	}
 	return next.GetToken(r, t)
 }

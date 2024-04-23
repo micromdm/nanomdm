@@ -8,7 +8,7 @@ import (
 )
 
 func TestToken(t *testing.T) {
-	m := NewTokenServiceTypeMux()
+	m := NewTokenMux()
 	inTok := []byte("hello")
 	m.Handle("com.apple.maid", NewStaticToken(inTok))
 	inMDMGetToken := &mdm.GetToken{TokenServiceType: "com.apple.maid"}
