@@ -135,14 +135,8 @@ func (m *GetToken) Validate() error {
 	if m.TokenServiceType == "" {
 		return errors.New("empty GetToken TokenServiceType")
 	}
-	switch m.TokenServiceType {
-	case "com.apple.maid":
-	case "com.apple.watch.pairing":
-		if m.TokenParameters == nil {
-			return fmt.Errorf("empty GetToken TokenParameters for %s TokenServiceType", m.TokenServiceType)
-		}
-	default:
-		return fmt.Errorf("invalid GetToken TokenServiceType: %s", m.TokenServiceType)
+	if m.TokenServiceType == "com.apple.watch.pairing" && m.TokenParameters == nil {
+		return fmt.Errorf("nil TokenParameters for GetToken: %s", m.TokenServiceType)
 	}
 	return nil
 }
