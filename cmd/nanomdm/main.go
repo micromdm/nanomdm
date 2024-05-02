@@ -116,6 +116,11 @@ func main() {
 		if err != nil {
 			stdlog.Fatal(err)
 		}
+		logger.Info(
+			"msg", "reduced security: signature-only verifier",
+			// double up and use a err in case that key is used for reporting
+			"err", "reduced security: signature-only verifier",
+		)
 	default:
 		stdlog.Fatal(fmt.Errorf("invalid verify flag: %s", *flVerify))
 	}
