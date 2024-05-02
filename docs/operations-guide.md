@@ -177,6 +177,15 @@ By default NanoMDM will respond to a `UserAuthenticate` message with an HTTP 410
 
 Note that the `UserAuthenticate` message is only for "directory" MDM users and not the "primary" MDM user enrollment. See also [Apple's discussion of UserAthenticate](https://developer.apple.com/documentation/devicemanagement/userauthenticate#discussion) for more information.
 
+### -verify string
+
+* device identity verification type (default "pool")
+
+Selects which verifier to use to verify the device identity certificate:
+
+* `pool`: uses the "pool" verifier which can configure multiple CAs and intermediate certificates.
+* `signature-only`: uses the "signature" verifier which only verifies a device identity certificate was signed by a single CA. Notably it does not check identity certificate validity (expiry). **WARNING**: this *reduces security* of the signature checking.
+
 ## HTTP endpoints & APIs
 
 ### MDM
