@@ -186,6 +186,8 @@ Selects which verifier to use to verify the device identity certificate:
 * `pool`: uses the "pool" verifier which can configure multiple CAs and intermediate certificates.
 * `signature-only`: uses the "signature" verifier which only verifies a device identity certificate was signed by a single CA. Notably it does not check identity certificate validity (expiry). **WARNING**: this *reduces security* of the signature checking.
 
+*Example:* `-verify pool`
+
 ## HTTP endpoints & APIs
 
 ### MDM
