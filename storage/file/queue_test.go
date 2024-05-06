@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/micromdm/nanomdm/storage/internal/test"
+	"github.com/micromdm/nanomdm/storage/test"
 )
 
 func TestQueue(t *testing.T) {
