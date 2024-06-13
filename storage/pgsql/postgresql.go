@@ -9,9 +9,10 @@ import (
 	"fmt"
 
 	"github.com/micromdm/nanomdm/cryptoutil"
-	"github.com/micromdm/nanomdm/log"
-	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
+
+	"github.com/micromdm/nanolib/log"
+	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
 // Schema holds the schema for the NanoMDM PostgresSQL storage.

@@ -8,9 +8,10 @@ import (
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 	mdmhttp "github.com/micromdm/nanomdm/http"
-	"github.com/micromdm/nanomdm/log"
-	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/storage"
+
+	"github.com/micromdm/nanolib/log"
+	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
 type contextKeyCert struct{}

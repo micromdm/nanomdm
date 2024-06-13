@@ -12,7 +12,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/micromdm/nanomdm/mdm"
-	"github.com/micromdm/nanomdm/storage/internal/test"
+	"github.com/micromdm/nanomdm/storage/test"
 )
 
 var flDSN = flag.String("dsn", "", "DSN of test PostgreSQL instance")

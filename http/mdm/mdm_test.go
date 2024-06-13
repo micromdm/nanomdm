@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/micromdm/nanomdm/log"
+	"github.com/micromdm/nanolib/log"
 )
 
 const (

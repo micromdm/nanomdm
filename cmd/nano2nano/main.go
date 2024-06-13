@@ -11,8 +11,9 @@ import (
 	"net/http"
 
 	"github.com/micromdm/nanomdm/cli"
-	"github.com/micromdm/nanomdm/log/stdlogfmt"
 	"github.com/micromdm/nanomdm/mdm"
+
+	"github.com/micromdm/nanolib/log/stdlogfmt"
 )
 
 // overridden by -ldflags -X
