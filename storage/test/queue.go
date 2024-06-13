@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/groob/plist"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage"
+
+	"github.com/groob/plist"
 )
 
 // QueueInterfaces are the storage interfaces needed for testing queue operations.

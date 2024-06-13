@@ -7,10 +7,11 @@ import (
 	"strings"
 
 	mdmhttp "github.com/micromdm/nanomdm/http"
-	"github.com/micromdm/nanomdm/log"
-	"github.com/micromdm/nanomdm/log/ctxlog"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
+
+	"github.com/micromdm/nanolib/log"
+	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
 func mdmReqFromHTTPReq(r *http.Request) *mdm.Request {
