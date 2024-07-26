@@ -14,6 +14,7 @@ import (
 
 	"github.com/micromdm/nanomdm/certverify"
 	"github.com/micromdm/nanomdm/cli"
+	"github.com/micromdm/nanomdm/cryptoutil"
 	mdmhttp "github.com/micromdm/nanomdm/http"
 	httpapi "github.com/micromdm/nanomdm/http/api"
 	"github.com/micromdm/nanomdm/http/authproxy"
@@ -161,7 +162,7 @@ func main() {
 				if *flDebug {
 					opts = append(opts, httpmdm.SigLogWithLogErrors(true))
 				}
-				h = httpmdm.CertExtractMdmSignatureMiddleware(h, opts...)
+				h = httpmdm.CertExtractMdmSignatureMiddleware(h, cryptoutil.MdmSignatureVerifierFunc(cryptoutil.VerifyMdmSignature), opts...)
 			}
 			return h
 		}
