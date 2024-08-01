@@ -9,7 +9,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/micromdm/nanolib v0.1.1
 	github.com/smallstep/pkcs7 v0.0.0-20231107075624-be1870d87d13
-	golang.org/x/net v0.26.0
+	golang.org/x/net v0.27.0
 )
 
 require (
