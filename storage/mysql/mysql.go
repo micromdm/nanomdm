@@ -104,12 +104,12 @@ func (s *MySQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 INSERT INTO devices
     (id, identity_cert, serial_number, authenticate, authenticate_at)
 VALUES
-    (?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
+    (?, ?, ?, ?, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY
 UPDATE
-    identity_cert = new.identity_cert,
-    serial_number = new.serial_number,
-    authenticate = new.authenticate,
+    identity_cert = VALUES(identity_cert),
+    serial_number = VALUES(serial_number),
+    authenticate = VALUES(authenticate),
     authenticate_at = CURRENT_TIMESTAMP;`,
 		r.ID, pemCert, nullEmptyString(msg.SerialNumber), msg.Raw,
 	)
@@ -143,13 +143,13 @@ func (s *MySQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, token_update, token_update_at)
 VALUES
-    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
+    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY
 UPDATE
-    device_id = new.device_id,
-    user_short_name = new.user_short_name,
-    user_long_name = new.user_long_name,
-    token_update = new.token_update,
+    device_id = VALUES(device_id),
+    user_short_name = VALUES(user_short_name),
+    user_long_name = VALUES(user_long_name),
+    token_update = VALUES(token_update),
     token_update_at = CURRENT_TIMESTAMP;`,
 		r.ID,
 		r.ParentID,
@@ -183,18 +183,18 @@ func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 INSERT INTO enrollments
 	(id, device_id, user_id, type, topic, push_magic, token_hex, last_seen_at, token_update_tally)
 VALUES
-	(?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1) AS new
+	(?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
 ON DUPLICATE KEY
 UPDATE
-    device_id = new.device_id,
-    user_id = new.user_id,
-    type = new.type,
-    topic = new.topic,
-    push_magic = new.push_magic,
-    token_hex = new.token_hex,
+    device_id = VALUES(device_id),
+    user_id = VALUES(user_id),
+    type = VALUES(type),
+    topic = VALUES(topic),
+    push_magic = VALUES(push_magic),
+    token_hex = VALUES(token_hex),
 	enabled = 1,
 	last_seen_at = CURRENT_TIMESTAMP,
-	enrollments.token_update_tally = enrollments.token_update_tally + 1;`,
+	token_update_tally = token_update_tally + 1;`,
 		r.ID,
 		deviceId,
 		nullEmptyString(userId),
@@ -230,14 +230,14 @@ func (s *MySQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthen
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, `+colName+`, `+colAtName+`)
 VALUES
-    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) AS new
+    (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY
 UPDATE
-    device_id = new.device_id,
-    user_short_name = new.user_short_name,
-    user_long_name = new.user_long_name,
-    `+colName+` = new.`+colName+`,
-    `+colAtName+` = new.`+colAtName+`;`,
+    device_id = VALUES(device_id),
+    user_short_name = VALUES(user_short_name),
+    user_long_name = VALUES(user_long_name),
+    `+colName+` = VALUES(`+colName+`),
+    `+colAtName+` = VALUES(`+colAtName+`);`,
 		r.ID,
 		r.ParentID,
 		nullEmptyString(msg.UserShortName),
