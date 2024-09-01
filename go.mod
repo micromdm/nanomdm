@@ -9,10 +9,10 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/micromdm/nanolib v0.1.1
 	github.com/smallstep/pkcs7 v0.0.0-20231107075624-be1870d87d13
-	golang.org/x/net v0.26.0
+	golang.org/x/net v0.28.0
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
 )
