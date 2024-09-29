@@ -116,6 +116,9 @@ type MdmSignatureVerifier interface {
 // will, however, error with an HTTP 400 status if the signature
 // verification fails.
 func CertExtractMdmSignatureMiddleware(next http.Handler, verifier MdmSignatureVerifier, opts ...SigLogOption) http.HandlerFunc {
+	if verifier == nil {
+		panic("nil verifier")
+	}
 	config := &sigLogConfig{logger: log.NopLogger}
 	for _, opt := range opts {
 		opt(config)
