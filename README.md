@@ -1,8 +1,8 @@
 # NanoMDM
 
-[![Go](https://github.com/micromdm/nanomdm/workflows/Go/badge.svg)](https://github.com/micromdm/nanomdm/actions)
+[![CD/CD](https://github.com/micromdm/nanomdm/workflows/CI%2FCD/badge.svg)](https://github.com/micromdm/nanomdm/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/micromdm/nanomdm.svg)](https://pkg.go.dev/github.com/micromdm/nanomdm)
 
-NanoMDM is a minimalist [Apple MDM server](https://developer.apple.com/documentation/devicemanagement) heavily inspired by [MicroMDM](https://github.com/micromdm/micromdm).
+NanoMDM is a minimalist [Apple MDM](https://developer.apple.com/documentation/devicemanagement) server and library heavily inspired by [MicroMDM](https://github.com/micromdm/micromdm).
 
 ## Getting started & Documentation
 
