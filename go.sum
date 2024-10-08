@@ -12,8 +12,8 @@ github.com/groob/plist v0.0.0-20220217120414-63fa881b19a5 h1:saaSiB25B1wgaxrshQh
 github.com/groob/plist v0.0.0-20220217120414-63fa881b19a5/go.mod h1:itkABA+w2cw7x5nYUS/pLRef6ludkZKOigbROmCTaFw=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
-github.com/micromdm/nanolib v0.1.1 h1:nNwY2xLBTHSpwEJsW5xGjkW9MdskAbeo/e6+ZYwr2mE=
-github.com/micromdm/nanolib v0.1.1/go.mod h1:FwBKCvvphgYvbdUZ+qw5kay7NHJcg6zPi8W7kXNajmE=
+github.com/micromdm/nanolib v0.2.0 h1:g5GHQuUpS82WIAB15LyenjF/0/WSUNJMe5XZfCJSXq4=
+github.com/micromdm/nanolib v0.2.0/go.mod h1:FwBKCvvphgYvbdUZ+qw5kay7NHJcg6zPi8W7kXNajmE=
 github.com/peterbourgon/diskv/v3 v3.0.1/go.mod h1:kJ5Ny7vLdARGU3WUuy6uzO6T0nb/2gWcT1JiBvRmb5o=
 github.com/smallstep/pkcs7 v0.0.0-20231107075624-be1870d87d13 h1:qRxEt9ESQhAg1kjmgJ8oyyzlc9zkAjOooe7bcKjKORQ=
 github.com/smallstep/pkcs7 v0.0.0-20231107075624-be1870d87d13/go.mod h1:SoUAr/4M46rZ3WaLstHxGhLEgoYIDRqxQEXLOmOEB0Y=
