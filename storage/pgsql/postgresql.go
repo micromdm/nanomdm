@@ -109,6 +109,8 @@ ON CONFLICT ON CONSTRAINT devices_pkey DO
 UPDATE SET
     identity_cert = EXCLUDED.identity_cert,
     serial_number = EXCLUDED.serial_number,
+    bootstrap_token_b64 = NULL,
+    bootstrap_token_at = NULL,
     authenticate = EXCLUDED.authenticate,
     authenticate_at = CURRENT_TIMESTAMP;`,
 		r.ID, nullEmptyString(string(pemCert)), nullEmptyString(msg.SerialNumber), msg.Raw,

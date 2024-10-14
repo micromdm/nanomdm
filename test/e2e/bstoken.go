@@ -26,7 +26,7 @@ func bstoken(t *testing.T, ctx context.Context, d bstokenDevice) {
 	}
 
 	if tok != nil {
-		t.Errorf("token for supposedly new device %s was not nil", d.ID())
+		t.Errorf("token for supposedly freshly enrolled device %s was not nil", d.ID())
 	}
 
 	input := []byte("hello world")

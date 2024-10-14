@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -92,6 +93,18 @@ func TestE2E(t *testing.T, ctx context.Context, store storage.AllStorage) {
 	t.Run("tally", func(t *testing.T) { tally(t, ctx, d, store, 1) })
 
 	t.Run("bstoken", func(t *testing.T) { bstoken(t, ctx, d.Enrollment) })
+
+	// re-enroll device
+	// this is to try and catch any leftover crud that a storage backend didn't
+	// clean up (like the tally count, BS token, etc.)
+	err = d.DoEnroll(ctx)
+	if err != nil {
+		t.Fatal(fmt.Errorf("re-enrolling device %s: %w", d.ID(), err))
+	}
+
+	t.Run("tally-after-reenroll", func(t *testing.T) { tally(t, ctx, d, store, 1) })
+
+	t.Run("bstoken-after-reenroll", func(t *testing.T) { bstoken(t, ctx, d.Enrollment) })
 
 	err = store.ClearQueue(d.NewMDMRequest(ctx))
 	if err != nil {

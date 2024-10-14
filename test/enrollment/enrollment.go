@@ -191,7 +191,7 @@ func (e *Enrollment) doTokenUpdate(ctx context.Context) error {
 	return HTTPErrors(resp)
 }
 
-// DoEnroll enrolls this enrollment into MDM.
+// DoEnroll enrolls (or re-enrolls) this enrollment into MDM.
 // Authenticate and TokenUpdate check-in messages are sent via the
 // transport to the MDM server.
 func (e *Enrollment) DoEnroll(ctx context.Context) error {
@@ -199,7 +199,7 @@ func (e *Enrollment) DoEnroll(ctx context.Context) error {
 	defer e.enrollM.Unlock()
 
 	if e.enrolled {
-		return ErrAlreadyEnrolled
+		e.enrolled = false
 	}
 
 	// generate Authenticate check-in message
