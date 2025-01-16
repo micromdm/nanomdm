@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/groob/plist"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/test"
 	"github.com/micromdm/nanomdm/test/enrollment"
+	"github.com/micromdm/plist"
 )
 
 // device is a wrapper around our enrollment for ease of use.

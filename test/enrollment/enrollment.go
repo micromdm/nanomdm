@@ -17,7 +17,7 @@ import (
 	"github.com/micromdm/nanomdm/test"
 	"github.com/micromdm/nanomdm/test/protocol"
 
-	"github.com/groob/plist"
+	"github.com/micromdm/plist"
 )
 
 var ErrAlreadyEnrolled = errors.New("already enrolled")

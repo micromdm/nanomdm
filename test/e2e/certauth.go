@@ -5,12 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/groob/plist"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service/certauth"
 	"github.com/micromdm/nanomdm/storage"
 	"github.com/micromdm/nanomdm/test"
 	"github.com/micromdm/nanomdm/test/enrollment"
+	"github.com/micromdm/plist"
 )
 
 func certAuth(t *testing.T, ctx context.Context, store storage.CertAuthStore) {

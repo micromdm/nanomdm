@@ -5,11 +5,11 @@ go 1.17
 require (
 	github.com/RobotsAndPencils/buford v0.14.0
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/groob/plist v0.0.0-20220217120414-63fa881b19a5
 	github.com/lib/pq v1.10.9
 	github.com/micromdm/nanolib v0.2.0
 	github.com/smallstep/pkcs7 v0.1.1
 	golang.org/x/net v0.33.0
+	github.com/micromdm/plist v0.2.0
 )
 
 require (
