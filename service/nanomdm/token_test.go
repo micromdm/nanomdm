@@ -5,9 +5,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/groob/plist"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
+	"github.com/micromdm/plist"
 )
 
 func newTokenMDMReq() *mdm.Request {
