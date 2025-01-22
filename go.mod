@@ -7,7 +7,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/lib/pq v1.10.9
 	github.com/micromdm/nanolib v0.2.0
-	github.com/micromdm/plist v0.2.0
+	github.com/micromdm/plist v0.2.1
 	github.com/smallstep/pkcs7 v0.1.1
 	golang.org/x/net v0.34.0
 )
