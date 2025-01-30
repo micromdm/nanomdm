@@ -161,6 +161,10 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 	if err := s.setupRequest(r, &message.Enrollment); err != nil {
 		return nil, err
 	}
+	ctxlog.Logger(r.Context, s.logger).Info(
+		"msg", "UserAuthenticate",
+		"digest_response", message.DigestResponse != "",
+	)
 	if s.ua == nil {
 		return nil, errors.New("no UserAuthenticate handler")
 	}
