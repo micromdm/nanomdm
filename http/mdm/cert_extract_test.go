@@ -43,7 +43,7 @@ func TestQueryEscapedPEM(t *testing.T) {
 	assertError(t, err)
 
 	_, err = ExtractQueryEscapedPEM("INVALID")
-	assertNilError(t, err)
+	assertError(t, err)
 
 	_, err = ExtractQueryEscapedPEM(certQueryEscaped)
 	assertNilError(t, err)
