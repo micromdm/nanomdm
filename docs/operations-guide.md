@@ -40,7 +40,7 @@ NanoMDM validates that the device identity certificate is issued from specific C
 
 ### -cert-header string
 
-* HTTP header containing client certificate
+* HTTP header containing TLS client certificate
 
 By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices). This corresponds to the `SignMessage` key being set to true in the enrollment profile.
 
