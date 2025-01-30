@@ -3,10 +3,10 @@ package mdm
 import (
 	"context"
 	"crypto/x509"
+	"fmt"
 	"net/http"
-	"net/url"
+	"strings"
 
-	"github.com/micromdm/nanomdm/cryptoutil"
 	mdmhttp "github.com/micromdm/nanomdm/http"
 	"github.com/micromdm/nanomdm/storage"
 
@@ -19,33 +19,46 @@ type contextKeyCert struct{}
 var contextEnrollmentID struct{}
 
 // CertExtractPEMHeaderMiddleware extracts the MDM enrollment identity
-// certificate from the request into the HTTP request context. It looks
-// at the request header which should be a URL-encoded PEM certificate.
+// certificate from an HTTP header of the request and places the
+// parsed certificate onto the HTTP request context. See [GetCert].
 //
-// This is ostensibly to support Nginx' $ssl_client_escaped_cert in a
-// proxy_set_header directive. Though any reverse proxy setting a
-// similar header could be used, of course.
+// The format of the header is parsed as RFC 9440 if it begins with
+// a colon, otherwise a URL query-escaped PEM certificate is assumed.
 func CertExtractPEMHeaderMiddleware(next http.Handler, header string, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := ctxlog.Logger(r.Context(), logger)
-		escapedCert := r.Header.Get(header)
-		if escapedCert == "" {
-			logger.Debug("msg", "empty header", "header", header)
+		logger := ctxlog.Logger(r.Context(), logger).With("header", header)
+
+		headerValue := r.Header.Get(header)
+		if headerValue == "" {
+			logger.Debug("msg", "empty header")
 			next.ServeHTTP(w, r)
 			return
 		}
-		pemCert, err := url.QueryUnescape(escapedCert)
+
+		var cert *x509.Certificate
+		var err error
+		if strings.HasPrefix(headerValue, ":") {
+			cert, err = ExtractRFC9440(headerValue)
+			if err != nil {
+				err = fmt.Errorf("rfc9440: %w", err)
+			}
+		} else {
+			cert, err = ExtractQueryEscapedPEM(headerValue)
+			if err != nil {
+				err = fmt.Errorf("query escaped: %w", err)
+			}
+		}
 		if err != nil {
-			logger.Info("msg", "unescaping header", "header", header, "err", err)
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			logger.Info("msg", "cert extract", "err", err)
+			next.ServeHTTP(w, r)
 			return
 		}
-		cert, err := cryptoutil.DecodePEMCertificate([]byte(pemCert))
-		if err != nil {
-			logger.Info("msg", "decoding cert", "header", header, "err", err)
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		if cert == nil {
+			logger.Debug("msg", "empty certificate")
+			next.ServeHTTP(w, r)
 			return
 		}
+
 		ctx := context.WithValue(r.Context(), contextKeyCert{}, cert)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}

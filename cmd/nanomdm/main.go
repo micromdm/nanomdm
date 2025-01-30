@@ -65,7 +65,7 @@ func main() {
 		flRootsPath  = flag.String("ca", "", "path to PEM CA cert(s)")
 		flIntsPath   = flag.String("intermediate", "", "path to PEM intermediate cert(s)")
 		flWebhook    = flag.String("webhook-url", "", "URL to send requests to")
-		flCertHeader = flag.String("cert-header", "", "HTTP header containing URL-escaped TLS client certificate")
+		flCertHeader = flag.String("cert-header", "", "HTTP header containing client certificate")
 		flDebug      = flag.Bool("debug", false, "log debug messages")
 		flDump       = flag.Bool("dump", false, "dump MDM requests and responses to stdout")
 		flDisableMDM = flag.Bool("disable-mdm", false, "disable MDM HTTP endpoint")
