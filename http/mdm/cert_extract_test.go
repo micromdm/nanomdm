@@ -1,6 +1,8 @@
 package mdm
 
-import "testing"
+import (
+	"testing"
+)
 
 func assertError(t *testing.T, err error) {
 	t.Helper()
@@ -31,8 +33,11 @@ func TestExtractRFC9440(t *testing.T) {
 	_, err = ExtractRFC9440(":INVALID:")
 	assertError(t, err)
 
-	_, err = ExtractRFC9440(certRFC9440)
+	cert, err := ExtractRFC9440(certRFC9440)
 	assertNilError(t, err)
+	if cert == nil {
+		t.Error("expected cert")
+	}
 }
 
 func TestQueryEscapedPEM(t *testing.T) {
@@ -45,6 +50,9 @@ func TestQueryEscapedPEM(t *testing.T) {
 	_, err = ExtractQueryEscapedPEM("INVALID")
 	assertError(t, err)
 
-	_, err = ExtractQueryEscapedPEM(certQueryEscaped)
+	cert, err := ExtractQueryEscapedPEM(certQueryEscaped)
 	assertNilError(t, err)
+	if cert == nil {
+		t.Error("expected cert")
+	}
 }
