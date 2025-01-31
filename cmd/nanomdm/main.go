@@ -59,22 +59,22 @@ func main() {
 	flag.Var(&cliStorage.DSN, "dsn", "data source name; deprecated: use -storage-dsn")
 	flag.Var(&cliStorage.Options, "storage-options", "storage backend options")
 	var (
-		flListen     = flag.String("listen", ":9000", "HTTP listen address")
-		flAPIKey     = flag.String("api", "", "API key for API endpoints")
-		flVersion    = flag.Bool("version", false, "print version")
-		flRootsPath  = flag.String("ca", "", "path to PEM CA cert(s)")
-		flIntsPath   = flag.String("intermediate", "", "path to PEM intermediate cert(s)")
-		flWebhook    = flag.String("webhook-url", "", "URL to send requests to")
-		flCertHeader = flag.String("cert-header", "", "HTTP header containing URL-escaped TLS client certificate")
-		flDebug      = flag.Bool("debug", false, "log debug messages")
-		flDump       = flag.Bool("dump", false, "dump MDM requests and responses to stdout")
-		flDisableMDM = flag.Bool("disable-mdm", false, "disable MDM HTTP endpoint")
-		flCheckin    = flag.Bool("checkin", false, "enable separate HTTP endpoint for MDM check-ins")
-		flMigration  = flag.Bool("migration", false, "HTTP endpoint for enrollment migrations")
-		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
-		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
-		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
-		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
+		flListen     = flag.String("listen", envString("LISTEN", ":9000"), "HTTP listen address")
+		flAPIKey     = flag.String("api", envString("API", ""), "API key for API endpoints")
+		flVersion    = flag.Bool("version", envBool("VERSION"), "print version")
+		flRootsPath  = flag.String("ca", envString("CA", ""), "path to PEM CA cert(s)")
+		flIntsPath   = flag.String("intermediate", envString("INTERMEDIATE", ""), "path to PEM intermediate cert(s)")
+		flWebhook    = flag.String("webhook-url", envString("WEBHOOK_URL", ""), "URL to send requests to")
+		flCertHeader = flag.String("cert-header", envString("CERT_HEADER", ""), "HTTP header containing URL-escaped TLS client certificate")
+		flDebug      = flag.Bool("debug", envBool("DEBUG"), "log debug messages")
+		flDump       = flag.Bool("dump", envBool("DUMP"), "dump MDM requests and responses to stdout")
+		flDisableMDM = flag.Bool("disable-mdm", envBool("DISABLE_MDM"), "disable MDM HTTP endpoint")
+		flCheckin    = flag.Bool("checkin", envBool("CHECKIN"), "enable separate HTTP endpoint for MDM check-ins")
+		flMigration  = flag.Bool("migration", envBool("MIGRATION"), "HTTP endpoint for enrollment migrations")
+		flRetro      = flag.Bool("retro", envBool("RETRO"), "Allow retroactive certificate-authorization association")
+		flDMURLPfx   = flag.String("dm", envString("DM", ""), "URL to send Declarative Management requests to")
+		flAuthProxy  = flag.String("auth-proxy-url", envString("AUTH_PROXY_URL", ""), "Reverse proxy URL target for MDM-authenticated HTTP requests")
+		flUAZLChal   = flag.Bool("ua-zl-dc", envBool("UA_ZL_DC"), "reply with zero-length DigestChallenge for UserAuthenticate")
 	)
 	flag.Parse()
 
@@ -271,4 +271,18 @@ func newTraceID(_ *http.Request) string {
 	b := make([]byte, 8)
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
+}
+
+func envString(key, def string) string {
+	if env := os.Getenv(key); env != "" {
+		return env
+	}
+	return def
+}
+
+func envBool(key string) bool {
+	if env := os.Getenv(key); env == "true" {
+		return true
+	}
+	return false
 }
