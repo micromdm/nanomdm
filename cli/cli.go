@@ -4,6 +4,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/micromdm/nanomdm/storage"
@@ -38,7 +39,21 @@ func NewStorage() *Storage {
 	return &Storage{}
 }
 
+func fallbackAccumulator(s *StringAccumulator, envVarFallback string) {
+	if len(*s) > 0 {
+		return
+	}
+
+	if envValue := os.Getenv(envVarFallback); envValue != "" {
+		s.Set(envValue)
+	}
+}
+
 func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
+	fallbackAccumulator(&s.Storage, "STORAGE")
+	fallbackAccumulator(&s.DSN, "STORAGE_DSN")
+	fallbackAccumulator(&s.Options, "STORAGE_OPTIONS")
+
 	if len(s.Storage) != len(s.DSN) {
 		return nil, errors.New("must have same number of storage and DSN flags")
 	}
