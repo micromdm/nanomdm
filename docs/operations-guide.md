@@ -40,11 +40,16 @@ NanoMDM validates that the device identity certificate is issued from specific C
 
 ### -cert-header string
 
-* HTTP header containing URL-escaped TLS client certificate
+* HTTP header containing TLS client certificate
 
 By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices). This corresponds to the `SignMessage` key being set to true in the enrollment profile.
 
-With the `-cert-header` switch you can specify the name of an HTTP header that is passed to NanoMDM to read the client identity certificate. This is ostensibly to support Nginx' [$ssl_client_escaped_cert](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) in a [proxy_set_header](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header) directive. Though any reverse proxy setting a similar header could be used, of course. The `SignMessage` key in the enrollment profile should be set appropriately.
+With the `-cert-header` switch you can specify the name of an HTTP header that is passed to NanoMDM to instead read the client identity certificate from. The format of the header is parsed as RFC 9440 if it begins with a colon, otherwise a URL query-escaped PEM certificate is assumed.
+
+[RFC 9440](https://datatracker.ietf.org/doc/rfc9440/) specifies a Base-64 encoded DER certificate surrounded by colons. The URL query-escaped PEM certificate is ostensibly to support Nginx' [$ssl_client_escaped_cert](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) in a [proxy_set_header](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header) directive. Though any reverse proxy setting similar headers can be used, of course. Again the `SignMessage` key in the enrollment profile should be set appropriately (i.e. to false or not set, if you're using this switch).
+
+> [!NOTE]
+> NanoMDM v0.7.0 and below do not support RFC 9440 header parsing, only URL query-escaped PEM certificates.
 
 ### -checkin
 
