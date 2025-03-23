@@ -1,6 +1,7 @@
 module github.com/micromdm/nanomdm
 
 go 1.17
+toolchain go1.24.1
 
 require (
 	github.com/RobotsAndPencils/buford v0.14.0
@@ -9,11 +10,11 @@ require (
 	github.com/micromdm/nanolib v0.2.0
 	github.com/micromdm/plist v0.2.1
 	github.com/smallstep/pkcs7 v0.2.1
-	golang.org/x/net v0.34.0
+	golang.org/x/net v0.37.0
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 )
