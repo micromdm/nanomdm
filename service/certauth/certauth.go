@@ -74,6 +74,10 @@ func WithLogger(logger log.Logger) Option {
 	}
 }
 
+// WithAllowRetroactive allows cert-auth associations to happen even when
+// devices aren't enrolling if they don't already have an association.
+// Ostensibly this allows "migrated" enrollments to "fix" their own cert-auth
+// associations.
 func WithAllowRetroactive() Option {
 	return func(certAuth *CertAuth) {
 		certAuth.allowRetroactive = true
