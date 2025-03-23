@@ -19,7 +19,6 @@ import (
 type MultiService struct {
 	logger log.Logger
 	svcs   []service.CheckinAndCommandService
-	ctx    context.Context
 }
 
 func New(logger log.Logger, svcs ...service.CheckinAndCommandService) *MultiService {
@@ -29,7 +28,6 @@ func New(logger log.Logger, svcs ...service.CheckinAndCommandService) *MultiServ
 	return &MultiService{
 		logger: logger,
 		svcs:   svcs,
-		ctx:    context.Background(),
 	}
 }
 
@@ -52,7 +50,7 @@ func (ms *MultiService) runOthers(ctx context.Context, r errorRunner) {
 // RequestWithContext returns a clone of r and sets its context to ctx.
 func (ms *MultiService) RequestWithContext(r *mdm.Request) *mdm.Request {
 	r2 := r.Clone()
-	r2.Context = ms.ctx
+	r2.Context = ContextWithoutCancel(r.Context)
 	return r2
 }
 
