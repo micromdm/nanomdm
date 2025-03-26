@@ -80,6 +80,9 @@ func setupCtxLog(ctx context.Context, ids []string, logger log.Logger) (context.
 // note we expose Go errors to the output as this is meant for "API"
 // users.
 func PushHandler(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
+	if pusher == nil {
+		panic("nil pusher")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		ids := strings.Split(r.URL.Path, ",")
 		ctx, logger := setupCtxLog(r.Context(), ids, logger)
