@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/RobotsAndPencils/buford v0.14.0
-	github.com/go-sql-driver/mysql v1.8.1
+	github.com/go-sql-driver/mysql v1.9.1
 	github.com/lib/pq v1.10.9
 	github.com/micromdm/nanolib v0.2.0
 	github.com/micromdm/plist v0.2.1
