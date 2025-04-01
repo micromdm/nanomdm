@@ -9,11 +9,11 @@ require (
 	github.com/micromdm/nanolib v0.2.0
 	github.com/micromdm/plist v0.2.1
 	github.com/smallstep/pkcs7 v0.2.1
-	golang.org/x/net v0.34.0
+	golang.org/x/net v0.38.0
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 )
