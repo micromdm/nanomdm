@@ -36,12 +36,11 @@ func (s *FileStorage) RetrieveMigrationCheckins(_ context.Context, c chan<- inte
 			if err != nil {
 				c <- err
 			}
-			// if an Authenticate doesn't exist then this is a
-			// user-channel enrollment. skip it for this loop
-			if !userLoop && !authExists {
+			// an Authenticate should not exist for a user-channel
+			// enrollment. skip it if found.
+			if userLoop && authExists {
 				continue
-			}
-			if !userLoop {
+			} else if !userLoop && authExists {
 				sendCheckinMessage(e, AuthenticateFilename, c)
 			}
 			tokExists, err := e.fileExists(TokenUpdateFilename)

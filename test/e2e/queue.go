@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage"
 )
 
 type queueDevice interface {
 	CMDDoReportAndFetch(ctx context.Context, cmd *mdm.CommandResults) (*mdm.Command, error)
 	NewCommandReport(uuid, status string, errors []mdm.ErrorChain) *mdm.CommandResults
 	IDer
+	NewMDMRequest(ctx context.Context) *mdm.Request
 }
 
 // enqueue enqueues cmd to id using a.
@@ -48,7 +50,7 @@ func enqueueSimple(t *testing.T, ctx context.Context, d queueDevice, a NanoMDMAP
 	enqueue(t, ctx, a, d.ID(), simpleCmd(cmd))
 }
 
-func queue(t *testing.T, ctx context.Context, d queueDevice, a NanoMDMAPI) {
+func queue(t *testing.T, ctx context.Context, d queueDevice, a NanoMDMAPI, s storage.CommandAndReportResultsStore) {
 	t.Run("basic", func(t *testing.T) {
 		// report Idle.
 		// expect no command (empty queue for this id).
@@ -88,6 +90,20 @@ func queue(t *testing.T, ctx context.Context, d queueDevice, a NanoMDMAPI) {
 		// ack CMD3.
 		// expect no command (empty queue).
 		sendReportExpectCommandReply(t, ctx, d, "CMD3", "Acknowledged", "")
+		// report Idle.
+		// expect no command (empty queue).
+		sendReportExpectCommandReply(t, ctx, d, "", "Idle", "")
+	})
+	t.Run("clear", func(t *testing.T) {
+		err := s.ClearQueue(d.NewMDMRequest(ctx))
+		if err != nil {
+			t.Fatal(err)
+		}
+		enqueueSimple(t, ctx, d, a, "CMD4")
+		err = s.ClearQueue(d.NewMDMRequest(ctx))
+		if err != nil {
+			t.Fatal(err)
+		}
 		// report Idle.
 		// expect no command (empty queue).
 		sendReportExpectCommandReply(t, ctx, d, "", "Idle", "")

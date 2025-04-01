@@ -17,7 +17,7 @@ func tally(t *testing.T, ctx context.Context, d tokenTallyDevice, store storage.
 	// retrieve the tally
 	tally, err := store.RetrieveTokenUpdateTally(ctx, d.ID())
 	if err != nil {
-		t.Fatal()
+		t.Fatal(err)
 	}
 
 	// make sure it's what we want

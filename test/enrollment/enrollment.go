@@ -262,6 +262,11 @@ func (e *Enrollment) ID() string {
 	return e.enrollment.UDID
 }
 
+// SerialNumber returns the serial number of the enrollment.
+func (e *Enrollment) SerialNumber() string {
+	return e.serialNumber
+}
+
 // EnrollID returns the NanoMDM enroll ID.
 func (e *Enrollment) EnrollID() *mdm.EnrollID {
 	return &e.enrollID

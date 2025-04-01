@@ -28,7 +28,7 @@ func setupNanoMDM(logger log.Logger, store storage.AllStorage) (http.Handler, er
 	var svc service.CheckinAndCommandService = nanomdm.New(store, nanomdm.WithLogger(logger))
 
 	// chain the certificate auth middleware
-	svc = certauth.New(svc, store)
+	svc = certauth.New(svc, store, certauth.WithLogger(logger))
 
 	// setup MDM (check-in and command) handlers
 	var mdmHandler http.Handler = httpmdm.CheckinAndCommandHandler(svc, logger.With("handler", "mdm"))
@@ -58,6 +58,8 @@ type IDer interface {
 
 func TestE2E(t *testing.T, ctx context.Context, store storage.AllStorage) {
 	var logger log.Logger = log.NopLogger // stdlogfmt.New(stdlogfmt.WithDebugFlag(true))
+
+	t.Run("pushcert", func(t *testing.T) { pushcert(t, ctx, store) })
 
 	mux, err := setupNanoMDM(logger, store)
 	if err != nil {
@@ -100,19 +102,25 @@ func TestE2E(t *testing.T, ctx context.Context, store storage.AllStorage) {
 	// re-enroll device
 	// this is to try and catch any leftover crud that a storage backend didn't
 	// clean up (like the tally count, BS token, etc.)
-	err = d.DoEnroll(ctx)
-	if err != nil {
-		t.Fatal(fmt.Errorf("re-enrolling device %s: %w", d.ID(), err))
-	}
+	t.Run("re-enroll", func(t *testing.T) {
+		err = d.DoEnroll(ctx)
+		if err != nil {
+			t.Fatal(fmt.Errorf("re-enrolling device %s: %w", d.ID(), err))
+		}
+	})
 
 	t.Run("tally-after-reenroll", func(t *testing.T) { tally(t, ctx, d, store, 1) })
 
 	t.Run("bstoken-after-reenroll", func(t *testing.T) { bstoken(t, ctx, d.Enrollment) })
 
-	err = store.ClearQueue(d.NewMDMRequest(ctx))
-	if err != nil {
-		t.Fatal()
-	}
+	t.Run("clear-queue", func(t *testing.T) {
+		err = store.ClearQueue(d.NewMDMRequest(ctx))
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 
-	t.Run("queue", func(t *testing.T) { queue(t, ctx, d, &api{doer: c}) })
+	t.Run("queue", func(t *testing.T) { queue(t, ctx, d, &api{doer: c}, store) })
+
+	t.Run("migrate", func(t *testing.T) { migrate(t, ctx, store, d) })
 }

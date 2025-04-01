@@ -16,15 +16,29 @@ func GenerateRandomCertificateSerialNumber() (*big.Int, error) {
 	return rand.Int(rand.Reader, limit)
 }
 
-func SimpleSelfSignedRSAKeypair(cn string, days int) (key *rsa.PrivateKey, cert *x509.Certificate, err error) {
+func SelfSignedCertRSAResigner(tmpl *x509.Certificate) (key *rsa.PrivateKey, cert *x509.Certificate, err error) {
 	key, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return key, cert, err
+		return
 	}
 
+	certBytes, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		return
+	}
+	cert, err = x509.ParseCertificate(certBytes)
+	if err != nil {
+		return
+	}
+
+	return
+
+}
+
+func SimpleSelfSignedRSAKeypair(cn string, days int) (key *rsa.PrivateKey, cert *x509.Certificate, err error) {
 	serialNumber, err := GenerateRandomCertificateSerialNumber()
 	if err != nil {
-		return key, cert, err
+		return nil, nil, err
 	}
 	timeNow := time.Now()
 	template := x509.Certificate{
@@ -39,16 +53,8 @@ func SimpleSelfSignedRSAKeypair(cn string, days int) (key *rsa.PrivateKey, cert 
 		BasicConstraintsValid: true,
 		DNSNames:              []string{cn},
 	}
-	certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
-	if err != nil {
-		return key, cert, err
-	}
-	cert, err = x509.ParseCertificate(certBytes)
-	if err != nil {
-		return key, cert, err
-	}
 
-	return key, cert, err
+	return SelfSignedCertRSAResigner(&template)
 }
 
 type NopService struct{}
