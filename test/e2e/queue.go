@@ -19,6 +19,7 @@ type queueDevice interface {
 
 // enqueue enqueues cmd to id using a.
 func enqueue(t *testing.T, ctx context.Context, a NanoMDMAPI, id string, cmd *mdm.Command) {
+	t.Helper()
 	err := a.RawCommandEnqueue(ctx, []string{id}, cmd, true)
 	if err != nil {
 		t.Fatal(err)
@@ -46,6 +47,7 @@ func sendReportExpectCommandReply(t *testing.T, ctx context.Context, d queueDevi
 
 // enqueueSimple enqueues cmd to a for d.
 func enqueueSimple(t *testing.T, ctx context.Context, d queueDevice, a NanoMDMAPI, cmd string) {
+	t.Helper()
 	// we're assuming the UDID is all we need here.
 	enqueue(t, ctx, a, d.ID(), simpleCmd(cmd))
 }
