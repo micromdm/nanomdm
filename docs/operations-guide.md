@@ -65,17 +65,34 @@ Enable additional debug logging.
 
 ### -storage, -storage-dsn, & -storage-options
 
-The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage file -storage-dsn db` meaning we use the `file` storage backend with `db` as its DSN.
+The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage filekv -storage-dsn dbkv` meaning we use the `filekv` storage backend with `dbkv` as its DSN.
 
-_Note:_ NanoMDM versions v0.5.0 and below used the `-dsn` flag while later versions switched to the `-storage-dsn` flag.
+> [!NOTE]
+> NanoMDM **versions v0.5 and below** used the `-dsn` flag while later versions now use the `-storage-dsn` flag.
+
+##### filekv storage backend
+
+* `-storage filekv`
+
+Configures the `filekv` storage backend. This manages enrollment and command queue data within plain filesystem files and directories using a key-value storage system. It has zero dependencies, no options, and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database. If no DSN is specified then `dbkv` is used as a default.
+
+*Example:* `-storage filekv -storage-dsn /path/to/my/db`
 
 #### file storage backend
 
 * `-storage file`
 
-Configures the `file` storage backend. This manages enrollment and command data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database. The `file` backend has no storage options.
+> [!WARNING]
+> The `file` storage backend is deprecated in NanoMDM **versions after v0.7** and will be removed in a future release.
 
-*Example:* `-storage file -storage-dsn /path/to/my/db`
+Configures the `file` storage backend. This manages enrollment and command data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database.
+
+Options are specified as a comma-separated list of "key=value" pairs. Supported options:
+
+* `enable_deprecated=1`
+  * This option enables the file backend. Without this switch the `file` backend is disabled.
+
+*Example:* `-storage file -storage-dsn /path/to/my/db -storage-options enable_deprecated=1`
 
 #### mysql storage backend
 
@@ -106,15 +123,26 @@ Options are specified as a comma-separated list of "key=value" pairs. The pgsql 
 
 *Example:* `-storage pgsql -storage-dsn postgres://postgres:toor@localhost/nanomdm -storage-options delete=1`
 
+#### in-memory storage backend
+
+* `-storage inmem`
+
+Configure the `inmem` in-memory storage backend. This manages enrollment and command queue data entirely in *volatile* memeory. There are no options and the DSN is ignored.
+
+> [!CAUTION]
+> All data is lost when the server process exits when using the in-memory storage backend.
+
+*Example:* `-storage inmem`
+
 #### multi-storage backend
 
-You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-storage-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-storage-dsn` flag and so forth.
+You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-storage-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-storage-dsn` flag and so forth. Note that empty options must be specified even if the backend is not using them.
 
 Be aware that only the first storage backend will be "used" when interacting with the system, all other storage backends are called to, but any *results* are discarded. In other words consider them write-only. Also beware that you will have very bizaare results if you change to using multiple storage backends in the midst of existing enrollments. You will receive errors about missing database rows or data. A storage backend needs to be around when a device (or all devices) initially enroll(s). There is no "sync" or backfill system with multiple storage backends (see the migration ability if you need this).
 
-The multi-storage backend is really only useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps creating a new storage backend).
+The multi-storage backend is only really useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps creating a new storage backend).
 
-For example to use both a `file` *and* `mysql` backend your command line might look like: `-storage file -storage-dsn db -storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN.
+For example to use both a `filekv` *and* `mysql` backend your command line might look like: `-storage filekv -storage-dsn dbkv -storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN (i.e. sharing the same data source).
 
 ### -dump
 
