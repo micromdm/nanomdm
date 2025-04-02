@@ -40,6 +40,10 @@ paths:
                     type: string
                     description: The "topic" (UID attribute) from the uploaded APNs certificate.
                     example: 'com.apple.mgmt.External.e3b8ceac-1f18-2c8e-8a63-dd17d99435d9'
+                  not_after:
+                    type: string
+                    description: Expiration date of the uploaded APNs certificate.
+                    example: '2026-01-07T04:04:46Z'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '500':
