@@ -83,7 +83,7 @@ Configures the `filekv` storage backend. This manages enrollment and command que
 * `-storage file`
 
 > [!WARNING]
-> The `file` storage backend is deprecated in NanoMDM **verions after v0.7** and will be removed in a future release.
+> The `file` storage backend is deprecated in NanoMDM **versions after v0.7** and will be removed in a future release.
 
 Configures the `file` storage backend. This manages enrollment and command data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database.
 
