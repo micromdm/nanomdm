@@ -8,6 +8,7 @@ import (
 
 	"github.com/micromdm/nanolib/log"
 	"github.com/micromdm/nanomdm/cryptoutil"
+	mdmhttp "github.com/micromdm/nanomdm/http"
 	httpapi "github.com/micromdm/nanomdm/http/api"
 	httpmdm "github.com/micromdm/nanomdm/http/mdm"
 	"github.com/micromdm/nanomdm/mdm"
@@ -19,7 +20,8 @@ import (
 
 const (
 	serverURL  = "/mdm"
-	enqueueURL = "/api/enq/"
+	apiPrefix  = "/test/v1"
+	enqueueURL = apiPrefix + "/enqueue/"
 )
 
 // setupNanoMDM configures normal-ish NanoMDM HTTP server handlers for testing.
@@ -30,19 +32,24 @@ func setupNanoMDM(logger log.Logger, store storage.AllStorage) (http.Handler, er
 	// chain the certificate auth middleware
 	svc = certauth.New(svc, store, certauth.WithLogger(logger))
 
+	mux := http.NewServeMux()
+	mdmMux := mdmhttp.NewMWMux(mux)
+
+	// setup certificate extraction
+	// note missing auth for tests
+	mdmMux.Use(func(h http.Handler) http.Handler {
+		return httpmdm.CertExtractMdmSignatureMiddleware(h, httpmdm.MdmSignatureVerifierFunc(cryptoutil.VerifyMdmSignature))
+	})
+
 	// setup MDM (check-in and command) handlers
-	var mdmHandler http.Handler = httpmdm.CheckinAndCommandHandler(svc, logger.With("handler", "mdm"))
-	// mdmHandler = httpmdm.CertVerifyMiddleware(mdmHandler, , logger.With("handler", "verify"))
-	mdmHandler = httpmdm.CertExtractMdmSignatureMiddleware(mdmHandler, httpmdm.MdmSignatureVerifierFunc(cryptoutil.VerifyMdmSignature))
+	// note missing auth for tests
+	mdmMux.Handle(
+		serverURL,
+		httpmdm.CheckinAndCommandHandler(svc, logger.With("handler", "mdm")),
+	)
 
 	// setup API handlers
-	var enqueueHandler http.Handler = httpapi.RawCommandEnqueueHandler(store, nil, logger.With("handler", enqueueURL))
-	enqueueHandler = http.StripPrefix(enqueueURL, enqueueHandler)
-
-	// create a mux for them
-	mux := http.NewServeMux()
-	mux.Handle(serverURL, mdmHandler)
-	mux.Handle(enqueueURL, enqueueHandler)
+	httpapi.HandleAPIv1("/test/v1", mux, logger, store, nil)
 
 	return mux, nil
 }
