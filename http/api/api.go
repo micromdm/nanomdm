@@ -2,20 +2,20 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/micromdm/nanomdm/api"
 	"github.com/micromdm/nanomdm/cryptoutil"
 	mdmhttp "github.com/micromdm/nanomdm/http"
-	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/push"
 	"github.com/micromdm/nanomdm/storage"
 
@@ -23,54 +23,44 @@ import (
 	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
-// enrolledAPIResult is a per-enrollment API result.
-type enrolledAPIResult struct {
-	PushError    string `json:"push_error,omitempty"`
-	PushResult   string `json:"push_result,omitempty"`
-	CommandError string `json:"command_error,omitempty"`
-}
-
-// enrolledAPIResults is a map of enrollments to a per-enrollment API result.
-type enrolledAPIResults map[string]*enrolledAPIResult
-
-// apiResult is the JSON reply returned from either pushing or queuing commands.
-type apiResult struct {
-	Status       enrolledAPIResults `json:"status,omitempty"`
-	NoPush       bool               `json:"no_push,omitempty"`
-	PushError    string             `json:"push_error,omitempty"`
-	CommandError string             `json:"command_error,omitempty"`
-	CommandUUID  string             `json:"command_uuid,omitempty"`
-	RequestType  string             `json:"request_type,omitempty"`
-}
-
-type (
-	ctxKeyIDFirst struct{}
-	ctxKeyIDCount struct{}
-)
-
-func setAPIIDs(ctx context.Context, idFirst string, idCount int) context.Context {
-	ctx = context.WithValue(ctx, ctxKeyIDFirst{}, idFirst)
-	return context.WithValue(ctx, ctxKeyIDCount{}, idCount)
-}
-
-func ctxKVs(ctx context.Context) (out []interface{}) {
-	id, ok := ctx.Value(ctxKeyIDFirst{}).(string)
-	if ok {
-		out = append(out, "id_first", id)
+// writeAPIResult encodes r to JSON to w, logging errors to logger if necessary.
+func writeAPIResult(logger log.Logger, w http.ResponseWriter, r *api.APIResult, header int) {
+	if header < 1 {
+		header = http.StatusInternalServerError
 	}
-	eType, ok := ctx.Value(ctxKeyIDCount{}).(int)
-	if ok {
-		out = append(out, "id_count", eType)
+
+	if r == nil {
+		nilErr := api.NewError(errors.New("nil API result"))
+		r = &api.APIResult{
+			EnqueueError: nilErr,
+			PushError:    nilErr,
+		}
 	}
-	return
+
+	w.Header().Set("Content-type", "application/json")
+	w.WriteHeader(header)
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "\t")
+
+	err := enc.Encode(r)
+	if err != nil && logger != nil {
+		logger.Info("msg", "encoding json", "err", err)
+	}
 }
 
-func setupCtxLog(ctx context.Context, ids []string, logger log.Logger) (context.Context, log.Logger) {
-	if len(ids) > 0 {
-		ctx = setAPIIDs(ctx, ids[0], len(ids))
-		ctx = ctxlog.AddFunc(ctx, ctxKVs)
+// amendAPIError amends or inserts err into e.
+func amendAPIError(err error, e **api.Error) {
+	if e == nil || err == nil {
+		return
 	}
-	return ctx, ctxlog.Logger(ctx, logger)
+	if *e == nil {
+		// add new
+		*e = api.NewError(err)
+	} else {
+		// amend any existing error
+		*e = api.NewError(fmt.Errorf("result API error: %w; previous error: %v", err, (*e).Err))
+	}
 }
 
 // PushHandler sends APNs push notifications to MDM enrollments.
@@ -83,55 +73,49 @@ func PushHandler(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 	if pusher == nil {
 		panic("nil pusher")
 	}
+
+	pe, peErr := api.NewPushEnqueuer(nil, pusher, api.WithLogger(logger))
+	if peErr != nil {
+		panic(peErr)
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		ids := strings.Split(r.URL.Path, ",")
-		ctx, logger := setupCtxLog(r.Context(), ids, logger)
-		output := apiResult{
-			Status: make(enrolledAPIResults),
-		}
-		logs := []interface{}{"msg", "push"}
-		pushResp, err := pusher.Push(ctx, ids)
-		if err != nil {
-			logs = append(logs, "err", err)
-			output.PushError = err.Error()
-		}
-		var ct, errCt int
-		for id, resp := range pushResp {
-			output.Status[id] = &enrolledAPIResult{
-				PushResult: resp.Id,
-			}
-			if resp.Err != nil {
-				output.Status[id].PushError = resp.Err.Error()
-				errCt += 1
-			} else {
-				ct += 1
-			}
-		}
-		logs = append(logs, "count", ct)
-		if errCt > 0 {
-			logs = append(logs, "errs", errCt)
-		}
-		if err != nil || errCt > 0 {
-			logger.Info(logs...)
-		} else {
-			logger.Debug(logs...)
-		}
-		// generate response codes depending on if everything succeeded, failed, or parially succedded
+		var pr *api.APIResult
 		header := http.StatusInternalServerError
-		if (errCt > 0 || err != nil) && ct > 0 {
-			header = http.StatusMultiStatus
-		} else if (errCt == 0 && err == nil) && ct >= 1 {
-			header = http.StatusOK
+		logger := ctxlog.Logger(r.Context(), logger)
+
+		defer func() {
+			writeAPIResult(logger, w, pr, header)
+		}()
+
+		if r.URL.Path == "" {
+			err := errors.New("missing ids (in URL path)")
+			logger.Info("err", err)
+			// synthesize an API result error
+			er := new(api.APIResult)
+			amendAPIError(err, &er.PushError)
+			return
 		}
-		json, err := json.MarshalIndent(output, "", "\t")
+
+		ids := strings.Split(r.URL.Path, ",")
+
+		pr, header, err := pe.Push(r.Context(), ids)
 		if err != nil {
-			logger.Info("msg", "marshal json", "err", err)
-		}
-		w.Header().Set("Content-type", "application/json")
-		w.WriteHeader(header)
-		_, err = w.Write(json)
-		if err != nil {
-			logger.Info("msg", "writing body", "err", err)
+			if pr == nil {
+				pr = new(api.APIResult)
+			}
+			// amend the result json with our error
+			// so as to be visible to HTTP API callers
+			amendAPIError(err, &pr.PushError)
+			logs := []interface{}{
+				"msg", "sending push",
+				"id_count", len(ids),
+				"err", err,
+			}
+			if len(ids) > 0 {
+				logs = append(logs, "id_first", ids[0])
+			}
+			logger.Info(logs...)
 		}
 	}
 }
@@ -147,126 +131,59 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 	if enqueuer == nil {
 		panic("nil enqueuer")
 	}
-	if logger == nil {
-		panic("nil logger")
+
+	pe, peErr := api.NewPushEnqueuer(enqueuer, pusher, api.WithLogger(logger))
+	if peErr != nil {
+		panic(peErr)
 	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		ids := strings.Split(r.URL.Path, ",")
-		ctx, logger := setupCtxLog(r.Context(), ids, logger)
-		b, err := mdmhttp.ReadAllAndReplaceBody(r)
+		var er *api.APIResult
+		header := http.StatusInternalServerError
+		logger := ctxlog.Logger(r.Context(), logger)
+
+		defer func() {
+			writeAPIResult(logger, w, er, header)
+		}()
+
+		if r.URL.Path == "" {
+			err := errors.New("missing ids (in URL path)")
+			logger.Info("err", err)
+			// synthesize an API result error
+			er := new(api.APIResult)
+			amendAPIError(err, &er.EnqueueError)
+			return
+		}
+
+		cmdBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			logger.Info("msg", "reading body", "err", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			// synthesize an API result error
+			er := new(api.APIResult)
+			amendAPIError(err, &er.EnqueueError)
 			return
 		}
-		command, err := mdm.DecodeCommand(b)
+
+		ids := strings.Split(r.URL.Path, ",")
+		noPush := r.URL.Query().Get("nopush") != ""
+
+		er, header, err = pe.RawCommandEnqueueWithPush(r.Context(), cmdBytes, ids, noPush)
 		if err != nil {
-			logger.Info("msg", "decoding command", "err", err)
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-		nopush := r.URL.Query().Get("nopush") != ""
-		output := apiResult{
-			Status:      make(enrolledAPIResults),
-			NoPush:      nopush,
-			CommandUUID: command.CommandUUID,
-			RequestType: command.Command.RequestType,
-		}
-		logger = logger.With(
-			"command_uuid", command.CommandUUID,
-			"request_type", command.Command.RequestType,
-		)
-		logs := []interface{}{
-			"msg", "enqueue",
-		}
-		idErrs, err := enqueuer.EnqueueCommand(ctx, ids, command)
-		ct := len(ids) - len(idErrs)
-		if err != nil {
-			logs = append(logs, "err", err)
-			output.CommandError = err.Error()
-			if len(idErrs) == 0 {
-				// we assume if there were no ID-specific errors but
-				// there was a general error then all IDs failed
-				ct = 0
+			if er == nil {
+				er = new(api.APIResult)
 			}
-		}
-		logs = append(logs, "count", ct)
-		if len(idErrs) > 0 {
-			logs = append(logs, "errs", len(idErrs))
-		}
-		if err != nil || len(idErrs) > 0 {
+			// amend the result json with our error
+			// so as to be visible to HTTP API callers
+			amendAPIError(err, &er.EnqueueError)
+			logs := []interface{}{
+				"msg", "enqueueing",
+				"id_count", len(ids),
+				"err", err,
+			}
+			if len(ids) > 0 {
+				logs = append(logs, "id_first", ids[0])
+			}
 			logger.Info(logs...)
-		} else {
-			logger.Debug(logs...)
-		}
-		// loop through our command errors, if any, and add to output
-		for id, err := range idErrs {
-			if err != nil {
-				output.Status[id] = &enrolledAPIResult{
-					CommandError: err.Error(),
-				}
-			}
-		}
-		// optionally send pushes
-		pushResp := make(map[string]*push.Response)
-		var pushErr error
-		if !nopush && pusher != nil {
-			pushResp, pushErr = pusher.Push(ctx, ids)
-			if err != nil {
-				logger.Info("msg", "push", "err", err)
-				output.PushError = err.Error()
-			}
-		} else if !nopush && pusher == nil {
-			pushErr = errors.New("nil pusher")
-		}
-		// loop through our push errors, if any, and add to output
-		var pushCt, pushErrCt int
-		for id, resp := range pushResp {
-			if _, ok := output.Status[id]; ok {
-				output.Status[id].PushResult = resp.Id
-			} else {
-				output.Status[id] = &enrolledAPIResult{
-					PushResult: resp.Id,
-				}
-			}
-			if resp.Err != nil {
-				output.Status[id].PushError = resp.Err.Error()
-				pushErrCt++
-			} else {
-				pushCt++
-			}
-		}
-		logs = []interface{}{
-			"msg", "push",
-			"count", pushCt,
-		}
-		if pushErr != nil {
-			logs = append(logs, "err", pushErr)
-		}
-		if pushErrCt > 0 {
-			logs = append(logs, "errs", pushErrCt)
-		}
-		if pushErr != nil || pushErrCt > 0 {
-			logger.Info(logs...)
-		} else {
-			logger.Debug(logs...)
-		}
-		// generate response codes depending on if everything succeeded, failed, or parially succedded
-		header := http.StatusInternalServerError
-		if (len(idErrs) > 0 || err != nil || (!nopush && (pushErrCt > 0 || pushErr != nil))) && (ct > 0 || (!nopush && (pushCt > 0))) {
-			header = http.StatusMultiStatus
-		} else if (len(idErrs) == 0 && err == nil && (nopush || (pushErrCt == 0 && pushErr == nil))) && (ct >= 1 && (nopush || (pushCt >= 1))) {
-			header = http.StatusOK
-		}
-		json, err := json.MarshalIndent(output, "", "\t")
-		if err != nil {
-			logger.Info("msg", "marshal json", "err", err)
-		}
-		w.Header().Set("Content-type", "application/json")
-		w.WriteHeader(header)
-		_, err = w.Write(json)
-		if err != nil {
-			logger.Info("msg", "writing body", "err", err)
 		}
 	}
 }
