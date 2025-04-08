@@ -21,6 +21,7 @@ type Doer interface {
 type api struct {
 	doer        Doer
 	urlPushCert string
+	urlEnqueue  string
 }
 
 func (a *api) PushCert(ctx context.Context, pemCert, pemKey []byte) error {
@@ -52,11 +53,11 @@ func (a *api) RawCommandEnqueue(ctx context.Context, ids []string, cmd *mdm.Comm
 		return err
 	}
 
-	if !strings.HasSuffix(enqueueURL, "/") {
+	if !strings.HasSuffix(a.urlEnqueue, "/") {
 		return errors.New("missing trailing slash of enqueue URL")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, enqueueURL+strings.Join(ids, ","), r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.urlEnqueue+strings.Join(ids, ","), r)
 	if err != nil {
 		return err
 	}

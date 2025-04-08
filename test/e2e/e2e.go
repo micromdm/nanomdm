@@ -25,7 +25,7 @@ const (
 )
 
 // setupNanoMDM configures normal-ish NanoMDM HTTP server handlers for testing.
-func setupNanoMDM(logger log.Logger, store storage.AllStorage) (http.Handler, error) {
+func setupNanoMDM(serverURL string, logger log.Logger, store storage.AllStorage) (http.Handler, error) {
 	// begin with the primary NanoMDM service
 	var svc service.CheckinAndCommandService = nanomdm.New(store, nanomdm.WithLogger(logger))
 
@@ -61,7 +61,7 @@ type IDer interface {
 func TestE2E(t *testing.T, ctx context.Context, store storage.AllStorage) {
 	var logger log.Logger = log.NopLogger // stdlogfmt.New(stdlogfmt.WithDebugFlag(true))
 
-	mux, err := setupNanoMDM(logger, store)
+	mux, err := setupNanoMDM(serverURL, logger, store)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestE2E(t *testing.T, ctx context.Context, store storage.AllStorage) {
 		}
 	})
 
-	t.Run("queue", func(t *testing.T) { queue(t, ctx, d, &api{doer: c}, store) })
+	t.Run("queue", func(t *testing.T) { queue(t, ctx, d, &api{doer: c, urlEnqueue: enqueueURL}, store) })
 
 	t.Run("migrate", func(t *testing.T) { migrate(t, ctx, store, d) })
 }
