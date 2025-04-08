@@ -63,13 +63,29 @@ func amendAPIError(err error, e **api.Error) {
 	}
 }
 
+// PathIDGetter returns the list of comma-separated enrollment IDs from r.
+func PathIDGetter(r *http.Request) ([]string, error) {
+	if r.URL.Path == "" {
+		return nil, errors.New("empty path")
+	}
+	return strings.Split(r.URL.Path, ","), nil
+}
+
 // PushHandler sends APNs push notifications to MDM enrollments.
 //
 // Note the whole URL path is used as the identifier to push to. This
 // probably necessitates stripping the URL prefix before using. Also
 // note we expose Go errors to the output as this is meant for "API"
 // users.
+//
+// Deprecated: use [PushToIDsHandler].
 func PushHandler(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
+	return PushToIDsHandler(pusher, logger, PathIDGetter)
+}
+
+// PushToIDsHandler sends APNs push notifications to MDM enrollments.
+// Use idGetter to get the slice of enrollment IDs from the HTTP request.
+func PushToIDsHandler(pusher push.Pusher, logger log.Logger, idGetter func(*http.Request) ([]string, error)) http.HandlerFunc {
 	if pusher == nil {
 		panic("nil pusher")
 	}
@@ -88,18 +104,17 @@ func PushHandler(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 			writeAPIResult(logger, w, pr, header)
 		}()
 
-		if r.URL.Path == "" {
-			err := errors.New("missing ids (in URL path)")
+		ids, err := idGetter(r)
+		if err != nil {
+			err = fmt.Errorf("getting enrollment ids: %w", err)
 			logger.Info("err", err)
 			// synthesize an API result error
-			er := new(api.APIResult)
-			amendAPIError(err, &er.PushError)
+			pr = new(api.APIResult)
+			amendAPIError(err, &pr.PushError)
 			return
 		}
 
-		ids := strings.Split(r.URL.Path, ",")
-
-		pr, header, err := pe.Push(r.Context(), ids)
+		pr, header, err = pe.Push(r.Context(), ids)
 		if err != nil {
 			if pr == nil {
 				pr = new(api.APIResult)
@@ -127,7 +142,16 @@ func PushHandler(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 // push to. This probably necessitates stripping the URL prefix before
 // using. Also note we expose Go errors to the output as this is meant
 // for "API" users.
+//
+// Deprecated: use [RawCommandEnqueueToIDsHandler].
 func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Pusher, logger log.Logger) http.HandlerFunc {
+	return RawCommandEnqueueToIDsHandler(enqueuer, pusher, logger, PathIDGetter)
+}
+
+// RawCommandEnqueueToIDsHandler enqueues a raw MDM command and sends
+// push notifications to MDM enrollments.
+// Use idGetter to get the slice of enrollment IDs from the HTTP request.
+func RawCommandEnqueueToIDsHandler(enqueuer storage.CommandEnqueuer, pusher push.Pusher, logger log.Logger, idGetter func(*http.Request) ([]string, error)) http.HandlerFunc {
 	if enqueuer == nil {
 		panic("nil enqueuer")
 	}
@@ -146,11 +170,12 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			writeAPIResult(logger, w, er, header)
 		}()
 
-		if r.URL.Path == "" {
-			err := errors.New("missing ids (in URL path)")
+		ids, err := idGetter(r)
+		if err != nil {
+			err = fmt.Errorf("getting enrollment ids: %w", err)
 			logger.Info("err", err)
 			// synthesize an API result error
-			er := new(api.APIResult)
+			er = new(api.APIResult)
 			amendAPIError(err, &er.EnqueueError)
 			return
 		}
@@ -164,7 +189,6 @@ func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Push
 			return
 		}
 
-		ids := strings.Split(r.URL.Path, ",")
 		noPush := r.URL.Query().Get("nopush") != ""
 
 		er, header, err = pe.RawCommandEnqueueWithPush(r.Context(), cmdBytes, ids, noPush)
