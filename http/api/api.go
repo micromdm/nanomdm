@@ -78,7 +78,8 @@ func PathIDGetter(r *http.Request) ([]string, error) {
 // note we expose Go errors to the output as this is meant for "API"
 // users.
 //
-// Deprecated: use [PushToIDsHandler].
+// Deprecated: use [PushToIDsHandler] instead.
+// Use [PathIDGetter] with it for the previous behavior.
 func PushHandler(pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 	return PushToIDsHandler(pusher, logger, PathIDGetter)
 }
@@ -143,7 +144,8 @@ func PushToIDsHandler(pusher push.Pusher, logger log.Logger, idGetter func(*http
 // using. Also note we expose Go errors to the output as this is meant
 // for "API" users.
 //
-// Deprecated: use [RawCommandEnqueueToIDsHandler].
+// Deprecated: use [RawCommandEnqueueToIDsHandler] instead.
+// Use [PathIDGetter] with it for the previous behavior.
 func RawCommandEnqueueHandler(enqueuer storage.CommandEnqueuer, pusher push.Pusher, logger log.Logger) http.HandlerFunc {
 	return RawCommandEnqueueToIDsHandler(enqueuer, pusher, logger, PathIDGetter)
 }
