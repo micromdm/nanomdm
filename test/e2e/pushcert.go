@@ -13,7 +13,11 @@ import (
 	"github.com/micromdm/nanomdm/test"
 )
 
-func pushcert(t *testing.T, ctx context.Context, store storage.PushCertStore) {
+type pushCertUploader interface {
+	PushCert(ctx context.Context, pemCert, pemKey []byte) error
+}
+
+func pushcert(t *testing.T, ctx context.Context, a pushCertUploader, store storage.PushCertStore) {
 	pemCert, err := os.ReadFile("../../test/e2e/testdata/push.pem")
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +45,7 @@ func pushcert(t *testing.T, ctx context.Context, store storage.PushCertStore) {
 		t.Fatal(err)
 	}
 
-	err = store.StorePushCert(ctx, pemCert, pemKey)
+	err = a.PushCert(ctx, pemCert, pemKey)
 	if err != nil {
 		t.Fatal(err)
 	}

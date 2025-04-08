@@ -11,7 +11,6 @@ import (
 	mdmhttp "github.com/micromdm/nanomdm/http"
 	httpapi "github.com/micromdm/nanomdm/http/api"
 	httpmdm "github.com/micromdm/nanomdm/http/mdm"
-	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/service/certauth"
 	"github.com/micromdm/nanomdm/service/nanomdm"
@@ -19,9 +18,10 @@ import (
 )
 
 const (
-	serverURL  = "/mdm"
-	apiPrefix  = "/test/v1"
-	enqueueURL = apiPrefix + "/enqueue/"
+	serverURL   = "/mdm"
+	apiPrefix   = "/test/v1"
+	enqueueURL  = apiPrefix + "/enqueue/"
+	pushCertURl = apiPrefix + "/pushcert"
 )
 
 // setupNanoMDM configures normal-ish NanoMDM HTTP server handlers for testing.
@@ -54,19 +54,12 @@ func setupNanoMDM(logger log.Logger, store storage.AllStorage) (http.Handler, er
 	return mux, nil
 }
 
-type NanoMDMAPI interface {
-	// RawCommandEnqueue enqueues cmd to ids. An APNs push is omitted if nopush is true.
-	RawCommandEnqueue(ctx context.Context, ids []string, cmd *mdm.Command, nopush bool) error
-}
-
 type IDer interface {
 	ID() string
 }
 
 func TestE2E(t *testing.T, ctx context.Context, store storage.AllStorage) {
 	var logger log.Logger = log.NopLogger // stdlogfmt.New(stdlogfmt.WithDebugFlag(true))
-
-	t.Run("pushcert", func(t *testing.T) { pushcert(t, ctx, store) })
 
 	mux, err := setupNanoMDM(logger, store)
 	if err != nil {
@@ -75,6 +68,8 @@ func TestE2E(t *testing.T, ctx context.Context, store storage.AllStorage) {
 
 	// create a fake HTTP client that dispatches to our raw handlers
 	c := NewHandlerClient(mux)
+
+	t.Run("pushcert", func(t *testing.T) { pushcert(t, ctx, &api{doer: c, urlPushCert: pushCertURl}, store) })
 
 	// create our new device for testing
 	d, err := newDeviceFromCheckins(
