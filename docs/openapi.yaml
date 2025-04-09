@@ -96,8 +96,6 @@ paths:
           $ref: '#/components/responses/APIResultOK'
         '207':
           $ref: '#/components/responses/APIResultSomeFailed'
-        '400':
-          description: Error decoding MDM command plist.
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':

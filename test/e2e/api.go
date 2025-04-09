@@ -1,8 +1,10 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 
@@ -17,7 +19,32 @@ type Doer interface {
 }
 
 type api struct {
-	doer Doer
+	doer        Doer
+	urlPushCert string
+	urlEnqueue  string
+}
+
+func (a *api) PushCert(ctx context.Context, pemCert, pemKey []byte) error {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"PUT",
+		a.urlPushCert,
+		io.MultiReader( // concat the cert and key together as expected
+			bytes.NewBuffer(pemCert),
+			bytes.NewBuffer(pemKey),
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	resp, err := a.doer.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return enrollment.HTTPErrors(resp)
 }
 
 func (a *api) RawCommandEnqueue(ctx context.Context, ids []string, cmd *mdm.Command, nopush bool) error {
@@ -26,11 +53,11 @@ func (a *api) RawCommandEnqueue(ctx context.Context, ids []string, cmd *mdm.Comm
 		return err
 	}
 
-	if !strings.HasSuffix(enqueueURL, "/") {
+	if !strings.HasSuffix(a.urlEnqueue, "/") {
 		return errors.New("missing trailing slash of enqueue URL")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, enqueueURL+strings.Join(ids, ","), r)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.urlEnqueue+strings.Join(ids, ","), r)
 	if err != nil {
 		return err
 	}
