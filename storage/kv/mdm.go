@@ -43,7 +43,7 @@ func (s *KV) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
 	}
 
 	// store device details
-	err := kv.PerformCRUDBucketTxn(r.Context, s.devices, func(ctx context.Context, b kv.CRUDBucket) error {
+	err := kv.PerformCRUDBucketTxn(r.Context(), s.devices, func(ctx context.Context, b kv.CRUDBucket) error {
 		// write the raw authenticate message
 		err := b.Set(ctx, join(r.ID, keyDeviceAuthenticate), msg.Raw)
 		if err != nil {
@@ -73,7 +73,7 @@ func (s *KV) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
 		}
 
 		// clear the device bootstrap token
-		err = b.Delete(r.Context, join(r.ID, keyBootstrapToken))
+		err = b.Delete(r.Context(), join(r.ID, keyBootstrapToken))
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ func (s *KV) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
 	}
 
 	// store enrollment details
-	return kv.PerformBucketTxn(r.Context, s.enrollments, func(ctx context.Context, b kv.Bucket) error {
+	return kv.PerformBucketTxn(r.Context(), s.enrollments, func(ctx context.Context, b kv.Bucket) error {
 		// delete per-enrollment one-time set keys
 		err := kv.DeleteSlice(ctx, b, []string{
 			join(r.ID, keyEnrollmentUnlockToken),
@@ -135,7 +135,7 @@ func (s *KV) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
 		tokUpdBkt = s.users
 		tokUpdKeyName = keyUserTokenUpdate
 	}
-	err := kv.PerformCRUDBucketTxn(r.Context, tokUpdBkt, func(ctx context.Context, b kv.CRUDBucket) error {
+	err := kv.PerformCRUDBucketTxn(r.Context(), tokUpdBkt, func(ctx context.Context, b kv.CRUDBucket) error {
 		if r.ParentID != "" {
 			// associate our parent device-channel if this is a user-channel enrollment
 			err := b.Set(ctx, join(r.ID, keyUserDeviceChannel), []byte(r.ParentID))
@@ -149,7 +149,7 @@ func (s *KV) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
 		return err
 	}
 
-	return kv.PerformCRUDBucketTxn(r.Context, s.enrollments, func(ctx context.Context, b kv.CRUDBucket) error {
+	return kv.PerformCRUDBucketTxn(r.Context(), s.enrollments, func(ctx context.Context, b kv.CRUDBucket) error {
 		if err := s.updateLastSeen(r, b); err != nil {
 			return fmt.Errorf("updating last seen: %s", err)
 		}
@@ -220,7 +220,7 @@ func userChannelEnrollments(ctx context.Context, id string, b kv.Bucket) []strin
 // If r is from a device channel then any user channels for this device
 // also need to be disabled.
 func (s *KV) Disable(r *mdm.Request) error {
-	return kv.PerformBucketTxn(r.Context, s.enrollments, func(ctx context.Context, b kv.Bucket) error {
+	return kv.PerformBucketTxn(r.Context(), s.enrollments, func(ctx context.Context, b kv.Bucket) error {
 		// the Disable method is called from the NanoMDM service
 		// for both Authenticate and CheckOut check-in messages.
 		if err := s.updateLastSeen(r, b); err != nil {
@@ -274,13 +274,13 @@ func (s *KV) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) er
 	if msg.DigestResponse != "" {
 		key = keyUserAuthenticateDigest
 	}
-	err := s.users.Set(r.Context, join(r.ID, key), msg.Raw)
+	err := s.users.Set(r.Context(), join(r.ID, key), msg.Raw)
 	if err != nil {
 		return err
 	}
 
 	// disable the enrollment (not valid until after TokenUpdate)
-	return s.enrollments.Set(r.Context, join(r.ID, keyEnrollmentDisabled), []byte(valueEnrollmentUserChannelAssociated))
+	return s.enrollments.Set(r.Context(), join(r.ID, keyEnrollmentDisabled), []byte(valueEnrollmentUserChannelAssociated))
 }
 
 // RetrieveTokenUpdateTally retrieves the TokenUpdate tally (count) for id.

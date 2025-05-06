@@ -64,14 +64,14 @@ func (ms *MultiAllStorage) execStores(ctx context.Context, r errRunner) (interfa
 }
 
 func (ms *MultiAllStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) error {
-	_, err := ms.execStores(r.Context, func(s storage.AllStorage) (interface{}, error) {
+	_, err := ms.execStores(r.Context(), func(s storage.AllStorage) (interface{}, error) {
 		return nil, s.StoreAuthenticate(r, msg)
 	})
 	return err
 }
 
 func (ms *MultiAllStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
-	_, err := ms.execStores(r.Context, func(s storage.AllStorage) (interface{}, error) {
+	_, err := ms.execStores(r.Context(), func(s storage.AllStorage) (interface{}, error) {
 		return nil, s.StoreTokenUpdate(r, msg)
 	})
 	return err
@@ -85,14 +85,14 @@ func (ms *MultiAllStorage) RetrieveTokenUpdateTally(ctx context.Context, id stri
 }
 
 func (ms *MultiAllStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
-	_, err := ms.execStores(r.Context, func(s storage.AllStorage) (interface{}, error) {
+	_, err := ms.execStores(r.Context(), func(s storage.AllStorage) (interface{}, error) {
 		return nil, s.StoreUserAuthenticate(r, msg)
 	})
 	return err
 }
 
 func (ms *MultiAllStorage) Disable(r *mdm.Request) error {
-	_, err := ms.execStores(r.Context, func(s storage.AllStorage) (interface{}, error) {
+	_, err := ms.execStores(r.Context(), func(s storage.AllStorage) (interface{}, error) {
 		return nil, s.Disable(r)
 	})
 	return err

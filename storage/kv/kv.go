@@ -54,5 +54,5 @@ func (s *KV) updateLastSeen(r *mdm.Request, b kv.RWBucket) error {
 	if b == nil {
 		b = s.enrollments
 	}
-	return b.Set(r.Context, join(r.ID, keyLastSeenAt), timeFmt(time.Now()))
+	return b.Set(r.Context(), join(r.ID, keyLastSeenAt), timeFmt(time.Now()))
 }

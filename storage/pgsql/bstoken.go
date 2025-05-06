@@ -8,7 +8,7 @@ import (
 
 func (s *PgSQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrapToken) error {
 	_, err := s.db.ExecContext(
-		r.Context,
+		r.Context(),
 		`UPDATE devices SET bootstrap_token_b64 = $1, bootstrap_token_at = CURRENT_TIMESTAMP WHERE id = $2;`,
 		nullEmptyString(msg.BootstrapToken.BootstrapToken.String()),
 		r.ID,
@@ -22,7 +22,7 @@ func (s *PgSQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrap
 func (s *PgSQLStorage) RetrieveBootstrapToken(r *mdm.Request, _ *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
 	var tokenB64 sql.NullString
 	err := s.db.QueryRowContext(
-		r.Context,
+		r.Context(),
 		`SELECT bootstrap_token_b64 FROM devices WHERE id = $1;`,
 		r.ID,
 	).Scan(&tokenB64)
