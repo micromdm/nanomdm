@@ -273,11 +273,9 @@ func (e *Enrollment) EnrollID() *mdm.EnrollID {
 }
 
 func (e *Enrollment) NewMDMRequest(ctx context.Context) *mdm.Request {
-	return &mdm.Request{
-		Context:     ctx,
-		EnrollID:    e.EnrollID(),
-		Certificate: e.cert,
-	}
+	r := mdm.NewRequestWithContext(ctx, e.cert)
+	r.EnrollID = e.EnrollID()
+	return r
 }
 
 // GetPush returns the enrollment push info data.

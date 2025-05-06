@@ -99,11 +99,11 @@ WHERE
 }
 
 func (s *MySQLStorage) deleteCommandTx(r *mdm.Request, result *mdm.CommandResults) error {
-	tx, err := s.db.BeginTx(r.Context, nil)
+	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		return err
 	}
-	if err = s.deleteCommand(r.Context, tx, r.ID, result.CommandUUID); err != nil {
+	if err = s.deleteCommand(r.Context(), tx, r.ID, result.CommandUUID); err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
 			return fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
 		}
@@ -131,7 +131,7 @@ func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 		notNowBumpTallySQL = `, command_results.not_now_tally = command_results.not_now_tally + 1`
 	}
 	_, err := s.db.ExecContext(
-		r.Context, `
+		r.Context(), `
 INSERT INTO command_results
     (id, command_uuid, status, result, not_now_at, not_now_tally)
 VALUES
@@ -151,7 +151,7 @@ UPDATE
 func (s *MySQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command, error) {
 	command := new(mdm.Command)
 	err := s.db.QueryRowContext(
-		r.Context, `
+		r.Context(), `
 SELECT c.command_uuid, c.request_type, c.command
 FROM enrollment_queue AS q
     INNER JOIN commands AS c
@@ -185,7 +185,7 @@ func (s *MySQLStorage) ClearQueue(r *mdm.Request) error {
 	// device ID, but all user-channel enrollments with a 'parent' ID of
 	// this device, too.
 	_, err := s.db.ExecContext(
-		r.Context,
+		r.Context(),
 		`
 UPDATE
     enrollment_queue AS q

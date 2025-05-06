@@ -34,7 +34,7 @@ func (w *MicroWebhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 			Params:       r.Params,
 		},
 	}
-	return postWebhookEvent(r.Context, w.client, w.url, ev)
+	return postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
 func (w *MicroWebhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
@@ -49,13 +49,13 @@ func (w *MicroWebhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 		},
 	}
 	if w.store != nil {
-		tally, err := w.store.RetrieveTokenUpdateTally(r.Context, r.ID)
+		tally, err := w.store.RetrieveTokenUpdateTally(r.Context(), r.ID)
 		if err != nil {
 			return err
 		}
 		ev.CheckinEvent.TokenUpdateTally = &tally
 	}
-	return postWebhookEvent(r.Context, w.client, w.url, ev)
+	return postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
 func (w *MicroWebhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
@@ -69,7 +69,7 @@ func (w *MicroWebhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 			Params:       r.Params,
 		},
 	}
-	return postWebhookEvent(r.Context, w.client, w.url, ev)
+	return postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
 func (w *MicroWebhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]byte, error) {
@@ -83,7 +83,7 @@ func (w *MicroWebhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate)
 			Params:       r.Params,
 		},
 	}
-	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
+	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
 func (w *MicroWebhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {
@@ -97,7 +97,7 @@ func (w *MicroWebhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToke
 			Params:       r.Params,
 		},
 	}
-	return postWebhookEvent(r.Context, w.client, w.url, ev)
+	return postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
 func (w *MicroWebhook) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
@@ -111,7 +111,7 @@ func (w *MicroWebhook) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToke
 			Params:       r.Params,
 		},
 	}
-	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
+	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
 func (w *MicroWebhook) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
@@ -127,7 +127,7 @@ func (w *MicroWebhook) CommandAndReportResults(r *mdm.Request, results *mdm.Comm
 			Params:       r.Params,
 		},
 	}
-	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
+	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
 func (w *MicroWebhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManagement) ([]byte, error) {
@@ -141,7 +141,7 @@ func (w *MicroWebhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeM
 			Params:       r.Params,
 		},
 	}
-	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
+	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
 func (w *MicroWebhook) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenResponse, error) {
@@ -155,5 +155,5 @@ func (w *MicroWebhook) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenR
 			Params:       r.Params,
 		},
 	}
-	return nil, postWebhookEvent(r.Context, w.client, w.url, ev)
+	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }

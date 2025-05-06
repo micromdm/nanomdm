@@ -117,7 +117,7 @@ func (s *CertAuth) associateNewEnrollment(r *mdm.Request) error {
 	if err := r.EnrollID.Validate(); err != nil {
 		return err
 	}
-	logger := ctxlog.Logger(r.Context, s.logger)
+	logger := ctxlog.Logger(r.Context(), s.logger)
 	hash := HashCert(r.Certificate)
 	if hasHash, err := s.storage.HasCertHash(r, hash); err != nil {
 		return err
@@ -162,7 +162,7 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 	if err := r.EnrollID.Validate(); err != nil {
 		return err
 	}
-	logger := ctxlog.Logger(r.Context, s.logger)
+	logger := ctxlog.Logger(r.Context(), s.logger)
 	hash := HashCert(r.Certificate)
 	if isAssoc, err := s.storage.IsCertHashAssociated(r, hash); err != nil {
 		return err
@@ -230,7 +230,7 @@ func (s *CertAuth) validateAssociateExistingEnrollment(r *mdm.Request) error {
 }
 
 func (s *CertAuth) associateForNewEnrollment(r *mdm.Request, e *mdm.Enrollment) error {
-	req := r.Clone()
+	req := r.WithContext(r.Context())
 	req.EnrollID = s.normalizer(e)
 	if err := s.associateNewEnrollment(req); err != nil {
 		return fmt.Errorf("cert auth: new enrollment: %w", err)
@@ -239,7 +239,7 @@ func (s *CertAuth) associateForNewEnrollment(r *mdm.Request, e *mdm.Enrollment) 
 }
 
 func (s *CertAuth) validateOrAssociateForExistingEnrollment(r *mdm.Request, e *mdm.Enrollment) error {
-	req := r.Clone()
+	req := r.WithContext(r.Context())
 	req.EnrollID = s.normalizer(e)
 	if err := s.validateAssociateExistingEnrollment(req); err != nil {
 		return fmt.Errorf("cert auth: existing enrollment: %w", err)

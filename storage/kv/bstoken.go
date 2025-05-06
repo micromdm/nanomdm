@@ -21,7 +21,7 @@ func (s *KV) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrapToken) err
 		return storage.ErrDeviceChannelOnly
 	}
 	return s.devices.Set(
-		r.Context,
+		r.Context(),
 		join(r.ID, keyBootstrapToken),
 		msg.BootstrapToken.BootstrapToken,
 	)
@@ -36,7 +36,7 @@ func (s *KV) RetrieveBootstrapToken(r *mdm.Request, msg *mdm.GetBootstrapToken) 
 		return nil, storage.ErrDeviceChannelOnly
 	}
 	v, err := s.devices.Get(
-		r.Context,
+		r.Context(),
 		join(r.ID, keyBootstrapToken),
 	)
 	if errors.Is(err, kv.ErrKeyNotFound) {

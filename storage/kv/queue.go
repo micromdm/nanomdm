@@ -30,7 +30,7 @@ func (s *KV) StoreCommandReport(r *mdm.Request, report *mdm.CommandResults) erro
 		return errors.New("empty command UUID")
 	}
 
-	return kv.PerformCRUDBucketTxn(r.Context, s.queue, func(ctx context.Context, b kv.CRUDBucket) error {
+	return kv.PerformCRUDBucketTxn(r.Context(), s.queue, func(ctx context.Context, b kv.CRUDBucket) error {
 		q := newQueue(b, r.ID, primaryQueue)
 
 		// write the status and raw report
@@ -60,7 +60,7 @@ func (s *KV) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command,
 
 	q := newQueue(b, r.ID, primaryQueue)
 
-	for cmdUUID, err := q.getFirst(r.Context); cmdUUID != ""; cmdUUID, err = q.getNext(r.Context, cmdUUID) {
+	for cmdUUID, err := q.getFirst(r.Context()); cmdUUID != ""; cmdUUID, err = q.getNext(r.Context(), cmdUUID) {
 		if err != nil {
 			return nil, fmt.Errorf("getting item from queue: %w", err)
 		} else if cmdUUID == "" {
@@ -68,7 +68,7 @@ func (s *KV) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command,
 		}
 
 		// get the status of the found command
-		status, err := b.Get(r.Context, q.itemKeyName(cmdUUID, keyQueueStatus))
+		status, err := b.Get(r.Context(), q.itemKeyName(cmdUUID, keyQueueStatus))
 		if err != nil && !errors.Is(err, kv.ErrKeyNotFound) {
 			return nil, fmt.Errorf("getting command status: %s: %w", cmdUUID, err)
 		}
@@ -77,7 +77,7 @@ func (s *KV) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command,
 			continue
 		}
 
-		m, err := kv.GetMap(r.Context, b, []string{
+		m, err := kv.GetMap(r.Context(), b, []string{
 			join(cmdUUID, keyQueueRaw),
 			join(cmdUUID, keyQueueRequestType),
 		})
@@ -101,9 +101,9 @@ func (s *KV) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command,
 
 // ClearQueue clears all queued commands for the enrollment ID in r.
 func (s *KV) ClearQueue(r *mdm.Request) error {
-	return kv.PerformCRUDBucketTxn(r.Context, s.queue, func(ctx context.Context, b kv.CRUDBucket) error {
+	return kv.PerformCRUDBucketTxn(r.Context(), s.queue, func(ctx context.Context, b kv.CRUDBucket) error {
 		q := newQueue(b, r.ID, primaryQueue)
-		return q.clear(r.Context)
+		return q.clear(r.Context())
 	})
 }
 

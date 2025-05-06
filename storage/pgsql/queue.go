@@ -102,11 +102,11 @@ WHERE
 }
 
 func (s *PgSQLStorage) deleteCommandTx(r *mdm.Request, result *mdm.CommandResults) error {
-	tx, err := s.db.BeginTx(r.Context, nil)
+	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		return err
 	}
-	if err = s.deleteCommand(r.Context, tx, r.ID, result.CommandUUID); err != nil {
+	if err = s.deleteCommand(r.Context(), tx, r.ID, result.CommandUUID); err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
 			return fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
 		}
@@ -134,7 +134,7 @@ func (s *PgSQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 		notNowBumpTallySQL = `, not_now_tally = command_results.not_now_tally + 1`
 	}
 	_, err := s.db.ExecContext(
-		r.Context, `
+		r.Context(), `
 INSERT INTO command_results
     (id, command_uuid, status, result, not_now_at, not_now_tally)
 VALUES
@@ -158,7 +158,7 @@ func (s *PgSQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*md
 	}
 	command := new(mdm.Command)
 	err := s.db.QueryRowContext(
-		r.Context,
+		r.Context(),
 		`SELECT command_uuid, request_type, command FROM view_queue WHERE id = $1 AND active = TRUE AND `+statusWhere+` LIMIT 1;`,
 		r.ID,
 	).Scan(&command.CommandUUID, &command.Command.RequestType, &command.Raw)
@@ -178,7 +178,7 @@ func (s *PgSQLStorage) ClearQueue(r *mdm.Request) error {
 	// PostgreSQL UPDATE differs from MySQL, uses "FROM" specific
 	// to pgsql extension
 	_, err := s.db.ExecContext(
-		r.Context,
+		r.Context(),
 		`
 UPDATE enrollment_queue
 SET active = FALSE

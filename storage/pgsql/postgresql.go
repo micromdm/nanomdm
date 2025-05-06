@@ -100,7 +100,7 @@ func (s *PgSQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 		pemCert = cryptoutil.PEMCertificate(r.Certificate.Raw)
 	}
 	_, err := s.db.ExecContext(
-		r.Context, `
+		r.Context(), `
 INSERT INTO devices
     (id, identity_cert, serial_number, authenticate, authenticate_at)
 VALUES
@@ -129,7 +129,7 @@ func (s *PgSQLStorage) storeDeviceTokenUpdate(r *mdm.Request, msg *mdm.TokenUpda
 		where = ` WHERE id = $3;`
 	}
 	args = append(args, r.ID)
-	_, err := s.db.ExecContext(r.Context, query+where, args...)
+	_, err := s.db.ExecContext(r.Context(), query+where, args...)
 	return err
 }
 
@@ -137,12 +137,12 @@ func (s *PgSQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate
 	// there shouldn't be an Unlock Token on the user channel, but
 	// complain if there is to warn an admin
 	if len(msg.UnlockToken) > 0 {
-		ctxlog.Logger(r.Context, s.logger).Info(
+		ctxlog.Logger(r.Context(), s.logger).Info(
 			"msg", "Unlock Token on user channel not stored",
 		)
 	}
 	_, err := s.db.ExecContext(
-		r.Context, `
+		r.Context(), `
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, token_update, token_update_at)
 VALUES
@@ -182,7 +182,7 @@ func (s *PgSQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) er
 		return err
 	}
 	_, err = s.db.ExecContext(
-		r.Context, `
+		r.Context(), `
 INSERT INTO enrollments
 	(id, device_id, user_id, type, topic, push_magic, token_hex, last_seen_at, token_update_tally)
 VALUES
@@ -229,7 +229,7 @@ func (s *PgSQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthen
 		colAtName = "user_authenticate_digest_at"
 	}
 	_, err := s.db.ExecContext(
-		r.Context, `
+		r.Context(), `
 INSERT INTO users
     (id, device_id, user_short_name, user_long_name, `+colName+`, `+colAtName+`)
 VALUES
@@ -259,7 +259,7 @@ func (s *PgSQLStorage) Disable(r *mdm.Request) error {
 		return errors.New("can only disable a device channel")
 	}
 	_, err := s.db.ExecContext(
-		r.Context,
+		r.Context(),
 		`UPDATE enrollments SET enabled = FALSE, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = $1 AND enabled = TRUE;`,
 		r.ID,
 	)
@@ -268,7 +268,7 @@ func (s *PgSQLStorage) Disable(r *mdm.Request) error {
 
 func (s *PgSQLStorage) updateLastSeen(r *mdm.Request) (err error) {
 	_, err = s.db.ExecContext(
-		r.Context,
+		r.Context(),
 		`UPDATE enrollments SET last_seen_at = CURRENT_TIMESTAMP WHERE id = $1`,
 		r.ID,
 	)

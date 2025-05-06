@@ -52,7 +52,7 @@ var emptyDigestChallengeBytes = []byte(emptyDigestChallenge)
 // for the empty digest 2-step UserAuthenticate protocol.
 // It implements the NanoMDM service method for UserAuthenticate check-in messages.
 func (s *UAService) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate) ([]byte, error) {
-	logger := ctxlog.Logger(r.Context, s.logger)
+	logger := ctxlog.Logger(r.Context(), s.logger)
 	if s.sendEmptyDigestChallenge || s.storeRejectedUserAuth {
 		if err := s.store.StoreUserAuthenticate(r, message); err != nil {
 			return nil, err

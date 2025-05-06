@@ -20,7 +20,7 @@ type testSvc struct {
 }
 
 func (ts *testSvc) Authenticate(r *mdm.Request, _ *mdm.Authenticate) error {
-	ts.capture, _ = r.Context.Value(&ctxTest1{}).(string)
+	ts.capture, _ = r.Context().Value(&ctxTest1{}).(string)
 	ts.wg.Done()
 	return nil
 }
@@ -32,7 +32,7 @@ func TestContextPassthru(t *testing.T) {
 
 	ctx = context.WithValue(ctx, &ctxTest1{}, "test-ctx-val")
 
-	r := &mdm.Request{Context: ctx}
+	r := mdm.NewRequestWithContext(ctx, nil)
 
 	var wg sync.WaitGroup
 

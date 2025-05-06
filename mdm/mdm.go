@@ -50,14 +50,33 @@ func (eid *EnrollID) Validate() error {
 type Request struct {
 	*EnrollID
 	Certificate *x509.Certificate
-	Context     context.Context
 	Params      map[string]string
+	ctx         context.Context
 }
 
-// Clone returns a shallow copy of r
-func (r *Request) Clone() *Request {
+// NewRequestWithContext creates a new [Request] with ctx and cert.
+func NewRequestWithContext(ctx context.Context, cert *x509.Certificate) *Request {
+	return &Request{ctx: ctx, Certificate: cert}
+}
+
+// Context returns the request's context. To change the context use [Request.WithContext].
+// The returned context is always non-nil; it defaults to the background context.
+func (r *Request) Context() context.Context {
+	if r.ctx != nil {
+		return r.ctx
+	}
+	return context.Background()
+}
+
+// WithContext returns a shallow copy of r with its context changed to ctx.
+// The provided ctx must be non-nil.
+func (r *Request) WithContext(ctx context.Context) *Request {
+	if ctx == nil {
+		panic("nil context")
+	}
 	r2 := new(Request)
 	*r2 = *r
+	r2.ctx = ctx
 	return r2
 }
 

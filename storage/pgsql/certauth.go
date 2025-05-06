@@ -18,7 +18,7 @@ func (s *PgSQLStorage) queryRowContextRowExists(ctx context.Context, query strin
 
 func (s *PgSQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
 	return s.queryRowContextRowExists(
-		r.Context,
+		r.Context(),
 		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = $1;`,
 		r.ID,
 	)
@@ -26,7 +26,7 @@ func (s *PgSQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, er
 
 func (s *PgSQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
 	return s.queryRowContextRowExists(
-		r.Context,
+		r.Context(),
 		`SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = $1;`,
 		strings.ToLower(hash),
 	)
@@ -34,7 +34,7 @@ func (s *PgSQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
 
 func (s *PgSQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, error) {
 	return s.queryRowContextRowExists(
-		r.Context,
+		r.Context(),
 		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = $1 AND sha256 = $2;`,
 		r.ID, strings.ToLower(hash),
 	)
@@ -43,7 +43,7 @@ func (s *PgSQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, 
 // AssociateCertHash "DO NOTHING" on duplicated keys
 func (s *PgSQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
 	_, err := s.db.ExecContext(
-		r.Context, `
+		r.Context(), `
 INSERT INTO cert_auth_associations (id, sha256) 
 VALUES ($1, $2)
 ON CONFLICT ON CONSTRAINT cert_auth_associations_pkey DO UPDATE SET updated_at=now();`,
