@@ -11,7 +11,7 @@ import (
 )
 
 func newTokenMDMReq() *mdm.Request {
-	return &mdm.Request{Context: context.Background()}
+	return mdm.NewRequestWithContext(context.Background(), nil)
 }
 
 const tokenTestCheckin = `<?xml version="1.0" encoding="UTF-8"?>

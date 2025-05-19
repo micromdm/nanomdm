@@ -97,24 +97,25 @@ func New(store storage.ServiceStore, opts ...Option) *Service {
 	return nanomdm
 }
 
-func (s *Service) setupRequest(r *mdm.Request, e *mdm.Enrollment) error {
+func (s *Service) setupRequest(r *mdm.Request, e *mdm.Enrollment) (*mdm.Request, error) {
 	if r.EnrollID != nil && r.ID != "" {
-		ctxlog.Logger(r.Context, s.logger).Debug(
+		ctxlog.Logger(r.Context(), s.logger).Debug(
 			"msg", "overwriting enrollment id",
 		)
 	}
 	r.EnrollID = s.normalizer(e)
 	if err := r.EnrollID.Validate(); err != nil {
-		return err
+		return r, err
 	}
-	r.Context = newContextWithValues(r.Context, r)
-	r.Context = ctxlog.AddFunc(r.Context, ctxKVs)
-	return nil
+	ctx := newContextWithValues(r.Context(), r)
+	ctx = ctxlog.AddFunc(ctx, ctxKVs)
+	return r.WithContext(ctx), nil
 }
 
 // Authenticate Check-in message implementation.
 func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error {
-	if err := s.setupRequest(r, &message.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &message.Enrollment)
+	if err != nil {
 		return err
 	}
 	logs := []interface{}{
@@ -123,7 +124,7 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 	if message.SerialNumber != "" {
 		logs = append(logs, "serial_number", message.SerialNumber)
 	}
-	ctxlog.Logger(r.Context, s.logger).Info(logs...)
+	ctxlog.Logger(r.Context(), s.logger).Info(logs...)
 	if err := s.store.StoreAuthenticate(r, message); err != nil {
 		return err
 	}
@@ -140,28 +141,31 @@ func (s *Service) Authenticate(r *mdm.Request, message *mdm.Authenticate) error 
 
 // TokenUpdate Check-in message implementation.
 func (s *Service) TokenUpdate(r *mdm.Request, message *mdm.TokenUpdate) error {
-	if err := s.setupRequest(r, &message.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &message.Enrollment)
+	if err != nil {
 		return err
 	}
-	ctxlog.Logger(r.Context, s.logger).Info("msg", "TokenUpdate")
+	ctxlog.Logger(r.Context(), s.logger).Info("msg", "TokenUpdate")
 	return s.store.StoreTokenUpdate(r, message)
 }
 
 // CheckOut Check-in message implementation.
 func (s *Service) CheckOut(r *mdm.Request, message *mdm.CheckOut) error {
-	if err := s.setupRequest(r, &message.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &message.Enrollment)
+	if err != nil {
 		return err
 	}
-	ctxlog.Logger(r.Context, s.logger).Info("msg", "CheckOut")
+	ctxlog.Logger(r.Context(), s.logger).Info("msg", "CheckOut")
 	return s.store.Disable(r)
 }
 
 // UserAuthenticate Check-in message implementation
 func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate) ([]byte, error) {
-	if err := s.setupRequest(r, &message.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &message.Enrollment)
+	if err != nil {
 		return nil, err
 	}
-	ctxlog.Logger(r.Context, s.logger).Info(
+	ctxlog.Logger(r.Context(), s.logger).Info(
 		"msg", "UserAuthenticate",
 		"digest_response", message.DigestResponse != "",
 	)
@@ -172,28 +176,31 @@ func (s *Service) UserAuthenticate(r *mdm.Request, message *mdm.UserAuthenticate
 }
 
 func (s *Service) SetBootstrapToken(r *mdm.Request, message *mdm.SetBootstrapToken) error {
-	if err := s.setupRequest(r, &message.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &message.Enrollment)
+	if err != nil {
 		return err
 	}
-	ctxlog.Logger(r.Context, s.logger).Info("msg", "SetBootstrapToken")
+	ctxlog.Logger(r.Context(), s.logger).Info("msg", "SetBootstrapToken")
 	return s.store.StoreBootstrapToken(r, message)
 }
 
 func (s *Service) GetBootstrapToken(r *mdm.Request, message *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
-	if err := s.setupRequest(r, &message.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &message.Enrollment)
+	if err != nil {
 		return nil, err
 	}
-	ctxlog.Logger(r.Context, s.logger).Info("msg", "GetBootstrapToken")
+	ctxlog.Logger(r.Context(), s.logger).Info("msg", "GetBootstrapToken")
 	return s.store.RetrieveBootstrapToken(r, message)
 }
 
 // DeclarativeManagement Check-in message implementation. Calls out to
 // the service's DM handler (if configured).
 func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
-	if err := s.setupRequest(r, &message.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &message.Enrollment)
+	if err != nil {
 		return nil, err
 	}
-	ctxlog.Logger(r.Context, s.logger).Info(
+	ctxlog.Logger(r.Context(), s.logger).Info(
 		"msg", "DeclarativeManagement",
 		"endpoint", message.Endpoint,
 	)
@@ -205,10 +212,11 @@ func (s *Service) DeclarativeManagement(r *mdm.Request, message *mdm.Declarative
 
 // GetToken implements the GetToken Check-in message interface.
 func (s *Service) GetToken(r *mdm.Request, message *mdm.GetToken) (*mdm.GetTokenResponse, error) {
-	if err := s.setupRequest(r, &message.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &message.Enrollment)
+	if err != nil {
 		return nil, err
 	}
-	ctxlog.Logger(r.Context, s.logger).Info(
+	ctxlog.Logger(r.Context(), s.logger).Info(
 		"msg", "GetToken",
 		"token_service_type", message.TokenServiceType,
 	)
@@ -220,10 +228,11 @@ func (s *Service) GetToken(r *mdm.Request, message *mdm.GetToken) (*mdm.GetToken
 
 // CommandAndReportResults command report and next-command request implementation.
 func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
-	if err := s.setupRequest(r, &results.Enrollment); err != nil {
+	r, err := s.setupRequest(r, &results.Enrollment)
+	if err != nil {
 		return nil, err
 	}
-	logger := ctxlog.Logger(r.Context, s.logger)
+	logger := ctxlog.Logger(r.Context(), s.logger)
 	logs := []interface{}{
 		"status", results.Status,
 	}
@@ -231,7 +240,7 @@ func (s *Service) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 		logs = append(logs, "command_uuid", results.CommandUUID)
 	}
 	logger.Info(logs...)
-	err := s.store.StoreCommandReport(r, results)
+	err = s.store.StoreCommandReport(r, results)
 	if err != nil {
 		return nil, fmt.Errorf("storing command report: %w", err)
 	}

@@ -39,7 +39,7 @@ func (c *DeclarativeManagementHTTPCaller) DeclarativeManagement(r *mdm.Request, 
 	if len(message.Data) > 0 {
 		method = http.MethodPut
 	}
-	req, err := http.NewRequestWithContext(r.Context, method, u.String(), bytes.NewBuffer(message.Data))
+	req, err := http.NewRequestWithContext(r.Context(), method, u.String(), bytes.NewBuffer(message.Data))
 	if err != nil {
 		return nil, err
 	}
