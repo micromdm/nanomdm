@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/service/certauth"
 	"github.com/micromdm/nanomdm/storage"
-	"github.com/micromdm/nanomdm/test"
 	"github.com/micromdm/nanomdm/test/enrollment"
 	"github.com/micromdm/plist"
 )
@@ -20,7 +20,7 @@ func certAuth(t *testing.T, ctx context.Context, store storage.CertAuthStore) {
 	}
 
 	// init service
-	svc := certauth.New(&test.NopService{}, store)
+	svc := certauth.New(&service.NopService{}, store)
 
 	// send a non-Authenticate message (without an initial Authenticate message)
 	err = svc.TokenUpdate(d.NewMDMRequest(ctx), tok)
@@ -56,7 +56,7 @@ func certAuthRetro(t *testing.T, ctx context.Context, store storage.CertAuthStor
 	}
 
 	// init service with retroactive
-	svc := certauth.New(&test.NopService{}, store, certauth.WithAllowRetroactive())
+	svc := certauth.New(&service.NopService{}, store, certauth.WithAllowRetroactive())
 
 	// without retroactive a non-Authenticate message would generate an ErrNoCertAssoc.
 	// however with retro on it should allow the association.

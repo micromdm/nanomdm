@@ -7,8 +7,6 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"time"
-
-	"github.com/micromdm/nanomdm/mdm"
 )
 
 func GenerateRandomCertificateSerialNumber() (*big.Int, error) {
@@ -55,42 +53,4 @@ func SimpleSelfSignedRSAKeypair(cn string, days int) (key *rsa.PrivateKey, cert 
 	}
 
 	return SelfSignedCertRSAResigner(&template)
-}
-
-type NopService struct{}
-
-func (s *NopService) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
-	return nil
-}
-
-func (s *NopService) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
-	return nil
-}
-
-func (s *NopService) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
-	return nil
-}
-
-func (s *NopService) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]byte, error) {
-	return nil, nil
-}
-
-func (s *NopService) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) error {
-	return nil
-}
-
-func (s *NopService) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
-	return nil, nil
-}
-
-func (s *NopService) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManagement) ([]byte, error) {
-	return nil, nil
-}
-
-func (s *NopService) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenResponse, error) {
-	return nil, nil
-}
-
-func (s *NopService) CommandAndReportResults(r *mdm.Request, results *mdm.CommandResults) (*mdm.Command, error) {
-	return nil, nil
 }

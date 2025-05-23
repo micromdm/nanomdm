@@ -8,7 +8,6 @@ import (
 	"github.com/micromdm/nanolib/log"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
-	"github.com/micromdm/nanomdm/test"
 )
 
 type ctxTest1 struct{}
@@ -26,7 +25,7 @@ func (ts *testSvc) Authenticate(r *mdm.Request, _ *mdm.Authenticate) error {
 }
 
 func TestContextPassthru(t *testing.T) {
-	nopSvc1 := &test.NopService{}
+	nopSvc1 := &service.NopService{}
 
 	var ctx context.Context = context.Background()
 
@@ -39,7 +38,7 @@ func TestContextPassthru(t *testing.T) {
 	wg.Add(1)
 	ts := &testSvc{
 		wg:                       &wg,
-		CheckinAndCommandService: &test.NopService{},
+		CheckinAndCommandService: &service.NopService{},
 	}
 
 	multi := New(log.NopLogger, nopSvc1, ts)
