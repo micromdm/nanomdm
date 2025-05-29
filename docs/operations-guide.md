@@ -172,7 +172,7 @@ Note that the URL should likely have a trailing slash. Otherwise path elements o
 
 ### -migration
 
-* HTTP endpoint for enrollment migrations
+* enable HTTP endpoint for enrollment migrations
 
 NanoMDM supports a lossy form of MDM enrollment "migration." Essentially if a source MDM server can assemble enough of both Authenticate and TokenUpdate messages for an enrollment you can "migrate" enrollments by sending those Plist requests to the migration endpoint. Importantly this transfers the needed Push topic, token, and push magic to continue to send APNs push notifications to enrollments.
 

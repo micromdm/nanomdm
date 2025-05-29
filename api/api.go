@@ -69,7 +69,7 @@ func (pe *PushEnqueuer) Push(ctx context.Context, ids []string) (*APIResult, int
 // contained within the API result.
 // A 500 value indicates only errors (with no successes).
 // A 207 value indicates some sucesses and some failures.
-// A 200 value indicates no errors (with only accesses).
+// A 200 value indicates no errors (with only successes).
 // Any other value is undefined.
 func (pe *PushEnqueuer) EnqueueWithPush(ctx context.Context, command *mdm.Command, ids []string, noPush bool) (*APIResult, int, error) {
 	// setup our result accumulator
@@ -130,9 +130,12 @@ func code(r *APIResult, idCount int) int {
 // RawCommandEnqueueWithPush enqueues rawCommand and can send APNs pushes to ids.
 // See [EnqueueWithPush] for calling semantics.
 func (pe *PushEnqueuer) RawCommandEnqueueWithPush(ctx context.Context, rawCommand []byte, ids []string, noPush bool) (*APIResult, int, error) {
-	command, err := mdm.DecodeCommand(rawCommand)
-	if err != nil {
-		return nil, 500, fmt.Errorf("decoding command: %w", err)
+	var command *mdm.Command
+	if len(rawCommand) > 0 {
+		var err error
+		if command, err = mdm.DecodeCommand(rawCommand); err != nil {
+			return nil, 500, fmt.Errorf("decoding command: %w", err)
+		}
 	}
 	return pe.EnqueueWithPush(ctx, command, ids, noPush)
 }

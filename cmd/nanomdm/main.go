@@ -69,7 +69,7 @@ func main() {
 		flDump       = flag.Bool("dump", false, "dump MDM requests and responses to stdout")
 		flDisableMDM = flag.Bool("disable-mdm", false, "disable MDM HTTP endpoint")
 		flCheckin    = flag.Bool("checkin", false, "enable separate HTTP endpoint for MDM check-ins")
-		flMigration  = flag.Bool("migration", false, "HTTP endpoint for enrollment migrations")
+		flMigration  = flag.Bool("migration", false, "enable HTTP endpoint for enrollment migrations")
 		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
 		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
 		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
