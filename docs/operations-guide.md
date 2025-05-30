@@ -184,7 +184,8 @@ This switch turns on the migration endpoint.
 
 By default NanoMDM disallows requests which did not have a certificate association setup in their Authenticate message. For new enrollments this is fine. However for enrollments that did not have a full Authenticate message (i.e. for enrollments that were migrated) they will lack such an association and be denied the ability to connect.
 
-This switch turns on the ability for enrollments with no existing certificate association to create one, bypassing the authorization check. Note if an enrollment already has an association this will not overwrite it; only if no existing association exists.
+> [!WARNING]
+> This switch turns on the ability for enrollments with no existing certificate association to create one, bypassing the authorization check and potentially spoofing migrated devices. Note if an enrollment already has an association this will not overwrite it; only if no existing association exists.
 
 ### -version
 
