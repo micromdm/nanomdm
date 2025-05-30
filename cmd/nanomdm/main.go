@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	stdlog "log"
 	"math/rand"
 	"net/http"
@@ -74,6 +73,7 @@ func main() {
 		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
 		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
 		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
+		flVerify     = flag.String("verify", "pool", "device identity verification type")
 	)
 	flag.Parse()
 
@@ -91,20 +91,40 @@ func main() {
 	if *flRootsPath == "" {
 		stdlog.Fatal("must supply CA cert path flag")
 	}
-	caPEM, err := ioutil.ReadFile(*flRootsPath)
+	caPEM, err := os.ReadFile(*flRootsPath)
 	if err != nil {
-		stdlog.Fatal(err)
+		stdlog.Fatal(fmt.Errorf("reading root CA: %w", err))
 	}
-	var intsPEM []byte
-	if *flIntsPath != "" {
-		intsPEM, err = os.ReadFile(*flIntsPath)
+
+	var verifier certverify.CertVerifier
+	switch *flVerify {
+	case "pool":
+		var intsPEM []byte
+		if *flIntsPath != "" {
+			intsPEM, err = os.ReadFile(*flIntsPath)
+			if err != nil {
+				stdlog.Fatal(fmt.Errorf("reading intermediate CA: %w", err))
+			}
+		}
+		verifier, err = certverify.NewPoolVerifier(caPEM, intsPEM, x509.ExtKeyUsageClientAuth)
 		if err != nil {
 			stdlog.Fatal(err)
 		}
-	}
-	verifier, err := certverify.NewPoolVerifier(caPEM, intsPEM, x509.ExtKeyUsageClientAuth)
-	if err != nil {
-		stdlog.Fatal(err)
+	case "signature-only":
+		if *flIntsPath != "" {
+			stdlog.Fatal("intermediate cannot be used with signature-only verification")
+		}
+		verifier, err = certverify.NewSignatureVerifier(caPEM)
+		if err != nil {
+			stdlog.Fatal(err)
+		}
+		logger.Info(
+			"msg", "reduced security: signature-only verifier",
+			// double up and use a err in case that key is used for reporting
+			"err", "reduced security: signature-only verifier",
+		)
+	default:
+		stdlog.Fatal(fmt.Errorf("invalid verify flag: %s", *flVerify))
 	}
 
 	mdmStorage, err := cliStorage.Parse(logger)
