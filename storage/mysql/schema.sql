@@ -61,6 +61,7 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id, device_id),
+    UNIQUE(id),
 
     FOREIGN KEY (device_id)
         REFERENCES devices (id)
