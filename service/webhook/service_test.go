@@ -12,15 +12,6 @@ import (
 	"github.com/micromdm/nanomdm/mdm"
 )
 
-func checkinFromTestData(name string) (interface{}, error) {
-	msg, err := os.ReadFile(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return mdm.DecodeCheckin(msg)
-}
-
 type mockDoer struct {
 	lastRequest *http.Request
 }
@@ -34,6 +25,8 @@ func (m *mockDoer) Do(r *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
+const contentType = "application/json; charset=utf-8"
+
 func TestWebhook(t *testing.T) {
 	w := New("", nil)
 
@@ -45,14 +38,23 @@ func TestWebhook(t *testing.T) {
 	// override the internal client with our mocked edition
 	w.doer = c
 
-	msg, err := checkinFromTestData("../../mdm/testdata/Authenticate.2.plist")
+	// first test an Authenticate check-in message
+
+	msgBytes, err := os.ReadFile("../../mdm/testdata/Authenticate.2.plist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msg, err := mdm.DecodeCheckin(msgBytes)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	a := msg.(*mdm.Authenticate)
 
-	r := mdm.NewRequestWithContext(context.Background(), nil)
+	ctx := context.Background()
+
+	r := mdm.NewRequestWithContext(ctx, nil)
 	// normally "resolved" but we're hardcoding here
 	r.EnrollID = &mdm.EnrollID{
 		ID:   a.UDID,
@@ -72,7 +74,7 @@ func TestWebhook(t *testing.T) {
 		t.Errorf("want: %v, have: %v", want, have)
 	}
 
-	if want, have := "application/json; charset=utf-8", c.lastRequest.Header.Get("Content-Type"); want != have {
+	if want, have := contentType, c.lastRequest.Header.Get("Content-Type"); want != have {
 		t.Errorf("want: %v, have: %v", want, have)
 	}
 
@@ -81,7 +83,7 @@ func TestWebhook(t *testing.T) {
 		t.Error(err)
 	}
 
-	event, err := os.ReadFile("testdata/event1.json")
+	event, err := os.ReadFile("testdata/Authenticate.2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,6 +91,58 @@ func TestWebhook(t *testing.T) {
 	if !bytes.Equal(bytes.TrimSpace(event), bytes.TrimSpace(reqBody)) {
 		t.Error("submitted event is not equal to testdata")
 
-		// os.WriteFile("testdata/output.json", reqBody, 0644)
+		// os.WriteFile("testdata/output.Authenticate.2.json", reqBody, 0644)
+	}
+
+	// now test the command response event
+
+	rawBytes, err := os.ReadFile("../../mdm/testdata/DeviceInformation.1.plist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cr, err := mdm.DecodeCommandResults(rawBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r = mdm.NewRequestWithContext(ctx, nil)
+	// normally "resolved" but we're hardcoding here
+	r.EnrollID = &mdm.EnrollID{
+		ID:   cr.UDID,
+		Type: mdm.Device,
+	}
+
+	_, err = w.CommandAndReportResults(r, cr)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if c.lastRequest == nil {
+		t.Fatal("no HTTP request made")
+	}
+
+	if want, have := http.MethodPost, c.lastRequest.Method; want != have {
+		t.Errorf("want: %v, have: %v", want, have)
+	}
+
+	if want, have := contentType, c.lastRequest.Header.Get("Content-Type"); want != have {
+		t.Errorf("want: %v, have: %v", want, have)
+	}
+
+	reqBody, err = io.ReadAll(c.lastRequest.Body)
+	if err != nil {
+		t.Error(err)
+	}
+
+	event, err = os.ReadFile("testdata/DeviceInformation.1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(bytes.TrimSpace(event), bytes.TrimSpace(reqBody)) {
+		t.Error("submitted event is not equal to testdata")
+
+		// os.WriteFile("testdata/output.DeviceInformation.1.json", reqBody, 0644)
 	}
 }
