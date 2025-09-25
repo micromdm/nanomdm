@@ -1,4 +1,4 @@
-package microwebhook
+package webhook
 
 import (
 	"bytes"
@@ -10,11 +10,11 @@ import (
 
 func postWebhookEvent(
 	ctx context.Context,
-	client *http.Client,
+	client Doer,
 	url string,
 	event *Event,
 ) error {
-	jsonBytes, err := json.MarshalIndent(event, "", "\t")
+	jsonBytes, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}

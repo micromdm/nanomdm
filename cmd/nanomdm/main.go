@@ -24,9 +24,9 @@ import (
 	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/service/certauth"
 	"github.com/micromdm/nanomdm/service/dump"
-	"github.com/micromdm/nanomdm/service/microwebhook"
 	"github.com/micromdm/nanomdm/service/multi"
 	"github.com/micromdm/nanomdm/service/nanomdm"
+	"github.com/micromdm/nanomdm/service/webhook"
 
 	nlhttp "github.com/micromdm/nanolib/http"
 	"github.com/micromdm/nanolib/http/trace"
@@ -163,7 +163,7 @@ func main() {
 	if !*flDisableMDM {
 		var mdmService service.CheckinAndCommandService = nano
 		if *flWebhook != "" {
-			webhookService := microwebhook.New(*flWebhook, mdmStorage)
+			webhookService := webhook.New(*flWebhook, mdmStorage)
 			mdmService = multi.New(logger.With("service", "multi"), mdmService, webhookService)
 		}
 		certAuthOpts := []certauth.Option{certauth.WithLogger(logger.With("service", "certauth"))}

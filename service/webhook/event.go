@@ -1,4 +1,4 @@
-package microwebhook
+package webhook
 
 import "time"
 
