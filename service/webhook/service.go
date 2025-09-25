@@ -2,7 +2,11 @@
 package webhook
 
 import (
+	"bytes"
+	"context"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,25 +17,6 @@ import (
 type Doer interface {
 	// Do sends an HTTP request and returns an HTTP response.
 	Do(*http.Request) (*http.Response, error)
-}
-
-// Webhook is a NanoMDM service for sending HTTP webhook events.
-type Webhook struct {
-	url   string
-	doer  Doer
-	store storage.TokenUpdateTallyStore
-	nowFn func() time.Time
-}
-
-// New initializes a new [Webhook].
-// The store can be nil.
-func New(url string, store storage.TokenUpdateTallyStore) *Webhook {
-	return &Webhook{
-		url:   url,
-		doer:  http.DefaultClient,
-		store: store,
-		nowFn: func() time.Time { return time.Now() },
-	}
 }
 
 // updateCheckinIDs type converts the enrollment IDs to their schema counterparts and assigns to the event struct.
@@ -53,6 +38,55 @@ func b64(src []byte) RawPayload {
 	return RawPayload(base64.StdEncoding.EncodeToString(src))
 }
 
+const ContentType = "application/json; charset=utf-8"
+
+// Webhook is a NanoMDM service for sending HTTP webhook events.
+type Webhook struct {
+	url   string
+	doer  Doer
+	store storage.TokenUpdateTallyStore
+	nowFn func() time.Time
+}
+
+// New initializes a new [Webhook].
+// The store can be nil.
+func New(url string, store storage.TokenUpdateTallyStore) *Webhook {
+	return &Webhook{
+		url:   url,
+		doer:  http.DefaultClient,
+		store: store,
+		nowFn: func() time.Time { return time.Now() },
+	}
+}
+
+// send the HTTP request to the webhook URL.
+func (w *Webhook) send(ctx context.Context, event *EventJson) error {
+	jsonBytes, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.url, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", ContentType)
+
+	resp, err := w.doer.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("unexpected HTTP status: %s", resp.Status)
+	}
+
+	return nil
+}
+
 // Authenticate sends a webhook event of the NanoMDM Authenticate check-in message.
 func (w *Webhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 	ev := &EventJson{
@@ -64,7 +98,7 @@ func (w *Webhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 		},
 	}
 	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
-	return postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return w.send(r.Context(), ev)
 }
 
 // TokenUpdate sends a webhook event of the NanoMDM TokenUpdate check-in message.
@@ -85,7 +119,7 @@ func (w *Webhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 		}
 		ev.CheckinEvent.TokenUpdateTally = &tally
 	}
-	return postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return w.send(r.Context(), ev)
 }
 
 // CheckOut sends a webhook event of the NanoMDM CheckOut check-in message.
@@ -100,7 +134,7 @@ func (w *Webhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	}
 	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
 
-	return postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return w.send(r.Context(), ev)
 }
 
 // UserAuthenticate sends a webhook event of the NanoMDM UserAuthenticate check-in message.
@@ -114,7 +148,7 @@ func (w *Webhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]b
 		},
 	}
 	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
-	return nil, postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return nil, w.send(r.Context(), ev)
 }
 
 // SetBootstrapToken sends a webhook event of the NanoMDM SetBootstrapToken check-in message.
@@ -128,7 +162,7 @@ func (w *Webhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) er
 		},
 	}
 	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
-	return postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return w.send(r.Context(), ev)
 }
 
 // GetBootstrapToken sends a webhook event of the NanoMDM GetBootstrapToken check-in message.
@@ -142,7 +176,7 @@ func (w *Webhook) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*
 		},
 	}
 	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
-	return nil, postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return nil, w.send(r.Context(), ev)
 }
 
 // CommandAndReportResults sends a webhook event of the NanoMDM command results.
@@ -165,7 +199,7 @@ func (w *Webhook) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 		id := EnrollmentID(results.EnrollmentID)
 		ev.AcknowledgeEvent.EnrollmentId = &id
 	}
-	return nil, postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return nil, w.send(r.Context(), ev)
 }
 
 // DeclarativeManagement sends a webhook event of the NanoMDM DeclarativeManagement check-in message.
@@ -179,7 +213,7 @@ func (w *Webhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManage
 		},
 	}
 	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
-	return nil, postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return nil, w.send(r.Context(), ev)
 }
 
 // GetToken sends a webhook event of the NanoMDM GetToken check-in message.
@@ -193,5 +227,5 @@ func (w *Webhook) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenRespon
 		},
 	}
 	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
-	return nil, postWebhookEvent(r.Context(), w.doer, w.url, ev)
+	return nil, w.send(r.Context(), ev)
 }

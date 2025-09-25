@@ -25,8 +25,6 @@ func (m *mockDoer) Do(r *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-const contentType = "application/json; charset=utf-8"
-
 func TestWebhook(t *testing.T) {
 	w := New("", nil)
 
@@ -74,7 +72,7 @@ func TestWebhook(t *testing.T) {
 		t.Errorf("want: %v, have: %v", want, have)
 	}
 
-	if want, have := contentType, c.lastRequest.Header.Get("Content-Type"); want != have {
+	if want, have := "application/json; charset=utf-8", c.lastRequest.Header.Get("Content-Type"); want != have {
 		t.Errorf("want: %v, have: %v", want, have)
 	}
 
@@ -126,7 +124,7 @@ func TestWebhook(t *testing.T) {
 		t.Errorf("want: %v, have: %v", want, have)
 	}
 
-	if want, have := contentType, c.lastRequest.Header.Get("Content-Type"); want != have {
+	if want, have := "application/json; charset=utf-8", c.lastRequest.Header.Get("Content-Type"); want != have {
 		t.Errorf("want: %v, have: %v", want, have)
 	}
 
