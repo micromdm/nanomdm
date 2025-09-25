@@ -193,6 +193,12 @@ By default NanoMDM disallows requests which did not have a certificate associati
 
 Print version and exit.
 
+### -webhook-hmac-key string
+
+* attaches an HMAC HTTP header to each webhook request using this key
+
+When configured to use a webhook (see the `-webhook-url` flag) this flag turns on generation of a SHA-256 HMAC digest of each HTTP request body. The HMAC is included in the HTTP header `X-Hmac-Signature` and is Base-64 encoded.
+
 ### -webhook-url string
 
 * URL to send requests to

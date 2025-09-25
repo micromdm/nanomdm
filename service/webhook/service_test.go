@@ -3,6 +3,9 @@ package webhook
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"io"
 	"net/http"
 	"os"
@@ -25,12 +28,22 @@ func (m *mockDoer) Do(r *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
+func validMAC(message, messageMAC, key []byte) bool {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(message)
+	expectedMAC := mac.Sum(nil)
+	return hmac.Equal(messageMAC, expectedMAC)
+}
+
 func TestWebhook(t *testing.T) {
 	c := &mockDoer{}
 
-	w := New("", WithClient(c))
+	var hmacKey = []byte("12345")
 
-	// override timestamp generation
+	// url isn't used when using c so can be blank
+	w := New("", WithClient(c), WithHMACSecret(hmacKey))
+
+	// override timestamp generation for repeatable output
 	w.nowFn = func() time.Time { return time.Time{} }
 
 	// first test an Authenticate check-in message
@@ -76,6 +89,15 @@ func TestWebhook(t *testing.T) {
 	reqBody, err := io.ReadAll(c.lastRequest.Body)
 	if err != nil {
 		t.Error(err)
+	}
+
+	hmacMessage, err := base64.StdEncoding.DecodeString(c.lastRequest.Header.Get("X-Hmac-Signature"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !validMAC(reqBody, hmacMessage, hmacKey) {
+		t.Error("HMAC invalid")
 	}
 
 	event, err := os.ReadFile("testdata/Authenticate.2.json")
@@ -128,6 +150,15 @@ func TestWebhook(t *testing.T) {
 	reqBody, err = io.ReadAll(c.lastRequest.Body)
 	if err != nil {
 		t.Error(err)
+	}
+
+	hmacMessage, err = base64.StdEncoding.DecodeString(c.lastRequest.Header.Get("X-Hmac-Signature"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !validMAC(reqBody, hmacMessage, hmacKey) {
+		t.Error("HMAC invalid")
 	}
 
 	event, err = os.ReadFile("testdata/DeviceInformation.1.json")

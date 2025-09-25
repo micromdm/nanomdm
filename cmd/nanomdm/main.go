@@ -74,6 +74,7 @@ func main() {
 		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
 		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
 		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
+		flWHHMACKey  = flag.String("webhook-hmac-key", "", "attaches an HMAC HTTP header to each webhook request using this key")
 	)
 	flag.Parse()
 
@@ -163,7 +164,11 @@ func main() {
 	if !*flDisableMDM {
 		var mdmService service.CheckinAndCommandService = nano
 		if *flWebhook != "" {
-			webhookService := webhook.New(*flWebhook, webhook.WithTokenUpdateTalley(mdmStorage))
+			whOpts := []webhook.Option{webhook.WithTokenUpdateTalley(mdmStorage)}
+			if *flWHHMACKey != "" {
+				whOpts = append(whOpts, webhook.WithHMACSecret([]byte(*flWHHMACKey)))
+			}
+			webhookService := webhook.New(*flWebhook, whOpts...)
 			mdmService = multi.New(logger.With("service", "multi"), mdmService, webhookService)
 		}
 		certAuthOpts := []certauth.Option{certauth.WithLogger(logger.With("service", "certauth"))}

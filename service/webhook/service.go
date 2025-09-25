@@ -4,6 +4,8 @@ package webhook
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -38,7 +40,10 @@ func b64(src []byte) RawPayload {
 	return RawPayload(base64.StdEncoding.EncodeToString(src))
 }
 
-const ContentType = "application/json; charset=utf-8"
+const (
+	ContentType = "application/json; charset=utf-8"
+	HMACHeader  = "X-Hmac-Signature"
+)
 
 // Webhook is a NanoMDM service for sending HTTP webhook events.
 type Webhook struct {
@@ -46,6 +51,7 @@ type Webhook struct {
 	doer  Doer
 	store storage.TokenUpdateTallyStore
 	nowFn func() time.Time
+	key   []byte
 }
 
 // Options configure webhook services.
@@ -66,6 +72,14 @@ func WithClient(doer Doer) Option {
 	}
 }
 
+// WithHMACSecret will add a SHA-256 HMAC of the webhook HTTP body using key.
+// The HMAC is provided in the [HMACHeader] header and is Base-64 encoded.
+func WithHMACSecret(key []byte) Option {
+	return func(w *Webhook) {
+		w.key = key
+	}
+}
+
 // New initializes a new [Webhook] sending events to url.
 func New(url string, opts ...Option) *Webhook {
 	w := &Webhook{
@@ -77,6 +91,12 @@ func New(url string, opts ...Option) *Webhook {
 		opt(w)
 	}
 	return w
+}
+
+func hmacMessage(key, message []byte) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(message)
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
 }
 
 // send the HTTP request to the webhook URL.
@@ -92,6 +112,10 @@ func (w *Webhook) send(ctx context.Context, event *EventJson) error {
 	}
 
 	req.Header.Set("Content-Type", ContentType)
+
+	if len(w.key) > 0 {
+		req.Header.Set(HMACHeader, hmacMessage(w.key, jsonBytes))
+	}
 
 	resp, err := w.doer.Do(req)
 	if err != nil {
