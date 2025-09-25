@@ -48,15 +48,35 @@ type Webhook struct {
 	nowFn func() time.Time
 }
 
-// New initializes a new [Webhook].
-// The store can be nil.
-func New(url string, store storage.TokenUpdateTallyStore) *Webhook {
-	return &Webhook{
+// Options configure webhook services.
+type Option func(*Webhook)
+
+// WithTokenUpdateTalley specifies a storage backend to retrieve the "token talley" from.
+// This permits sending the token talley in the event to the webhook.
+func WithTokenUpdateTalley(store storage.TokenUpdateTallyStore) Option {
+	return func(w *Webhook) {
+		w.store = store
+	}
+}
+
+// WithClient configures an HTTP client to use when sending webhooks.
+func WithClient(doer Doer) Option {
+	return func(w *Webhook) {
+		w.doer = doer
+	}
+}
+
+// New initializes a new [Webhook] sending events to url.
+func New(url string, opts ...Option) *Webhook {
+	w := &Webhook{
 		url:   url,
 		doer:  http.DefaultClient,
-		store: store,
 		nowFn: func() time.Time { return time.Now() },
 	}
+	for _, opt := range opts {
+		opt(w)
+	}
+	return w
 }
 
 // send the HTTP request to the webhook URL.

@@ -26,15 +26,12 @@ func (m *mockDoer) Do(r *http.Request) (*http.Response, error) {
 }
 
 func TestWebhook(t *testing.T) {
-	w := New("", nil)
+	c := &mockDoer{}
+
+	w := New("", WithClient(c))
 
 	// override timestamp generation
 	w.nowFn = func() time.Time { return time.Time{} }
-
-	c := &mockDoer{}
-
-	// override the internal client with our mocked edition
-	w.doer = c
 
 	// first test an Authenticate check-in message
 
