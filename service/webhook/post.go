@@ -12,7 +12,7 @@ func postWebhookEvent(
 	ctx context.Context,
 	client Doer,
 	url string,
-	event *Event,
+	event *EventJson,
 ) error {
 	jsonBytes, err := json.Marshal(event)
 	if err != nil {

@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Event",
+  "description": "MicroMDM webhook event",
+  "type": "object",
+  "required": [ "topic", "created_at" ],
+  "properties": {
+    "acknowledge_event": {
+      "description": "If present, the MDM \"command and report results\" (a.k.a. \"Acknowledge\" or \"Connect\") event. The topic name will be `mdm.Connect`.",
+      "$ref": "#/$defs/AcknowledgeEvent"
+    },
+    "checkin_event": {
+      "description": "If present, the MDM check-in event.",
+      "$ref": "#/$defs/CheckinEvent"
+    },
+    "created_at": {
+      "description": "The date and time the event was created at.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "event_id": {
+      "description": "The unique identifier of the event.",
+      "type": "string"
+    },
+    "topic": {
+      "description": "The topic name of the event.",
+      "enum": [
+        "mdm.Authenticate",
+        "mdm.TokenUpdate",
+        "mdm.CheckOut",
+        "mdm.UserAuthenticate",
+        "mdm.SetBootstrapToken",
+        "mdm.GetBootstrapToken",
+        "mdm.Connect",
+        "mdm.DeclarativeManagement",
+        "mdm.GetToken"
+      ]
+    }
+  },
+  "$defs": {
+    "AcknowledgeEvent": {
+      "title": "MDM Acknowledge Event",
+      "description": "The \"command and report results\" (a.k.a. \"Acknowledge\" or \"Connect\") event. Represents the MDM command report from MDM enrollments.",
+      "type": "object",
+      "required": [ "status", "raw_payload" ],
+      "properties": {
+        "command_uuid": {
+          "description": "The command UUID parsed from the command report, if available.",
+          "type": "string"
+        },
+        "enrollment_id": {
+          "description": "The `EnrollmentID` of the MDM enrollment.",
+          "$ref": "#/$defs/EnrollmentID"
+        },
+        "raw_payload": {
+          "description": "The raw HTTP body of the MDM command report.",
+          "$ref": "#/$defs/RawPayload"
+        },
+        "status": {
+          "description": "The MDM status of the device. Can indicate command report status.",
+          "type": "string"
+        },
+        "udid": {
+          "description": "The `UDID` of the MDM device.",
+          "$ref": "#/$defs/UDID"
+        },
+        "url_params": {
+          "description": "Query paramters of the command report MDM HTTP request.",
+          "$ref": "#/$defs/URLParams"
+        }
+      }
+    },
+    "CheckinEvent": {
+      "title": "MDM Check-in Event",
+      "description": "The MDM check-in event. The specific check-in type will be indicated in the event topic name as well as the `MessageType` key in the raw payload.",
+      "type": "object",
+      "required": [ "raw_payload" ],
+      "properties": {
+        "enrollment_id": {
+          "description": "The `EnrollmentID` of the MDM enrollment.",
+          "$ref": "#/$defs/EnrollmentID"
+        },
+        "raw_payload": {
+          "description": "The raw HTTP body of the MDM command report.",
+          "$ref": "#/$defs/RawPayload"
+        },
+        "token_update_tally": {
+          "description": "Count of how many `TokenUpdate` check-in messages have occured since device enrollment. Primarily to differentiate an enrollment `TokenUpdate` vs. a follow-up. Will only be present for a topic name of `mdm.TokenUpdate`.",
+          "type": "integer"
+        },
+        "udid": {
+          "description": "The `UDID` of the MDM device.",
+          "$ref": "#/$defs/UDID"
+        },
+        "url_params": {
+          "description": "Query paramters of the command report MDM HTTP request.",
+          "$ref": "#/$defs/URLParams"
+        }
+      }
+    },
+    "EnrollmentID": {
+      "description": "An `EnrollmentID` of the MDM enrollment.",
+      "type": "string"
+    },
+    "RawPayload": {
+      "description": "A raw HTTP body of an MDM request.",
+      "type": "string",
+      "contentEncoding": "base64",
+      "contentMediaType": "application/x-plist"
+    },
+    "UDID": {
+      "description": "A `UDID` identifier of the MDM enrollment.",
+      "type": "string"
+    },
+    "URLParams": {
+      "description": "Query paramters of an MDM HTTP request.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}
