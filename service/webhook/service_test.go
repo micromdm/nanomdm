@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -48,7 +49,18 @@ func TestWebhook(t *testing.T) {
 
 	// first test an Authenticate check-in message
 
-	msgBytes, err := os.ReadFile("../../mdm/testdata/Authenticate.2.plist")
+	eventBytes, err := os.ReadFile("testdata/Authenticate.2.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	event := new(EventJson)
+	err = json.Unmarshal(eventBytes, event)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msgBytes, err := base64.StdEncoding.DecodeString(string(event.CheckinEvent.RawPayload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,12 +114,7 @@ func TestWebhook(t *testing.T) {
 		t.Errorf("HMAC invalid: header: %s", hmacHeader)
 	}
 
-	event, err := os.ReadFile("testdata/Authenticate.2.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(bytes.TrimSpace(event), bytes.TrimSpace(reqBody)) {
+	if !bytes.Equal(bytes.TrimSpace(eventBytes), bytes.TrimSpace(reqBody)) {
 		t.Error("submitted event is not equal to testdata")
 
 		// uncomment for inspection of JSON
@@ -116,7 +123,18 @@ func TestWebhook(t *testing.T) {
 
 	// now test the command response event
 
-	rawBytes, err := os.ReadFile("../../mdm/testdata/DeviceInformation.1.plist")
+	eventBytes, err = os.ReadFile("testdata/DeviceInformation.1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	event = new(EventJson)
+	err = json.Unmarshal(eventBytes, event)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rawBytes, err := base64.StdEncoding.DecodeString(string(event.AcknowledgeEvent.RawPayload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,12 +184,7 @@ func TestWebhook(t *testing.T) {
 		t.Errorf("HMAC invalid: header: %s", hmacHeader)
 	}
 
-	event, err = os.ReadFile("testdata/DeviceInformation.1.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(bytes.TrimSpace(event), bytes.TrimSpace(reqBody)) {
+	if !bytes.Equal(bytes.TrimSpace(eventBytes), bytes.TrimSpace(reqBody)) {
 		t.Error("submitted event is not equal to testdata")
 
 		// uncomment for inspection of JSON
