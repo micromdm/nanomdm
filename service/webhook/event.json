@@ -52,6 +52,10 @@
           "description": "The `EnrollmentID` of the MDM enrollment.",
           "$ref": "#/$defs/EnrollmentID"
         },
+        "ids": {
+          "description": "NanoMDM enrollment IDs.",
+          "$ref": "#/$defs/IDs"
+        },
         "raw_payload": {
           "description": "The raw HTTP body of the MDM command report.",
           "$ref": "#/$defs/RawPayload"
@@ -80,6 +84,10 @@
           "description": "The `EnrollmentID` of the MDM enrollment.",
           "$ref": "#/$defs/EnrollmentID"
         },
+        "ids": {
+          "description": "NanoMDM enrollment IDs.",
+          "$ref": "#/$defs/IDs"
+        },
         "raw_payload": {
           "description": "The raw HTTP body of the MDM command report.",
           "$ref": "#/$defs/RawPayload"
@@ -101,6 +109,31 @@
     "EnrollmentID": {
       "description": "An `EnrollmentID` of the MDM enrollment.",
       "type": "string"
+    },
+    "IDs": {
+      "description": "NanoMDM enrollment IDs.",
+      "type": "object",
+      "required": [ "id", "type" ],
+      "properties": {
+        "id": {
+          "description": "NanoMDM enrollment ID. See https://github.com/micromdm/nanomdm/blob/main/docs/operations-guide.md#enrollment-ids for details.",
+          "type": "string"
+        },
+        "type": {
+          "description": "Type of enrollment.",
+          "enum": [
+            "Device",
+            "User",
+            "User Enrollment (Device)",
+            "User Enrollment",
+            "Shared iPad"
+          ]
+        },
+        "parent_id": {
+          "description": "Parent Enrollment ID. In the case of a user channel enrollment the Parent ID will be the device channel enrollment ID for the user user.",
+          "type": "string"
+        }
+      }
     },
     "RawPayload": {
       "description": "A raw HTTP body of an MDM request.",

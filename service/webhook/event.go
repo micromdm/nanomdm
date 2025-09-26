@@ -13,6 +13,9 @@ type AcknowledgeEvent struct {
 	// The `EnrollmentID` of the MDM enrollment.
 	EnrollmentId *EnrollmentID `json:"enrollment_id,omitempty"`
 
+	// NanoMDM enrollment IDs.
+	Ids *IDs `json:"ids,omitempty"`
+
 	// The raw HTTP body of the MDM command report.
 	RawPayload RawPayload `json:"raw_payload"`
 
@@ -31,6 +34,9 @@ type AcknowledgeEvent struct {
 type CheckinEvent struct {
 	// The `EnrollmentID` of the MDM enrollment.
 	EnrollmentId *EnrollmentID `json:"enrollment_id,omitempty"`
+
+	// NanoMDM enrollment IDs.
+	Ids *IDs `json:"ids,omitempty"`
 
 	// The raw HTTP body of the MDM command report.
 	RawPayload RawPayload `json:"raw_payload"`
@@ -80,6 +86,29 @@ const EventJsonTopicMdmGetToken EventJsonTopic = "mdm.GetToken"
 const EventJsonTopicMdmSetBootstrapToken EventJsonTopic = "mdm.SetBootstrapToken"
 const EventJsonTopicMdmTokenUpdate EventJsonTopic = "mdm.TokenUpdate"
 const EventJsonTopicMdmUserAuthenticate EventJsonTopic = "mdm.UserAuthenticate"
+
+// NanoMDM enrollment IDs.
+type IDs struct {
+	// NanoMDM enrollment ID. See
+	// https://github.com/micromdm/nanomdm/blob/main/docs/operations-guide.md#enrollment-ids
+	// for details.
+	Id string `json:"id"`
+
+	// Parent Enrollment ID. In the case of a user channel enrollment the Parent ID
+	// will be the device channel enrollment ID for the user user.
+	ParentId *string `json:"parent_id,omitempty"`
+
+	// Type of enrollment.
+	Type IDsType `json:"type"`
+}
+
+type IDsType string
+
+const IDsTypeDevice IDsType = "Device"
+const IDsTypeSharedIPad IDsType = "Shared iPad"
+const IDsTypeUser IDsType = "User"
+const IDsTypeUserEnrollment IDsType = "User Enrollment"
+const IDsTypeUserEnrollmentDevice IDsType = "User Enrollment (Device)"
 
 // A raw HTTP body of an MDM request.
 type RawPayload string
