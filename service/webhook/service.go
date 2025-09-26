@@ -267,7 +267,7 @@ func (w *Webhook) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 			EnrollmentId: stringPtr[EnrollmentID](results.EnrollmentID),
 			Udid:         stringPtr[UDID](results.UDID),
 			Status:       results.Status,
-			CommandUuid:  &results.CommandUUID,
+			CommandUuid:  stringPtr[string](results.CommandUUID),
 			RawPayload:   b64(results.Raw),
 			UrlParams:    r.Params,
 		},
