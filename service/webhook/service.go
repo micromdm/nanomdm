@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/micromdm/nanolib/http/trace"
 	"github.com/micromdm/nanomdm/http/hashbody"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage"
@@ -151,6 +152,7 @@ func (w *Webhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmAuthenticate,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -167,6 +169,7 @@ func (w *Webhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmTokenUpdate,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -190,6 +193,7 @@ func (w *Webhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmCheckOut,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -206,6 +210,7 @@ func (w *Webhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]b
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmUserAuthenticate,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -222,6 +227,7 @@ func (w *Webhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) er
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmSetBootstrapToken,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -238,6 +244,7 @@ func (w *Webhook) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmGetBootstrapToken,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -254,6 +261,7 @@ func (w *Webhook) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmConnect,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		AcknowledgeEvent: &AcknowledgeEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](results.EnrollmentID),
@@ -272,6 +280,7 @@ func (w *Webhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManage
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmDeclarativeManagement,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -288,6 +297,7 @@ func (w *Webhook) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenRespon
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmGetToken,
 		CreatedAt: w.nowFn(),
+		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
