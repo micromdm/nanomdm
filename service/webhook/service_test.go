@@ -91,13 +91,15 @@ func TestWebhook(t *testing.T) {
 		t.Error(err)
 	}
 
-	hmacMessage, err := base64.StdEncoding.DecodeString(c.lastRequest.Header.Get("X-Hmac-Signature"))
+	hmacHeader := c.lastRequest.Header.Get("X-Hmac-Signature")
+
+	hmacMessage, err := base64.StdEncoding.DecodeString(hmacHeader)
 	if err != nil {
 		t.Error(err)
 	}
 
 	if !validMAC(reqBody, hmacMessage, hmacKey) {
-		t.Error("HMAC invalid")
+		t.Errorf("HMAC invalid: header: %s", hmacHeader)
 	}
 
 	event, err := os.ReadFile("testdata/Authenticate.2.json")
@@ -152,13 +154,15 @@ func TestWebhook(t *testing.T) {
 		t.Error(err)
 	}
 
-	hmacMessage, err = base64.StdEncoding.DecodeString(c.lastRequest.Header.Get("X-Hmac-Signature"))
+	hmacHeader = c.lastRequest.Header.Get("X-Hmac-Signature")
+
+	hmacMessage, err = base64.StdEncoding.DecodeString(hmacHeader)
 	if err != nil {
 		t.Error(err)
 	}
 
 	if !validMAC(reqBody, hmacMessage, hmacKey) {
-		t.Error("HMAC invalid")
+		t.Errorf("HMAC invalid: header: %s", hmacHeader)
 	}
 
 	event, err = os.ReadFile("testdata/DeviceInformation.1.json")

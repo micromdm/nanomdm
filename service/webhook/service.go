@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/micromdm/nanomdm/http/hashbody"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage"
 )
@@ -93,12 +94,6 @@ func New(url string, opts ...Option) *Webhook {
 	return w
 }
 
-func hmacMessage(key, message []byte) string {
-	mac := hmac.New(sha256.New, key)
-	mac.Write(message)
-	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
-}
-
 // send the HTTP request to the webhook URL.
 func (w *Webhook) send(ctx context.Context, event *EventJson) error {
 	jsonBytes, err := json.Marshal(event)
@@ -114,14 +109,24 @@ func (w *Webhook) send(ctx context.Context, event *EventJson) error {
 	req.Header.Set("Content-Type", ContentType)
 
 	if len(w.key) > 0 {
-		req.Header.Set(HMACHeader, hmacMessage(w.key, jsonBytes))
+		// generate SHA-256 HMAC header for body
+		_, err := hashbody.SetBodyHashHeader(
+			req,
+			HMACHeader,
+			hmac.New(sha256.New, w.key),
+			func(b []byte) string {
+				return base64.StdEncoding.EncodeToString(b)
+			},
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	resp, err := w.doer.Do(req)
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
