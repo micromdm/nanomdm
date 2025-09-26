@@ -22,16 +22,22 @@ type Doer interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-// updateCheckinIDs type converts the enrollment IDs to their schema counterparts and assigns to the event struct.
-func (ev *CheckinEvent) updateCheckinIDs(udid, enrollmentID string) {
-	if udid != "" {
-		id := UDID(udid)
-		ev.Udid = &id
+const (
+	// ContentType used for all requests.
+	ContentType = "application/json; charset=utf-8"
+
+	// HTTP header name used when including HMAC signatures.
+	HMACHeader = "X-Hmac-Signature"
+)
+
+// stringPtr converts s to a pointer to T.
+// If s is empty a nil pointer is returned.
+func stringPtr[T ~string](s string) *T {
+	if s == "" {
+		return nil
 	}
-	if enrollmentID != "" {
-		id := EnrollmentID(enrollmentID)
-		ev.EnrollmentId = &id
-	}
+	tmp := T(s)
+	return &tmp
 }
 
 // b64 merely encodes src to [RawPayload] as base64.
@@ -40,11 +46,6 @@ func (ev *CheckinEvent) updateCheckinIDs(udid, enrollmentID string) {
 func b64(src []byte) RawPayload {
 	return RawPayload(base64.StdEncoding.EncodeToString(src))
 }
-
-const (
-	ContentType = "application/json; charset=utf-8"
-	HMACHeader  = "X-Hmac-Signature"
-)
 
 // Webhook is a NanoMDM service for sending HTTP webhook events.
 type Webhook struct {
@@ -142,11 +143,12 @@ func (w *Webhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 		Topic:     EventJsonTopicMdmAuthenticate,
 		CreatedAt: w.nowFn(),
 		CheckinEvent: &CheckinEvent{
-			RawPayload: b64(m.Raw),
-			UrlParams:  r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
+			Udid:         stringPtr[UDID](m.UDID),
+			RawPayload:   b64(m.Raw),
+			UrlParams:    r.Params,
 		},
 	}
-	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
 	return w.send(r.Context(), ev)
 }
 
@@ -156,11 +158,12 @@ func (w *Webhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 		Topic:     EventJsonTopicMdmTokenUpdate,
 		CreatedAt: w.nowFn(),
 		CheckinEvent: &CheckinEvent{
-			RawPayload: b64(m.Raw),
-			UrlParams:  r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
+			Udid:         stringPtr[UDID](m.UDID),
+			RawPayload:   b64(m.Raw),
+			UrlParams:    r.Params,
 		},
 	}
-	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
 	if w.store != nil {
 		tally, err := w.store.RetrieveTokenUpdateTally(r.Context(), r.ID)
 		if err != nil {
@@ -177,12 +180,12 @@ func (w *Webhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 		Topic:     EventJsonTopicMdmCheckOut,
 		CreatedAt: w.nowFn(),
 		CheckinEvent: &CheckinEvent{
-			RawPayload: b64(m.Raw),
-			UrlParams:  r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
+			Udid:         stringPtr[UDID](m.UDID),
+			RawPayload:   b64(m.Raw),
+			UrlParams:    r.Params,
 		},
 	}
-	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
-
 	return w.send(r.Context(), ev)
 }
 
@@ -192,11 +195,12 @@ func (w *Webhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]b
 		Topic:     EventJsonTopicMdmUserAuthenticate,
 		CreatedAt: w.nowFn(),
 		CheckinEvent: &CheckinEvent{
-			RawPayload: b64(m.Raw),
-			UrlParams:  r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
+			Udid:         stringPtr[UDID](m.UDID),
+			RawPayload:   b64(m.Raw),
+			UrlParams:    r.Params,
 		},
 	}
-	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
 	return nil, w.send(r.Context(), ev)
 }
 
@@ -206,11 +210,12 @@ func (w *Webhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) er
 		Topic:     EventJsonTopicMdmSetBootstrapToken,
 		CreatedAt: w.nowFn(),
 		CheckinEvent: &CheckinEvent{
-			RawPayload: b64(m.Raw),
-			UrlParams:  r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
+			Udid:         stringPtr[UDID](m.UDID),
+			RawPayload:   b64(m.Raw),
+			UrlParams:    r.Params,
 		},
 	}
-	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
 	return w.send(r.Context(), ev)
 }
 
@@ -220,11 +225,12 @@ func (w *Webhook) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*
 		Topic:     EventJsonTopicMdmGetBootstrapToken,
 		CreatedAt: w.nowFn(),
 		CheckinEvent: &CheckinEvent{
-			RawPayload: b64(m.Raw),
-			UrlParams:  r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
+			Udid:         stringPtr[UDID](m.UDID),
+			RawPayload:   b64(m.Raw),
+			UrlParams:    r.Params,
 		},
 	}
-	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
 	return nil, w.send(r.Context(), ev)
 }
 
@@ -234,19 +240,13 @@ func (w *Webhook) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 		Topic:     EventJsonTopicMdmConnect,
 		CreatedAt: w.nowFn(),
 		AcknowledgeEvent: &AcknowledgeEvent{
-			Status:      results.Status,
-			CommandUuid: &results.CommandUUID,
-			RawPayload:  b64(results.Raw),
-			UrlParams:   r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](results.EnrollmentID),
+			Udid:         stringPtr[UDID](results.UDID),
+			Status:       results.Status,
+			CommandUuid:  &results.CommandUUID,
+			RawPayload:   b64(results.Raw),
+			UrlParams:    r.Params,
 		},
-	}
-	if results.UDID != "" {
-		id := UDID(results.UDID)
-		ev.AcknowledgeEvent.Udid = &id
-	}
-	if results.EnrollmentID != "" {
-		id := EnrollmentID(results.EnrollmentID)
-		ev.AcknowledgeEvent.EnrollmentId = &id
 	}
 	return nil, w.send(r.Context(), ev)
 }
@@ -257,11 +257,12 @@ func (w *Webhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManage
 		Topic:     EventJsonTopicMdmDeclarativeManagement,
 		CreatedAt: w.nowFn(),
 		CheckinEvent: &CheckinEvent{
-			RawPayload: b64(m.Raw),
-			UrlParams:  r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
+			Udid:         stringPtr[UDID](m.UDID),
+			RawPayload:   b64(m.Raw),
+			UrlParams:    r.Params,
 		},
 	}
-	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
 	return nil, w.send(r.Context(), ev)
 }
 
@@ -271,10 +272,11 @@ func (w *Webhook) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenRespon
 		Topic:     EventJsonTopicMdmGetToken,
 		CreatedAt: w.nowFn(),
 		CheckinEvent: &CheckinEvent{
-			RawPayload: b64(m.Raw),
-			UrlParams:  r.Params,
+			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
+			Udid:         stringPtr[UDID](m.UDID),
+			RawPayload:   b64(m.Raw),
+			UrlParams:    r.Params,
 		},
 	}
-	ev.CheckinEvent.updateCheckinIDs(m.UDID, m.EnrollmentID)
 	return nil, w.send(r.Context(), ev)
 }
