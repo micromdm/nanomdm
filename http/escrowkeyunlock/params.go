@@ -37,6 +37,7 @@ type EscrowKeyUnlockParams struct {
 
 	// The device’s bypass code.
 	// Provided in request form (body) as "escrowKey".
+	// Note: This escrow key is the dash-separated "human readable" form.
 	EscrowKey string
 }
 
@@ -60,10 +61,10 @@ func (e *EscrowKeyUnlockParams) QueryParams() url.Values {
 		q.Set("imei", e.IMEI)
 	}
 	if e.IMEI2 != "" {
-		q.Set("imei", e.IMEI2)
+		q.Set("imei2", e.IMEI2)
 	}
 	if e.MEID != "" {
-		q.Set("imei", e.MEID)
+		q.Set("meid", e.MEID)
 	}
 	return q
 }

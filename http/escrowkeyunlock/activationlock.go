@@ -13,12 +13,12 @@ import (
 
 const EscrowKeyUnlockURL = "https://deviceservices-external.apple.com/deviceservicesworkers/escrowKeyUnlock"
 
-// DoDisableActivationLock sends an "escrow key unlock" request to Apple.
+// DoEscrowKeyUnlock sends an "escrow key unlock" request to Apple.
 // Mutual TLS authentication against the endpoint uses the APNs TLS keypair identified by topic in store.
 // Required parameters must be supplied in queryParams and formParams: see [EscrowKeyUnlockParams].
 // Caller is responsible for reading and closing HTTP response.
 // See https://developer.apple.com/documentation/devicemanagement/creating-and-using-bypass-codes
-func DoDisableActivationLock(ctx context.Context, store storage.PushCertStore, topic string, client *http.Client, queryParams, formParams url.Values) (*http.Response, error) {
+func DoEscrowKeyUnlock(ctx context.Context, store storage.PushCertStore, topic string, client *http.Client, queryParams, formParams url.Values) (*http.Response, error) {
 	if store == nil {
 		panic("nil store")
 	}
