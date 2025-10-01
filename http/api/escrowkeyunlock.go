@@ -25,6 +25,10 @@ func fillUnlockParams(v url.Values) *escrowkeyunlock.EscrowKeyUnlockParams {
 	}
 }
 
+// NewEscrowKeyUnlockHandler creates an Escrow Key Unlock (i.e. Activation Lock Bypass) handler.
+// The handler takes in all parameters in the HTTP post form and
+// splits them between the required form and URL query parameters for Apple.
+// APNs keypairs are read for store.
 // The default HTTP client will be used if client is nil.
 func NewEscrowKeyUnlockHandler(store storage.PushCertStore, client *http.Client, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

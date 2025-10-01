@@ -8,9 +8,9 @@ import (
 
 var ErrNilCert = errors.New("nil cert")
 
-// ClientWithCert injects cert for mTLS usage into client.
+// ClientWithCert injects cert for mTLS into a copy of client.
 // Transports and TLS configs are created (if nil) or cloned as needed.
-// A nil client will use a clone of the default HTTP client.
+// If client is nil the default HTTP client will be used.
 func ClientWithCert(client *http.Client, cert *tls.Certificate) (*http.Client, error) {
 	if cert == nil {
 		return client, ErrNilCert
