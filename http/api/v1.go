@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	APIEndpointPushCert = "/pushcert"
-	APIEndpointPush     = "/push/"    // note trailing slash
-	APIEndpointEnqueue  = "/enqueue/" // note trailing slash
+	APIEndpointPushCert        = "/pushcert"
+	APIEndpointPush            = "/push/"    // note trailing slash
+	APIEndpointEnqueue         = "/enqueue/" // note trailing slash
+	APIEndpointEscrowKeyUnlock = "/escrowkeyunlock"
 )
 
 // Mux can register HTTP handlers.
@@ -76,5 +77,11 @@ func HandleAPIv1(prefix string, mux Mux, logger log.Logger, store APIStorage, pu
 				logger.With("handler", handlerName(APIEndpointEnqueue)),
 			),
 		),
+	)
+
+	// register API handler for escrow key unlock
+	mux.Handle(
+		prefix+APIEndpointEscrowKeyUnlock,
+		NewEscrowKeyUnlockHandler(store, nil, logger.With("handler", handlerName(APIEndpointEscrowKeyUnlock))),
 	)
 }

@@ -4,10 +4,11 @@ package nanopush
 
 import (
 	"crypto/tls"
-	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
+	nanohttp "github.com/micromdm/nanomdm/http"
 	"github.com/micromdm/nanomdm/push"
 	"golang.org/x/net/http2"
 )
@@ -15,30 +16,21 @@ import (
 // NewClient describes a callback for setting up an HTTP client for Push notifications.
 type NewClient func(*tls.Certificate) (*http.Client, error)
 
-// ClientWithCert configures an mTLS client cert on the HTTP client.
-func ClientWithCert(client *http.Client, cert *tls.Certificate) (*http.Client, error) {
-	if cert == nil {
-		return client, errors.New("no cert provided")
+// ForceHTTP2 configures HTTP/2 enabled on the transport within client.
+// The transport will be cloned if it is the same as the default transport.
+func ForceHTTP2(client *http.Client) error {
+	if client.Transport == nil || client.Transport == http.DefaultTransport {
+		client.Transport = http.DefaultTransport.(*http.Transport).Clone()
 	}
-	if client == nil {
-		clone := *http.DefaultClient
-		client = &clone
-	}
-	config := &tls.Config{
-		Certificates: []tls.Certificate{*cert},
-	}
-	if client.Transport == nil {
-		client.Transport = &http.Transport{}
-	}
-	transport := client.Transport.(*http.Transport)
-	transport.TLSClientConfig = config
-	// force HTTP/2
-	err := http2.ConfigureTransport(transport)
-	return client, err
+	return http2.ConfigureTransport(client.Transport.(*http.Transport))
 }
 
 func defaultNewClient(cert *tls.Certificate) (*http.Client, error) {
-	return ClientWithCert(nil, cert)
+	client, err := nanohttp.ClientWithCert(nil, cert)
+	if err != nil {
+		return client, fmt.Errorf("creating mTLS client: %w", err)
+	}
+	return client, ForceHTTP2(client)
 }
 
 // Factory instantiates new PushProviders.

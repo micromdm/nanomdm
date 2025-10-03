@@ -300,3 +300,28 @@ func StorePushCertHandler(storage storage.PushCertStore, logger log.Logger) http
 		}
 	}
 }
+
+// logAndJSONError is a helper for both logging and outputting errors in JSON.
+func logAndJSONError(logger log.Logger, w http.ResponseWriter, msg string, inErr error, header int) {
+	logger.Info("msg", msg, "err", inErr)
+
+	if header < 1 {
+		header = http.StatusInternalServerError
+	}
+
+	w.Header().Set("Content-type", "application/json")
+	w.WriteHeader(header)
+
+	type jsonError struct {
+		Error string `json:"error"`
+	}
+
+	out := &jsonError{Error: inErr.Error()}
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "\t")
+	err := enc.Encode(out)
+	if err != nil && logger != nil {
+		logger.Info("msg", "encoding json", "err", err)
+	}
+}

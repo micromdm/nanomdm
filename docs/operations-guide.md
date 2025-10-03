@@ -363,6 +363,40 @@ The migration endpoint (as talked about above under the `-migration` switch) is 
 
 Returns a JSON response with the version of the running NanoMDM server.
 
+### Escrow Key Unlock
+
+* Endpoint: `POST /v1/escrowkeyunlock`
+
+The Escrow Key Unlock endpoint is a thin wrapper around Apple's `escrowKeyUnlock` endpoint. This allows for Activation *Un*locking devices provided you have details about the device from MDM and the appropriate Acitvation Lock Bypass Code. All parameters are provided in the the body as a standard form (`application/x-www-form-urlencoded`). At minimium you need to provide:
+
+- `topic`
+- `serial`
+- `productType`
+- `escrowKey`
+- `orgName`
+- `guid`
+
+For devices where it is appropriate you also need to provide:
+
+- `imei`
+- `imei2`
+- `meid`
+
+For example to clear Activation Lock on a Mac with serial number `C8TJ500QF1MN` one might perform this:
+
+```bash
+curl \
+	-v \
+	-u nanomdm:nanomdm \
+	-d "topic=com.apple.mgmt.External.f3abfeac-1f27-4c8e-8a63-dd17555d35d9" \
+	-d "serial=C8TJ500QF1MN" \
+	-d "productType=MacBookPro17,1" \
+	-d "escrowKey=3UM43-PUYVY-QYD1-UVCC-HEHJ-FKA4" \
+	-d "orgName=Acme Inc" \
+	-d "guid=12346" \
+	'http://[::1]:9000/v1/escrowkeyunlock'
+```
+
 ### Authentication Proxy
 
 * Endpoint: `/authproxy/`
