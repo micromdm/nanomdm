@@ -5,22 +5,40 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/micromdm/nanomdm/factories"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage"
 )
 
 type MicroWebhook struct {
-	url    string
-	client *http.Client
-	store  storage.TokenUpdateTallyStore
+	url        string
+	exchange   string
+	routingKey string
+	client     *http.Client
+	amqpClient *factories.QueueFactory
+	store      storage.TokenUpdateTallyStore
 }
 
-func New(url string, store storage.TokenUpdateTallyStore) *MicroWebhook {
-	return &MicroWebhook{
+func WithAMQPClient(exchange string, routingKey string, amqpClient *factories.QueueFactory) func(*MicroWebhook) {
+	return func(w *MicroWebhook) {
+		w.exchange = exchange
+		w.routingKey = routingKey
+		w.amqpClient = amqpClient
+	}
+}
+
+func New(url string, store storage.TokenUpdateTallyStore, options ...func(*MicroWebhook)) *MicroWebhook {
+	mw := &MicroWebhook{
 		url:    url,
 		client: http.DefaultClient,
 		store:  store,
 	}
+
+	for _, option := range options {
+		option(mw)
+	}
+
+	return mw
 }
 
 func (w *MicroWebhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
@@ -33,6 +51,13 @@ func (w *MicroWebhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 			RawPayload:   m.Raw,
 			Params:       r.Params,
 		},
+	}
+
+	if w.amqpClient != nil {
+		err := postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
+		if err != nil {
+			return err
+		}
 	}
 	return postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
@@ -55,6 +80,10 @@ func (w *MicroWebhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 		}
 		ev.CheckinEvent.TokenUpdateTally = &tally
 	}
+
+	if w.amqpClient != nil {
+		return postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
+	}
 	return postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
@@ -68,6 +97,10 @@ func (w *MicroWebhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 			RawPayload:   m.Raw,
 			Params:       r.Params,
 		},
+	}
+
+	if w.amqpClient != nil {
+		return postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
 	}
 	return postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
@@ -83,6 +116,13 @@ func (w *MicroWebhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate)
 			Params:       r.Params,
 		},
 	}
+
+	if w.amqpClient != nil {
+		err := postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
@@ -97,6 +137,12 @@ func (w *MicroWebhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToke
 			Params:       r.Params,
 		},
 	}
+
+	if w.amqpClient != nil {
+		return postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
+
+	}
+
 	return postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
@@ -110,6 +156,10 @@ func (w *MicroWebhook) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToke
 			RawPayload:   m.Raw,
 			Params:       r.Params,
 		},
+	}
+
+	if w.amqpClient != nil {
+		return nil, postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
 	}
 	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
@@ -127,6 +177,9 @@ func (w *MicroWebhook) CommandAndReportResults(r *mdm.Request, results *mdm.Comm
 			Params:       r.Params,
 		},
 	}
+	if w.amqpClient != nil {
+		return nil, postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
+	}
 	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
@@ -141,6 +194,10 @@ func (w *MicroWebhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeM
 			Params:       r.Params,
 		},
 	}
+
+	if w.amqpClient != nil {
+		return nil, postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
+	}
 	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }
 
@@ -154,6 +211,9 @@ func (w *MicroWebhook) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenR
 			RawPayload:   m.Raw,
 			Params:       r.Params,
 		},
+	}
+	if w.amqpClient != nil {
+		return nil, postWebhookEventAMQP(w.amqpClient, w.exchange, w.routingKey, ev)
 	}
 	return nil, postWebhookEvent(r.Context(), w.client, w.url, ev)
 }

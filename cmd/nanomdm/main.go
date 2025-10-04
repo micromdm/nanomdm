@@ -15,6 +15,7 @@ import (
 	"github.com/micromdm/nanomdm/certverify"
 	"github.com/micromdm/nanomdm/cli"
 	"github.com/micromdm/nanomdm/cryptoutil"
+	"github.com/micromdm/nanomdm/factories"
 	mdmhttp "github.com/micromdm/nanomdm/http"
 	httpapi "github.com/micromdm/nanomdm/http/api"
 	"github.com/micromdm/nanomdm/http/authproxy"
@@ -51,6 +52,11 @@ const (
 	TraceIDHeader      = "X-Trace-ID"
 )
 
+const (
+	AMQPExchange   = "mdm_exchange"
+	AMQPRoutingKey = "mdm.event"
+)
+
 func main() {
 	cliStorage := cli.NewStorage()
 	flag.Var(&cliStorage.Storage, "storage", "name of storage backend")
@@ -58,22 +64,26 @@ func main() {
 	flag.Var(&cliStorage.DSN, "dsn", "data source name; deprecated: use -storage-dsn")
 	flag.Var(&cliStorage.Options, "storage-options", "storage backend options")
 	var (
-		flListen     = flag.String("listen", ":9000", "HTTP listen address")
-		flAPIKey     = flag.String("api", "", "API key for API endpoints")
-		flVersion    = flag.Bool("version", false, "print version")
-		flRootsPath  = flag.String("ca", "", "path to PEM CA cert(s)")
-		flIntsPath   = flag.String("intermediate", "", "path to PEM intermediate cert(s)")
-		flWebhook    = flag.String("webhook-url", "", "URL to send requests to")
-		flCertHeader = flag.String("cert-header", "", "HTTP header containing TLS client certificate")
-		flDebug      = flag.Bool("debug", false, "log debug messages")
-		flDump       = flag.Bool("dump", false, "dump MDM requests and responses to stdout")
-		flDisableMDM = flag.Bool("disable-mdm", false, "disable MDM HTTP endpoint")
-		flCheckin    = flag.Bool("checkin", false, "enable separate HTTP endpoint for MDM check-ins")
-		flMigration  = flag.Bool("migration", false, "enable HTTP endpoint for enrollment migrations")
-		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
-		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
-		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
-		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
+		flListen          = flag.String("listen", ":9000", "HTTP listen address")
+		flAPIKey          = flag.String("api", "", "API key for API endpoints")
+		flVersion         = flag.Bool("version", false, "print version")
+		flRootsPath       = flag.String("ca", "", "path to PEM CA cert(s)")
+		flIntsPath        = flag.String("intermediate", "", "path to PEM intermediate cert(s)")
+		flWebhook         = flag.String("webhook-url", "", "URL to send requests to")
+		flCertHeader      = flag.String("cert-header", "", "HTTP header containing TLS client certificate")
+		flDebug           = flag.Bool("debug", false, "log debug messages")
+		flDump            = flag.Bool("dump", false, "dump MDM requests and responses to stdout")
+		flDisableMDM      = flag.Bool("disable-mdm", false, "disable MDM HTTP endpoint")
+		flCheckin         = flag.Bool("checkin", false, "enable separate HTTP endpoint for MDM check-ins")
+		flMigration       = flag.Bool("migration", false, "enable HTTP endpoint for enrollment migrations")
+		flRetro           = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
+		flDMURLPfx        = flag.String("dm", "", "URL to send Declarative Management requests to")
+		flAuthProxy       = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
+		flUAZLChal        = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
+		flAMQPSConn       = flag.String("amqps-conn", "", "AMQPS connection string (e.g., amqps://user:pass@host:port)")
+		flAMQPScaCert     = flag.String("amqps-ca-cert", "", "path to PEM CA cert for AMQPS connection")
+		flAMQPSclientCert = flag.String("amqps-client-cert", "", "path to PEM client cert for AMQPS connection")
+		flAMQPSclientKey  = flag.String("amqps-client-key", "", "path to PEM client key for AMQPS connection")
 	)
 	flag.Parse()
 
@@ -163,9 +173,35 @@ func main() {
 	if !*flDisableMDM {
 		var mdmService service.CheckinAndCommandService = nano
 		if *flWebhook != "" {
-			webhookService := microwebhook.New(*flWebhook, mdmStorage)
+			var webhookService service.CheckinAndCommandService = microwebhook.New(*flWebhook, mdmStorage)
+
 			mdmService = multi.New(logger.With("service", "multi"), mdmService, webhookService)
+		} else if *flAMQPSConn != "" {
+
+			var options []func(*factories.QueueFactory)
+
+			// Configure TLS if certificates are provided
+			if *flAMQPScaCert != "" || *flAMQPSclientCert != "" || *flAMQPSclientKey != "" {
+				// Validate that all required TLS parameters are provided
+				if *flAMQPScaCert == "" || *flAMQPSclientCert == "" || *flAMQPSclientKey == "" {
+					stdlog.Fatal("amqps-ca-cert, amqps-client-cert, and amqps-client-key must all be provided for TLS configuration")
+				}
+
+				options = append(options, factories.WithTLSConfig(*flAMQPSclientCert, *flAMQPSclientKey, *flAMQPScaCert))
+			}
+
+			amqpClient, err := factories.NewQueueInstanceFromConnectionString(*flAMQPSConn, nil, options...)
+			if err != nil {
+				stdlog.Fatal(err)
+			}
+
+			webhookService := microwebhook.New(*flWebhook, mdmStorage,
+				microwebhook.WithAMQPClient(AMQPExchange, AMQPRoutingKey, amqpClient))
+
+			mdmService = multi.New(logger.With("service", "multi"), mdmService, webhookService)
+
 		}
+
 		certAuthOpts := []certauth.Option{certauth.WithLogger(logger.With("service", "certauth"))}
 		if *flRetro {
 			certAuthOpts = append(certAuthOpts, certauth.WithAllowRetroactive())
