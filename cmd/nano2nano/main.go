@@ -82,6 +82,14 @@ func main() {
 					logger.Info("msg", "sending to migration endpoint", "err", err)
 				}
 			}
+		case *mdm.SetBootstrapToken:
+			logger.Info(logsFromEnrollment("SetBootstrapToken", &v.Enrollment)...)
+			if !skipServer {
+				if err := httpPut(client, *flURL, *flAPIKey, v.Raw); err != nil {
+					fmt.Println(string(v.Raw))
+					logger.Info("msg", "sending to migration endpoint", "err", err)
+				}
+			}
 		case error:
 			logger.Info("msg", "receiving checkin", "err", v)
 		default:

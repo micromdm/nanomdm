@@ -84,6 +84,13 @@ def settings(args):
     return c
 
 
+def cert_list(args):
+    c = {"RequestType": "CertificateList"}
+    if hasattr(args, "managedonly") and args.managedonly:
+        c["ManagedOnly"] = True
+    return c
+
+
 def make_erase_device_command(args):
     return {"RequestType": "EraseDevice", "PIN": args.pin}
 
@@ -139,6 +146,22 @@ def dev_info_subparser(parser):
     )
     dev_info_parser.set_defaults(func=dev_info)
     return dev_info_parser
+
+
+def cert_list_subparser(parser):
+    cert_list_parser = parser.add_parser(
+        "CertificateList",
+        help="CertificateList MDM command",
+        aliases=["CertList"],
+    )
+    cert_list_parser.add_argument(
+        "-m",
+        "--managedonly",
+        action="store_true",
+        help="ManagedOnly=true",
+    )
+    cert_list_parser.set_defaults(func=cert_list)
+    return cert_list_parser
 
 
 def inst_prof_subparser(parser):
@@ -271,7 +294,6 @@ def main():
     for c in [
         "ProfileList",
         "ProvisioningProfileList",
-        "CertificateList",
         "SecurityInfo",
         "RestartDevice",
         "ShutDownDevice",
@@ -300,6 +322,7 @@ def main():
     sched_update_subparser(subparsers)
     account_config_subparser(subparsers)
     settings_subparser(subparsers)
+    cert_list_subparser(subparsers)
     make_erase_device_subparser(subparsers)
     make_device_lock_subparser(subparsers)
 

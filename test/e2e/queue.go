@@ -7,16 +7,24 @@ import (
 	"testing"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage"
 )
+
+type enqueuer interface {
+	// RawCommandEnqueue enqueues cmd to ids. An APNs push is omitted if nopush is true.
+	RawCommandEnqueue(ctx context.Context, ids []string, cmd *mdm.Command, nopush bool) error
+}
 
 type queueDevice interface {
 	CMDDoReportAndFetch(ctx context.Context, cmd *mdm.CommandResults) (*mdm.Command, error)
 	NewCommandReport(uuid, status string, errors []mdm.ErrorChain) *mdm.CommandResults
 	IDer
+	NewMDMRequest(ctx context.Context) *mdm.Request
 }
 
 // enqueue enqueues cmd to id using a.
-func enqueue(t *testing.T, ctx context.Context, a NanoMDMAPI, id string, cmd *mdm.Command) {
+func enqueue(t *testing.T, ctx context.Context, a enqueuer, id string, cmd *mdm.Command) {
+	t.Helper()
 	err := a.RawCommandEnqueue(ctx, []string{id}, cmd, true)
 	if err != nil {
 		t.Fatal(err)
@@ -43,12 +51,13 @@ func sendReportExpectCommandReply(t *testing.T, ctx context.Context, d queueDevi
 }
 
 // enqueueSimple enqueues cmd to a for d.
-func enqueueSimple(t *testing.T, ctx context.Context, d queueDevice, a NanoMDMAPI, cmd string) {
+func enqueueSimple(t *testing.T, ctx context.Context, d queueDevice, a enqueuer, cmd string) {
+	t.Helper()
 	// we're assuming the UDID is all we need here.
 	enqueue(t, ctx, a, d.ID(), simpleCmd(cmd))
 }
 
-func queue(t *testing.T, ctx context.Context, d queueDevice, a NanoMDMAPI) {
+func queue(t *testing.T, ctx context.Context, d queueDevice, a enqueuer, s storage.CommandAndReportResultsStore) {
 	t.Run("basic", func(t *testing.T) {
 		// report Idle.
 		// expect no command (empty queue for this id).
@@ -88,6 +97,20 @@ func queue(t *testing.T, ctx context.Context, d queueDevice, a NanoMDMAPI) {
 		// ack CMD3.
 		// expect no command (empty queue).
 		sendReportExpectCommandReply(t, ctx, d, "CMD3", "Acknowledged", "")
+		// report Idle.
+		// expect no command (empty queue).
+		sendReportExpectCommandReply(t, ctx, d, "", "Idle", "")
+	})
+	t.Run("clear", func(t *testing.T) {
+		err := s.ClearQueue(d.NewMDMRequest(ctx))
+		if err != nil {
+			t.Fatal(err)
+		}
+		enqueueSimple(t, ctx, d, a, "CMD4")
+		err = s.ClearQueue(d.NewMDMRequest(ctx))
+		if err != nil {
+			t.Fatal(err)
+		}
 		// report Idle.
 		// expect no command (empty queue).
 		sendReportExpectCommandReply(t, ctx, d, "", "Idle", "")

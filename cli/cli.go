@@ -9,13 +9,20 @@ import (
 
 	"github.com/micromdm/nanomdm/storage"
 	"github.com/micromdm/nanomdm/storage/allmulti"
+	"github.com/micromdm/nanomdm/storage/diskv"
 	"github.com/micromdm/nanomdm/storage/file"
+	"github.com/micromdm/nanomdm/storage/inmem"
 	"github.com/micromdm/nanomdm/storage/mysql"
 	"github.com/micromdm/nanomdm/storage/pgsql"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/micromdm/nanolib/log"
+)
+
+var (
+	ErrNoStorageOptions = errors.New("storage backend does not support options, please specify no (or empty) options")
+	ErrMissingDSN       = errors.New("missing required DSN")
 )
 
 type StringAccumulator []string
@@ -62,8 +69,8 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 	}
 	// default storage and DSN pair
 	if len(s.Storage) < 1 {
-		s.Storage = append(s.Storage, "file")
-		s.DSN = append(s.DSN, "db")
+		s.Storage = append(s.Storage, "filekv")
+		s.DSN = append(s.DSN, "dbkv")
 	}
 	var mdmStorage []storage.AllStorage
 	for idx, storage := range s.Storage {
@@ -78,7 +85,13 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 		)
 		switch storage {
 		case "file":
-			fileStorage, err := fileStorageConfig(dsn, options)
+			if options != "enable_deprecated=1" {
+				return nil, errors.New("file backend is deprecated; specify storage options to force enable")
+			}
+			if dsn == "" {
+				return nil, ErrMissingDSN
+			}
+			fileStorage, err := file.New(dsn)
 			if err != nil {
 				return nil, err
 			}
@@ -95,6 +108,19 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 				return nil, err
 			}
 			mdmStorage = append(mdmStorage, pgsqlStorage)
+		case "inmem":
+			if options != "" {
+				return nil, ErrNoStorageOptions
+			}
+			mdmStorage = append(mdmStorage, inmem.New())
+		case "filekv":
+			if dsn == "" {
+				return nil, ErrMissingDSN
+			}
+			if options != "" {
+				return nil, ErrNoStorageOptions
+			}
+			mdmStorage = append(mdmStorage, diskv.New(dsn))
 		default:
 			return nil, fmt.Errorf("unknown storage: %s", storage)
 		}
@@ -110,15 +136,6 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 		logger.With("component", "multi-storage"),
 		mdmStorage...,
 	), nil
-}
-
-var NoStorageOptions = errors.New("storage backend does not support options, please specify no (or empty) options")
-
-func fileStorageConfig(dsn, options string) (*file.FileStorage, error) {
-	if options != "" {
-		return nil, NoStorageOptions
-	}
-	return file.New(dsn)
 }
 
 func mysqlStorageConfig(dsn, options string, logger log.Logger) (*mysql.MySQLStorage, error) {

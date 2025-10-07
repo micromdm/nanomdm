@@ -40,11 +40,16 @@ NanoMDM validates that the device identity certificate is issued from specific C
 
 ### -cert-header string
 
-* HTTP header containing URL-escaped TLS client certificate
+* HTTP header containing TLS client certificate
 
 By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices). This corresponds to the `SignMessage` key being set to true in the enrollment profile.
 
-With the `-cert-header` switch you can specify the name of an HTTP header that is passed to NanoMDM to read the client identity certificate. This is ostensibly to support Nginx' [$ssl_client_escaped_cert](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) in a [proxy_set_header](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header) directive. Though any reverse proxy setting a similar header could be used, of course. The `SignMessage` key in the enrollment profile should be set appropriately.
+With the `-cert-header` switch you can specify the name of an HTTP header that is passed to NanoMDM to instead read the client identity certificate from. The format of the header is parsed as RFC 9440 if it begins with a colon, otherwise a URL query-escaped PEM certificate is assumed.
+
+[RFC 9440](https://datatracker.ietf.org/doc/rfc9440/) specifies a Base-64 encoded DER certificate surrounded by colons. The URL query-escaped PEM certificate is ostensibly to support Nginx' [$ssl_client_escaped_cert](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) in a [proxy_set_header](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header) directive. Though any reverse proxy setting similar headers can be used, of course. Again the `SignMessage` key in the enrollment profile should be set appropriately (i.e. to false or not set, if you're using this switch).
+
+> [!NOTE]
+> NanoMDM v0.7.0 and below do not support RFC 9440 header parsing, only URL query-escaped PEM certificates.
 
 ### -checkin
 
@@ -60,17 +65,34 @@ Enable additional debug logging.
 
 ### -storage, -storage-dsn, & -storage-options
 
-The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage file -storage-dsn db` meaning we use the `file` storage backend with `db` as its DSN.
+The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage filekv -storage-dsn dbkv` meaning we use the `filekv` storage backend with `dbkv` as its DSN.
 
-_Note:_ NanoMDM versions v0.5.0 and below used the `-dsn` flag while later versions switched to the `-storage-dsn` flag.
+> [!NOTE]
+> NanoMDM **versions v0.5 and below** used the `-dsn` flag while later versions now use the `-storage-dsn` flag.
+
+##### filekv storage backend
+
+* `-storage filekv`
+
+Configures the `filekv` storage backend. This manages enrollment and command queue data within plain filesystem files and directories using a key-value storage system. It has zero dependencies, no options, and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database. If no DSN is specified then `dbkv` is used as a default.
+
+*Example:* `-storage filekv -storage-dsn /path/to/my/db`
 
 #### file storage backend
 
 * `-storage file`
 
-Configures the `file` storage backend. This manages enrollment and command data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database. The `file` backend has no storage options.
+> [!WARNING]
+> The `file` storage backend is deprecated in NanoMDM **versions after v0.7** and will be removed in a future release.
 
-*Example:* `-storage file -storage-dsn /path/to/my/db`
+Configures the `file` storage backend. This manages enrollment and command data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database.
+
+Options are specified as a comma-separated list of "key=value" pairs. Supported options:
+
+* `enable_deprecated=1`
+  * This option enables the file backend. Without this switch the `file` backend is disabled.
+
+*Example:* `-storage file -storage-dsn /path/to/my/db -storage-options enable_deprecated=1`
 
 #### mysql storage backend
 
@@ -101,15 +123,26 @@ Options are specified as a comma-separated list of "key=value" pairs. The pgsql 
 
 *Example:* `-storage pgsql -storage-dsn postgres://postgres:toor@localhost/nanomdm -storage-options delete=1`
 
+#### in-memory storage backend
+
+* `-storage inmem`
+
+Configure the `inmem` in-memory storage backend. This manages enrollment and command queue data entirely in *volatile* memeory. There are no options and the DSN is ignored.
+
+> [!CAUTION]
+> All data is lost when the server process exits when using the in-memory storage backend.
+
+*Example:* `-storage inmem`
+
 #### multi-storage backend
 
-You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-storage-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-storage-dsn` flag and so forth.
+You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-storage-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-storage-dsn` flag and so forth. Note that empty options must be specified even if the backend is not using them.
 
 Be aware that only the first storage backend will be "used" when interacting with the system, all other storage backends are called to, but any *results* are discarded. In other words consider them write-only. Also beware that you will have very bizaare results if you change to using multiple storage backends in the midst of existing enrollments. You will receive errors about missing database rows or data. A storage backend needs to be around when a device (or all devices) initially enroll(s). There is no "sync" or backfill system with multiple storage backends (see the migration ability if you need this).
 
-The multi-storage backend is really only useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps creating a new storage backend).
+The multi-storage backend is only really useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps creating a new storage backend).
 
-For example to use both a `file` *and* `mysql` backend your command line might look like: `-storage file -storage-dsn db -storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN.
+For example to use both a `filekv` *and* `mysql` backend your command line might look like: `-storage filekv -storage-dsn dbkv -storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb`. You can also mix and match backends, or mutliple of the same backend. Behavior is undefined (and probably very bad) if you specify two backends of the same type with the same DSN (i.e. sharing the same data source).
 
 ### -dump
 
@@ -139,7 +172,7 @@ Note that the URL should likely have a trailing slash. Otherwise path elements o
 
 ### -migration
 
-* HTTP endpoint for enrollment migrations
+* enable HTTP endpoint for enrollment migrations
 
 NanoMDM supports a lossy form of MDM enrollment "migration." Essentially if a source MDM server can assemble enough of both Authenticate and TokenUpdate messages for an enrollment you can "migrate" enrollments by sending those Plist requests to the migration endpoint. Importantly this transfers the needed Push topic, token, and push magic to continue to send APNs push notifications to enrollments.
 
@@ -151,7 +184,8 @@ This switch turns on the migration endpoint.
 
 By default NanoMDM disallows requests which did not have a certificate association setup in their Authenticate message. For new enrollments this is fine. However for enrollments that did not have a full Authenticate message (i.e. for enrollments that were migrated) they will lack such an association and be denied the ability to connect.
 
-This switch turns on the ability for enrollments with no existing certificate association to create one, bypassing the authorization check. Note if an enrollment already has an association this will not overwrite it; only if no existing association exists.
+> [!WARNING]
+> This switch turns on the ability for enrollments with no existing certificate association to create one, bypassing the authorization check and potentially spoofing migrated devices. Note if an enrollment already has an association this will not overwrite it; only if no existing association exists.
 
 ### -version
 
@@ -159,11 +193,17 @@ This switch turns on the ability for enrollments with no existing certificate as
 
 Print version and exit.
 
+### -webhook-hmac-key string
+
+* attaches an HMAC HTTP header to each webhook request using this key
+
+When configured to use a webhook (see the `-webhook-url` flag) this flag turns on generation of a SHA-256 HMAC digest of each HTTP request body. The HMAC is included in the HTTP header `X-Hmac-Signature` and is Base-64 encoded.
+
 ### -webhook-url string
 
 * URL to send requests to
 
-NanoMDM supports a MicroMDM-compatible [webhook callback](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md) option. This switch turns on the webhook and specifies the URL.
+NanoMDM supports a webhook callback option. When MDM protocol events happen (such as MDM check-ins from enrollments) NanoMDM can send an HTTP webhook callback. This flag turns on the webhook and specifies the URL. The [JSON schema for the webhook](../service/webhook/event.json) is available. The webhook is backward compatible with [MicroMDM's webhook](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md).
 
 ### -auth-proxy-url string
 
@@ -328,6 +368,40 @@ The migration endpoint (as talked about above under the `-migration` switch) is 
 * Endpoint: `/version`
 
 Returns a JSON response with the version of the running NanoMDM server.
+
+### Escrow Key Unlock
+
+* Endpoint: `POST /v1/escrowkeyunlock`
+
+The Escrow Key Unlock endpoint is a thin wrapper around Apple's `escrowKeyUnlock` endpoint. This allows for Activation *Un*locking devices provided you have details about the device from MDM and the appropriate Acitvation Lock Bypass Code. All parameters are provided in the the body as a standard form (`application/x-www-form-urlencoded`). At minimium you need to provide:
+
+- `topic`
+- `serial`
+- `productType`
+- `escrowKey`
+- `orgName`
+- `guid`
+
+For devices where it is appropriate you also need to provide:
+
+- `imei`
+- `imei2`
+- `meid`
+
+For example to clear Activation Lock on a Mac with serial number `C8TJ500QF1MN` one might perform this:
+
+```bash
+curl \
+	-v \
+	-u nanomdm:nanomdm \
+	-d "topic=com.apple.mgmt.External.f3abfeac-1f27-4c8e-8a63-dd17555d35d9" \
+	-d "serial=C8TJ500QF1MN" \
+	-d "productType=MacBookPro17,1" \
+	-d "escrowKey=3UM43-PUYVY-QYD1-UVCC-HEHJ-FKA4" \
+	-d "orgName=Acme Inc" \
+	-d "guid=12346" \
+	'http://[::1]:9000/v1/escrowkeyunlock'
+```
 
 ### Authentication Proxy
 

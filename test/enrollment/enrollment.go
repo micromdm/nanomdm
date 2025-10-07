@@ -262,17 +262,20 @@ func (e *Enrollment) ID() string {
 	return e.enrollment.UDID
 }
 
+// SerialNumber returns the serial number of the enrollment.
+func (e *Enrollment) SerialNumber() string {
+	return e.serialNumber
+}
+
 // EnrollID returns the NanoMDM enroll ID.
 func (e *Enrollment) EnrollID() *mdm.EnrollID {
 	return &e.enrollID
 }
 
 func (e *Enrollment) NewMDMRequest(ctx context.Context) *mdm.Request {
-	return &mdm.Request{
-		Context:     ctx,
-		EnrollID:    e.EnrollID(),
-		Certificate: e.cert,
-	}
+	r := mdm.NewRequestWithContext(ctx, e.cert)
+	r.EnrollID = e.EnrollID()
+	return r
 }
 
 // GetPush returns the enrollment push info data.

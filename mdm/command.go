@@ -9,6 +9,7 @@ import (
 var (
 	ErrInvalidCommandResult = errors.New("invalid command result")
 	ErrInvalidCommand       = errors.New("invalid command")
+	ErrEmptyCommand         = errors.New("empty command bytes")
 )
 
 // ErrorChain represents errors that occured on the client executing an MDM command.
@@ -54,6 +55,9 @@ type Command struct {
 
 // DecodeCommand unmarshals rawCommand into command
 func DecodeCommand(rawCommand []byte) (command *Command, err error) {
+	if len(rawCommand) < 1 {
+		return nil, ErrEmptyCommand
+	}
 	command = new(Command)
 	err = plist.Unmarshal(rawCommand, command)
 	if err != nil {
