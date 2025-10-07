@@ -150,6 +150,9 @@ Configure the `inmem` in-memory storage backend. This manages enrollment and com
 
 You can configure multiple storage backends to be used simultaneously. Specifying multiple sets of `-storage`, `-storage-dsn`, & `-storage-options` flags will configure the "multi-storage" adapter. The flags must be specified in sets and are related to each other in the order they're specified: for example the first `-storage` flag corresponds to the first `-storage-dsn` flag and so forth. Note that empty options must be specified even if the backend is not using them.
 
+> [!NOTE]
+> Multi-storage configuration likely only works with command-line flags, not environment variables. Since environment variables can typically only be set once per variable name, using `STORAGE`, `STORAGE_DSN`, and `STORAGE_OPTIONS` environment variables will only configure a single backend.
+
 Be aware that only the first storage backend will be "used" when interacting with the system, all other storage backends are called to, but any *results* are discarded. In other words consider them write-only. Also beware that you will have very bizaare results if you change to using multiple storage backends in the midst of existing enrollments. You will receive errors about missing database rows or data. A storage backend needs to be around when a device (or all devices) initially enroll(s). There is no "sync" or backfill system with multiple storage backends (see the migration ability if you need this).
 
 The multi-storage backend is only really useful if you've always been using multiple storage backends or if you're doing some type of development or testing (perhaps creating a new storage backend).
