@@ -31,6 +31,6 @@ type CheckinStore interface {
 
 type TokenUpdateTallyStore interface {
 	// RetrieveTokenUpdateTally retrieves the TokenUpdate tally (count) for id.
-	// If no tally exists or is not yet set 0 with a nil error should be returned.
+	// If no tally exists or is not yet set, 0 with a nil error should be returned.
 	RetrieveTokenUpdateTally(ctx context.Context, id string) (int, error)
 }

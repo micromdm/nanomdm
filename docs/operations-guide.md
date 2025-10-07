@@ -193,11 +193,17 @@ By default NanoMDM disallows requests which did not have a certificate associati
 
 Print version and exit.
 
+### -webhook-hmac-key string
+
+* attaches an HMAC HTTP header to each webhook request using this key
+
+When configured to use a webhook (see the `-webhook-url` flag) this flag turns on generation of a SHA-256 HMAC digest of each HTTP request body. The HMAC is included in the HTTP header `X-Hmac-Signature` and is Base-64 encoded.
+
 ### -webhook-url string
 
 * URL to send requests to
 
-NanoMDM supports a MicroMDM-compatible [webhook callback](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md) option. This switch turns on the webhook and specifies the URL.
+NanoMDM supports a webhook callback option. When MDM protocol events happen (such as MDM check-ins from enrollments) NanoMDM can send an HTTP webhook callback. This flag turns on the webhook and specifies the URL. The [JSON schema for the webhook](../service/webhook/event.json) is available. The webhook is backward compatible with [MicroMDM's webhook](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md).
 
 ### -auth-proxy-url string
 
