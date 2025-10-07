@@ -2,6 +2,8 @@ openapi: 3.0.0
 info:
   version: 0.1.0
   title: NanoMDM API
+servers:
+  - url: http://[::1]:9000/
 paths:
   /v1/pushcert:
     put:
@@ -100,6 +102,73 @@ paths:
           schema:
             type: string
             example: '1'
+  /v1/escrowkeyunlock:
+    post:
+      description: "Perform an Escrow Key Unlock against Apple's API. Uses the APNs certificate of the provided topic for mTLS authentication. Note that despite all parameters being in the HTTP body (form) this endpoint moves the appropriate parameters to the URL query parameters per Apple's documentation. The response body, status, and headers are handed straight through from the Apple endpoint."
+      externalDocs:
+        description: Creating and Using Bypass Codes
+        url: https://developer.apple.com/documentation/devicemanagement/creating-and-using-bypass-codes
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - topic
+                - serial
+                - productType
+                - escrowKey
+                - orgName
+                - guid
+              properties:
+                topic:
+                  type: string
+                  description: APNs Push topic. The certificate keypair that matches this topic is used for mTLS authentication to the Apple Escrow Key Unlock endpoint.
+                  example: "com.apple.mgmt.External.f3abfeac-1f27-4c8e-8a63-dd17555d35d9"
+                serial:
+                  description: The deviceʼs serial number (required).
+                  type: string
+                  example: "C8TJ500QF1MN"
+                imei:
+                  description: The device’s IMEI (omit for non-cellular devices).
+                  type: string
+                imei2:
+                  description: The device’s secondary IMEI (omit for non-cellular and single-SIM devices).
+                  type: string
+                meid:
+                  description: The device’s MEID (omit for non-cellular devices).
+                  type: string
+                productType:
+                  description: "Example: iPad4,1 (required)."
+                  type: string
+                  example: "iPad4,1"
+                escrowKey:
+                  description: Dash-separated "human readable" form of the Activation Lock Bypass Code.
+                  type: string
+                  minLength: 31
+                  example: "3UM43-PUYVY-QYD1-UVCC-HEHJ-FKA4"
+                orgName:
+                  description: "The client-supplied value for auditing purposes: a string that identifies the name of the organization."
+                  type: string
+                  example: "Acme Inc"
+                guid:
+                  description: "The client-supplied value for auditing purposes: a string that identifies the user requesting the removal (such as email, LDAP ID, or name)."
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Success.
+        '400':
+          description: "Failure: bad request; likely cause is a malformed request query or body."
+        '404':
+          description: "Failure: device is not found, or escrowKey is invalid."
+        '500':
+          description: "Unexpected server error; try again later."
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
   /version:
     get:
       description: Returns the running NanoMDM version
