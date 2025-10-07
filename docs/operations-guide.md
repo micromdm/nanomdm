@@ -20,26 +20,34 @@ NanoMDM tries to reduce this complexity by collapsing these various identifiers 
 
 ## Switches
 
+All command-line switches can be configured via environment variables. The environment variable name is the uppercase version of the flag name with hyphens replaced by underscores. For example, `-api` can be set via the `API` environment variable, `-webhook-url` via `WEBHOOK_URL`, etc. Command-line flags take precedence over environment variables.
+
+Storage-related flags (`-storage`, `-storage-dsn`, `-storage-options`) can also be configured via the `STORAGE`, `STORAGE_DSN`, and `STORAGE_OPTIONS` environment variables respectively.
+
 ###  -api string
 
+* Environment variable: `API`
 * API key for API endpoints
 
 API authorization in NanoMDM is simply HTTP Basic authentication using "nanomdm" as the username and the API key as the password. Omitting this switch turns off all API endpoints — NanoMDM in this mode will essentially just be for handling MDM client requests. It is not compatible with also specifying `-disable-mdm`.
 
 ### -ca string
 
+* Environment variable: `CA`
 * path to PEM CA cert(s)
 
 NanoMDM validates that the device identity certificate is issued from specific CAs. This switch is the path to a file of PEM-encoded CAs to validate enrollments against.
 
 ### -intermediate string
 
+* Environment variable: `INTERMEDIATE`
 * path to PEM intermediate cert(s)
 
 NanoMDM validates that the device identity certificate is issued from specific CAs. This switch is the path to a file of PEM-encoded intermediate certificates that can be used to build a chain of trust to the CAs to validate enrollments against.
 
 ### -cert-header string
 
+* Environment variable: `CERT_HEADER`
 * HTTP header containing TLS client certificate
 
 By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices). This corresponds to the `SignMessage` key being set to true in the enrollment profile.
@@ -53,17 +61,21 @@ With the `-cert-header` switch you can specify the name of an HTTP header that i
 
 ### -checkin
 
+* Environment variable: `CHECKIN`
 * enable separate HTTP endpoint for MDM check-ins
 
 By default NanoMDM uses a single HTTP endpoint (`/mdm` — see below) for both commands and results *and* for check-ins. If this option is specified then `/mdm` will only be for commands and results and `/checkin` will only be for MDM check-ins.
 
 ### -debug
 
+* Environment variable: `DEBUG`
 * log debug messages
 
 Enable additional debug logging.
 
 ### -storage, -storage-dsn, & -storage-options
+
+* Environment variables: `STORAGE`, `STORAGE_DSN`, `STORAGE_OPTIONS`
 
 The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage filekv -storage-dsn dbkv` meaning we use the `filekv` storage backend with `dbkv` as its DSN.
 
@@ -146,24 +158,28 @@ For example to use both a `filekv` *and* `mysql` backend your command line might
 
 ### -dump
 
+* Environment variable: `DUMP`
 * dump MDM requests and responses to stdout
 
 Dump MDM request bodies (i.e. complete Plist requests) to standard output for each request.
 
 ### -listen string
 
+* Environment variable: `LISTEN`
 * HTTP listen address (default ":9000")
 
 Specifies the listen address (interface & port number) for the server to listen on.
 
 ### -disable-mdm
 
+* Environment variable: `DISABLE_MDM`
 * disable MDM HTTP endpoint
 
 This switch disables MDM client capability. This effecitvely turns this running instance into "API-only" mode. It is not compatible with having an empty `-api` switch.
 
 ### -dm
 
+* Environment variable: `DM`
 * URL to send Declarative Management requests to
 
 Specifies the "base" URL to send Declarative Management requests to. The full URL is constructed from this base URL appended with the type of Declarative Management ["Endpoint" request](https://developer.apple.com/documentation/devicemanagement/declarativemanagementrequest?language=objc) such as "status" or "declaration-items". Each HTTP request includes the NanoMDM enrollment ID as the HTTP header "X-Enrollment-ID". See [this blog post](https://micromdm.io/blog/wwdc21-declarative-management/) for more details.
@@ -172,6 +188,7 @@ Note that the URL should likely have a trailing slash. Otherwise path elements o
 
 ### -migration
 
+* Environment variable: `MIGRATION`
 * enable HTTP endpoint for enrollment migrations
 
 NanoMDM supports a lossy form of MDM enrollment "migration." Essentially if a source MDM server can assemble enough of both Authenticate and TokenUpdate messages for an enrollment you can "migrate" enrollments by sending those Plist requests to the migration endpoint. Importantly this transfers the needed Push topic, token, and push magic to continue to send APNs push notifications to enrollments.
@@ -180,6 +197,7 @@ This switch turns on the migration endpoint.
 
 ### -retro
 
+* Environment variable: `RETRO`
 * Allow retroactive certificate-authorization association
 
 By default NanoMDM disallows requests which did not have a certificate association setup in their Authenticate message. For new enrollments this is fine. However for enrollments that did not have a full Authenticate message (i.e. for enrollments that were migrated) they will lack such an association and be denied the ability to connect.
@@ -189,30 +207,35 @@ By default NanoMDM disallows requests which did not have a certificate associati
 
 ### -version
 
+* Environment variable: `VERSION`
 * print version
 
 Print version and exit.
 
 ### -webhook-hmac-key string
 
+* Environment variable: `WEBHOOK_HMAC_KEY`
 * attaches an HMAC HTTP header to each webhook request using this key
 
 When configured to use a webhook (see the `-webhook-url` flag) this flag turns on generation of a SHA-256 HMAC digest of each HTTP request body. The HMAC is included in the HTTP header `X-Hmac-Signature` and is Base-64 encoded.
 
 ### -webhook-url string
 
+* Environment variable: `WEBHOOK_URL`
 * URL to send requests to
 
 NanoMDM supports a webhook callback option. When MDM protocol events happen (such as MDM check-ins from enrollments) NanoMDM can send an HTTP webhook callback. This flag turns on the webhook and specifies the URL. The [JSON schema for the webhook](../service/webhook/event.json) is available. The webhook is backward compatible with [MicroMDM's webhook](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md).
 
 ### -auth-proxy-url string
 
+* Environment variable: `AUTH_PROXY_URL`
 * Reverse proxy URL target for MDM-authenticated HTTP requests
 
 Enables the authentication proxy and reverse proxies HTTP requests from the server's `/authproxy/` endpoint to this URL if the client provides the device's enrollment authentication. See below for more information.
 
 ### -ua-zl-dc
 
+* Environment variable: `UA_ZL_DC`
 * reply with zero-length DigestChallenge for UserAuthenticate
 
 By default NanoMDM will respond to a `UserAuthenticate` message with an HTTP 410. This effectively declines management of that the user channel for that MDM user. Enabling this option turns on the "zero-length" Digest Challenge mode where NanoMDM replies with an empty Digest Challenge to enable management each time a client enrolls.
@@ -425,28 +448,34 @@ The `nano2nano` tool extracts migration enrollment data from a given storage bac
 
 ### -debug
 
+* Environment variable: `DEBUG`
 * log debug messages
 
 Enable additional debug logging.
 
 ### -storage, -storage-dsn, & -storage-options
 
+* Environment variables: `STORAGE`, `STORAGE_DSN`, `STORAGE_OPTIONS`
+
 See the "-storage, -storage-dsn, & -storage-options" section, above, for NanoMDM. The syntax and capabilities are the same.
 
 ### -key string
 
+* Environment variable: `KEY`
 * NanoMDM API Key
 
 The NanoMDM API key used to authenticate to the migration endpoint.
 
 ### -url string
 
+* Environment variable: `URL`
 * NanoMDM migration URL
 
 The URL of the NanoMDM migration endpoint. For example "http://127.0.0.1:9000/migration".
 
 ### -version
 
+* Environment variable: `VERSION`
 * print version
 
 Print version and exit.
