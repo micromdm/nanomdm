@@ -24,9 +24,7 @@ func SetBodyHashHeader(req *http.Request, header string, hasher hash.Hash, encod
 	}
 
 	if encoder == nil {
-		encoder = func(b []byte) string {
-			return hex.EncodeToString(b)
-		}
+		encoder = hex.EncodeToString
 	}
 
 	err := GetAndReplaceBody(req, hasher)
