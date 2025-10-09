@@ -25,7 +25,14 @@ func ClientWithCert(client *http.Client, cert *tls.Certificate) (*http.Client, e
 	if client.Transport == nil {
 		client.Transport = http.DefaultTransport
 	}
-	transport := client.Transport.(*http.Transport).Clone()
+	var transport *http.Transport
+	if t, ok := client.Transport.(*http.Transport); !ok {
+		return nil, errors.New("client transport is not an http.Transport")
+	} else if t == nil {
+		transport = &http.Transport{}
+	} else {
+		transport = t.Clone()
+	}
 	client.Transport = transport
 
 	if transport.TLSClientConfig == nil {

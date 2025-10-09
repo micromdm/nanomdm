@@ -4,6 +4,7 @@ package nanopush
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -19,10 +20,44 @@ type NewClient func(*tls.Certificate) (*http.Client, error)
 // ForceHTTP2 configures HTTP/2 enabled on the transport within client.
 // The transport will be cloned if it is the same as the default transport.
 func ForceHTTP2(client *http.Client) error {
-	if client.Transport == nil || client.Transport == http.DefaultTransport {
-		client.Transport = http.DefaultTransport.(*http.Transport).Clone()
+	t := getOrCreateHTTPTransport(client)
+	if t == nil {
+		return errors.New("nil transport")
 	}
-	return http2.ConfigureTransport(client.Transport.(*http.Transport))
+	return http2.ConfigureTransport(t)
+}
+
+// getOrCreateHTTPTransport tries to return an [http.Transport] from client.
+// If client is the [http.DefaultClient] we return early.
+// If client transport is nil we try to clone the default HTTP transport and assign it.
+func getOrCreateHTTPTransport(client *http.Client) *http.Transport {
+	if client == http.DefaultClient {
+		// we don't want to modify the default client
+		return nil
+	}
+	if client.Transport == nil {
+		if transport, ok := http.DefaultTransport.(*http.Transport); ok && transport != nil {
+			client.Transport = transport.Clone()
+		} else if transport == nil {
+			client.Transport = &http.Transport{}
+		}
+	}
+	if client.Transport != nil {
+		if transport, ok := client.Transport.(*http.Transport); ok {
+			return transport
+		}
+	}
+	return nil
+}
+
+// UseProxyFromEnvironment configures the HTTP transport of client to
+// use the proxy from the environment. See [http.ProxyFromEnvironment].
+func UseProxyFromEnvironment(client *http.Client) {
+	t := getOrCreateHTTPTransport(client)
+	if t == nil {
+		return
+	}
+	t.Proxy = http.ProxyFromEnvironment
 }
 
 func defaultNewClient(cert *tls.Certificate) (*http.Client, error) {
@@ -30,6 +65,7 @@ func defaultNewClient(cert *tls.Certificate) (*http.Client, error) {
 	if err != nil {
 		return client, fmt.Errorf("creating mTLS client: %w", err)
 	}
+	UseProxyFromEnvironment(client)
 	return client, ForceHTTP2(client)
 }
 
