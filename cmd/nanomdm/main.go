@@ -28,6 +28,7 @@ import (
 	"github.com/micromdm/nanomdm/service/nanomdm"
 	"github.com/micromdm/nanomdm/service/webhook"
 
+	"github.com/micromdm/nanolib/envflag"
 	nlhttp "github.com/micromdm/nanolib/http"
 	"github.com/micromdm/nanolib/http/trace"
 	"github.com/micromdm/nanolib/log/stdlogfmt"
@@ -60,7 +61,7 @@ func main() {
 	var (
 		flListen     = flag.String("listen", ":9000", "HTTP listen address")
 		flAPIKey     = flag.String("api", "", "API key for API endpoints")
-		flVersion    = flag.Bool("version", false, "print version")
+		flVersion    = flag.Bool("version", false, "print version and exit")
 		flRootsPath  = flag.String("ca", "", "path to PEM CA cert(s)")
 		flIntsPath   = flag.String("intermediate", "", "path to PEM intermediate cert(s)")
 		flWebhook    = flag.String("webhook-url", "", "URL to send requests to")
@@ -76,7 +77,7 @@ func main() {
 		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
 		flWHHMACKey  = flag.String("webhook-hmac-key", "", "attaches an HMAC HTTP header to each webhook request using this key")
 	)
-	flag.Parse()
+	envflag.Parse("NANOMDM_", []string{"version", "dsn"})
 
 	if *flVersion {
 		fmt.Println(version)

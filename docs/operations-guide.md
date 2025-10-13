@@ -1,6 +1,6 @@
 # NanoMDM Operations Guide
 
-This is a brief overview of the various command-line switches and HTTP endpoints (including APIs) available to NanoMDM.
+This is a brief overview of the various command-line flags and HTTP endpoints (including APIs) available to NanoMDM.
 
 ## Enrollment IDs
 
@@ -18,33 +18,39 @@ NanoMDM tries to reduce this complexity by collapsing these various identifiers 
 | User Enrollment (Device) | iOS | `UUID` | `b318edb72b556059a013368e3150050c5f74a2c6` |
 | Shared iPad | iOS  | `UUID:ShortName` | `68656c6c6f776f726c6468656c6c6f776f726c64:appleid@example.com` |
 
-## Switches
+## Command line flags
+
+Command line flags can be specified using command line arguments or environment variables (in NanoMDM versions later than v0.8). Flags take precedence over environment variables, which take precedence over default values. Environment variables are denoted in square brackets below (e.g., [HELLO]), and default values are shown in parentheses (e.g., (default "world")). If an environment variable is currently set then the help output will add "is set" as an indicator.
+
+### -h, -help
+
+Built-in flag that prints all other available flags, environment variables, and defaults.
 
 ###  -api string
 
-* API key for API endpoints
+* API key for API endpoints [NANOMDM_API]
 
-API authorization in NanoMDM is simply HTTP Basic authentication using "nanomdm" as the username and the API key as the password. Omitting this switch turns off all API endpoints — NanoMDM in this mode will essentially just be for handling MDM client requests. It is not compatible with also specifying `-disable-mdm`.
+API authorization in NanoMDM is simply HTTP Basic authentication using "nanomdm" as the username and the API key as the password. Omitting this flag turns off all API endpoints — NanoMDM in this mode will essentially just be for handling MDM client requests. It is not compatible with also specifying `-disable-mdm`.
 
 ### -ca string
 
-* path to PEM CA cert(s)
+* path to PEM CA cert(s) [NANOMDM_CA]
 
-NanoMDM validates that the device identity certificate is issued from specific CAs. This switch is the path to a file of PEM-encoded CAs to validate enrollments against.
+NanoMDM validates that the device identity certificate is issued from specific CAs. This flag is the path to a file of PEM-encoded CAs to validate enrollments against.
 
 ### -intermediate string
 
-* path to PEM intermediate cert(s)
+* path to PEM intermediate cert(s) [NANOMDM_INTERMEDIATE]
 
-NanoMDM validates that the device identity certificate is issued from specific CAs. This switch is the path to a file of PEM-encoded intermediate certificates that can be used to build a chain of trust to the CAs to validate enrollments against.
+NanoMDM validates that the device identity certificate is issued from specific CAs. This flag is the path to a file of PEM-encoded intermediate certificates that can be used to build a chain of trust to the CAs to validate enrollments against.
 
 ### -cert-header string
 
-* HTTP header containing TLS client certificate
+* HTTP header containing TLS client certificate [NANOMDM_CERT_HEADER]
 
-By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices). This corresponds to the `SignMessage` key being set to true in the enrollment profile.
+By default NanoMDM tries to extract the device identity certificate from the HTTP request by decoding the "Mdm-Signature" header. See ["Pass an Identity Certificate Through a Proxy" section of this documentation for details](https://developer.apple.com/documentation/devicemanagement/implementing_device_management/managing_certificates_for_mdm_servers_and_devices). This corresponds to the `SignMessage` key set to true in the enrollment profile.
 
-With the `-cert-header` switch you can specify the name of an HTTP header that is passed to NanoMDM to instead read the client identity certificate from. The format of the header is parsed as RFC 9440 if it begins with a colon, otherwise a URL query-escaped PEM certificate is assumed.
+With the `-cert-header` flag you can specify the name of an HTTP header that is passed to NanoMDM to instead read the client identity certificate from. The format of the header is parsed as RFC 9440 if it begins with a colon, otherwise a URL query-escaped PEM certificate is assumed.
 
 [RFC 9440](https://datatracker.ietf.org/doc/rfc9440/) specifies a Base-64 encoded DER certificate surrounded by colons. The URL query-escaped PEM certificate is ostensibly to support Nginx' [$ssl_client_escaped_cert](http://nginx.org/en/docs/http/ngx_http_ssl_module.html) in a [proxy_set_header](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header) directive. Though any reverse proxy setting similar headers can be used, of course. Again the `SignMessage` key in the enrollment profile should be set appropriately (i.e. to false or not set, if you're using this switch).
 
@@ -53,17 +59,24 @@ With the `-cert-header` switch you can specify the name of an HTTP header that i
 
 ### -checkin
 
-* enable separate HTTP endpoint for MDM check-ins
+* enable separate HTTP endpoint for MDM check-ins [NANOMDM_CHECKIN]
 
 By default NanoMDM uses a single HTTP endpoint (`/mdm` — see below) for both commands and results *and* for check-ins. If this option is specified then `/mdm` will only be for commands and results and `/checkin` will only be for MDM check-ins.
 
 ### -debug
 
-* log debug messages
+* log debug messages [NANOMDM_DEBUG]
 
 Enable additional debug logging.
 
 ### -storage, -storage-dsn, & -storage-options
+
+* -storage value
+  * name of storage backend [NANOMDM_STORAGE]
+* -storage-dsn value
+  * data source name (e.g. connection string or path) [NANOMDM_STORAGE_DSN]
+* -storage-options value
+  * storage backend options [NANOMDM_STORAGE_OPTIONS]
 
 The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend(s). `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend if it supports them. If no storage flags are supplied then it is as if you specified `-storage filekv -storage-dsn dbkv` meaning we use the `filekv` storage backend with `dbkv` as its DSN.
 
@@ -146,41 +159,41 @@ For example to use both a `filekv` *and* `mysql` backend your command line might
 
 ### -dump
 
-* dump MDM requests and responses to stdout
+* dump MDM requests and responses to stdout [NANOMDM_DUMP]
 
 Dump MDM request bodies (i.e. complete Plist requests) to standard output for each request.
 
 ### -listen string
 
-* HTTP listen address (default ":9000")
+* HTTP listen address [NANOMDM_LISTEN] (default ":9000")
 
 Specifies the listen address (interface & port number) for the server to listen on.
 
 ### -disable-mdm
 
-* disable MDM HTTP endpoint
+* disable MDM HTTP endpoint [NANOMDM_DISABLE_MDM]
 
 This switch disables MDM client capability. This effecitvely turns this running instance into "API-only" mode. It is not compatible with having an empty `-api` switch.
 
 ### -dm
 
-* URL to send Declarative Management requests to
+* URL to send Declarative Management requests to [NANOMDM_DM]
 
 Specifies the "base" URL to send Declarative Management requests to. The full URL is constructed from this base URL appended with the type of Declarative Management ["Endpoint" request](https://developer.apple.com/documentation/devicemanagement/declarativemanagementrequest?language=objc) such as "status" or "declaration-items". Each HTTP request includes the NanoMDM enrollment ID as the HTTP header "X-Enrollment-ID". See [this blog post](https://micromdm.io/blog/wwdc21-declarative-management/) for more details.
 
-Note that the URL should likely have a trailing slash. Otherwise path elements of the URL may to be cut off but by Golang's relative URL path resolver.
+Note that the URL should likely have a trailing slash. Otherwise path elements of the URL may be cut off by Golang's relative URL path resolver.
 
 ### -migration
 
-* enable HTTP endpoint for enrollment migrations
+* enable HTTP endpoint for enrollment migrations [NANOMDM_MIGRATION]
 
-NanoMDM supports a lossy form of MDM enrollment "migration." Essentially if a source MDM server can assemble enough of both Authenticate and TokenUpdate messages for an enrollment you can "migrate" enrollments by sending those Plist requests to the migration endpoint. Importantly this transfers the needed Push topic, token, and push magic to continue to send APNs push notifications to enrollments.
+NanoMDM supports a "lossy" form of MDM enrollment "migration." Essentially if a source MDM server can assemble enough of both Authenticate and TokenUpdate messages for an enrollment you can "migrate" enrollments by sending those Plist requests to the migration endpoint. Importantly this transfers the needed Push topic, token, and push magic to continue to send APNs push notifications to enrollments.
 
 This switch turns on the migration endpoint.
 
 ### -retro
 
-* Allow retroactive certificate-authorization association
+* Allow retroactive certificate-authorization association [NANOMDM_RETRO]
 
 By default NanoMDM disallows requests which did not have a certificate association setup in their Authenticate message. For new enrollments this is fine. However for enrollments that did not have a full Authenticate message (i.e. for enrollments that were migrated) they will lack such an association and be denied the ability to connect.
 
@@ -189,31 +202,31 @@ By default NanoMDM disallows requests which did not have a certificate associati
 
 ### -version
 
-* print version
+* print version and exit
 
 Print version and exit.
 
 ### -webhook-hmac-key string
 
-* attaches an HMAC HTTP header to each webhook request using this key
+* attaches an HMAC HTTP header to each webhook request using this key [NANOMDM_WEBHOOK_HMAC_KEY]
 
 When configured to use a webhook (see the `-webhook-url` flag) this flag turns on generation of a SHA-256 HMAC digest of each HTTP request body. The HMAC is included in the HTTP header `X-Hmac-Signature` and is Base-64 encoded.
 
 ### -webhook-url string
 
-* URL to send requests to
+* URL to send requests to [NANOMDM_WEBHOOK_URL]
 
 NanoMDM supports a webhook callback option. When MDM protocol events happen (such as MDM check-ins from enrollments) NanoMDM can send an HTTP webhook callback. This flag turns on the webhook and specifies the URL. The [JSON schema for the webhook](../service/webhook/event.json) is available. The webhook is backward compatible with [MicroMDM's webhook](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md).
 
 ### -auth-proxy-url string
 
-* Reverse proxy URL target for MDM-authenticated HTTP requests
+* Reverse proxy URL target for MDM-authenticated HTTP requests [NANOMDM_AUTH_PROXY_URL]
 
 Enables the authentication proxy and reverse proxies HTTP requests from the server's `/authproxy/` endpoint to this URL if the client provides the device's enrollment authentication. See below for more information.
 
 ### -ua-zl-dc
 
-* reply with zero-length DigestChallenge for UserAuthenticate
+* reply with zero-length DigestChallenge for UserAuthenticate [NANOMDM_UA_ZL_DC]
 
 By default NanoMDM will respond to a `UserAuthenticate` message with an HTTP 410. This effectively declines management of that the user channel for that MDM user. Enabling this option turns on the "zero-length" Digest Challenge mode where NanoMDM replies with an empty Digest Challenge to enable management each time a client enrolls.
 
