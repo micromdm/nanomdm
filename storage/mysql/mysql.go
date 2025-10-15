@@ -10,6 +10,7 @@ import (
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage/mysql/sqlc"
 
 	"github.com/micromdm/nanolib/log"
 	"github.com/micromdm/nanolib/log/ctxlog"
@@ -26,6 +27,7 @@ type MySQLStorage struct {
 	logger log.Logger
 	db     *sql.DB
 	rm     bool
+	q      *sqlc.Queries
 }
 
 type config struct {
@@ -83,7 +85,7 @@ func New(opts ...Option) (*MySQLStorage, error) {
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
-	return &MySQLStorage{db: cfg.db, logger: cfg.logger, rm: cfg.rm}, nil
+	return &MySQLStorage{db: cfg.db, logger: cfg.logger, rm: cfg.rm, q: sqlc.New(cfg.db)}, nil
 }
 
 // nullEmptyString returns a NULL string if s is empty.
@@ -208,14 +210,10 @@ UPDATE
 	return err
 }
 
+// RetrieveTokenUpdateTally returns the token update tally for id.
 func (s *MySQLStorage) RetrieveTokenUpdateTally(ctx context.Context, id string) (int, error) {
-	var tally int
-	err := s.db.QueryRowContext(
-		ctx,
-		`SELECT token_update_tally FROM enrollments WHERE id = ?;`,
-		id,
-	).Scan(&tally)
-	return tally, err
+	tally, err := s.q.RetrieveTokenUpdateTally(ctx, id)
+	return int(tally), err
 }
 
 func (s *MySQLStorage) StoreUserAuthenticate(r *mdm.Request, msg *mdm.UserAuthenticate) error {
@@ -257,20 +255,12 @@ func (s *MySQLStorage) Disable(r *mdm.Request) error {
 	if r.ParentID != "" {
 		return errors.New("can only disable a device channel")
 	}
-	_, err := s.db.ExecContext(
-		r.Context(),
-		`UPDATE enrollments SET enabled = 0, token_update_tally = 0, last_seen_at = CURRENT_TIMESTAMP WHERE device_id = ? AND enabled = 1;`,
-		r.ID,
-	)
-	return err
+	return s.q.DisableEnrollment(r.Context(), r.ID)
 }
 
+// updateLastSeen updates the last seen timestamp for r.
 func (s *MySQLStorage) updateLastSeen(r *mdm.Request) (err error) {
-	_, err = s.db.ExecContext(
-		r.Context(),
-		`UPDATE enrollments SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?`,
-		r.ID,
-	)
+	err = s.q.UpdateLastSeen(r.Context(), r.ID)
 	if err != nil {
 		err = fmt.Errorf("updating last seen: %w", err)
 	}
