@@ -85,3 +85,12 @@ func (r *APIResult) Error() error {
 
 	return nil
 }
+
+// QueueAPIResult is the result of queue APIs.
+type QueueAPIResult struct {
+	// Status is the per-enrollment ID results of queue APIs.
+	// Map key is the enrollment ID.
+	Status map[string]*Error `json:"status,omitempty"`
+	// Error is present if there was a general error with the queue API call.
+	Error *Error `json:"error,omitempty"`
+}
