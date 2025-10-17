@@ -121,17 +121,20 @@ UPDATE
 }
 
 func (s *MySQLStorage) storeDeviceTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
-	query := `UPDATE devices SET token_update = ?, token_update_at = CURRENT_TIMESTAMP`
-	args := []interface{}{msg.Raw}
-	// separately store the Unlock Token per MDM spec
 	if len(msg.UnlockToken) > 0 {
-		query += `, unlock_token = ?, unlock_token_at = CURRENT_TIMESTAMP`
-		args = append(args, msg.UnlockToken)
+		params := sqlc.StoreDeviceTokenUpdateWithUnlockParams{
+			TokenUpdate: nullEmptyString(string(msg.Raw)),
+			ID:          r.ID,
+			UnlockToken: nullEmptyString(string(msg.UnlockToken)),
+		}
+		return s.q.StoreDeviceTokenUpdateWithUnlock(r.Context(), params)
+	} else {
+		params := sqlc.StoreDeviceTokenUpdateWithoutUnlockParams{
+			TokenUpdate: nullEmptyString(string(msg.Raw)),
+			ID:          r.ID,
+		}
+		return s.q.StoreDeviceTokenUpdateWithoutUnlock(r.Context(), params)
 	}
-	query += ` WHERE id = ? LIMIT 1;`
-	args = append(args, r.ID)
-	_, err := s.db.ExecContext(r.Context(), query, args...)
-	return err
 }
 
 func (s *MySQLStorage) storeUserTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
