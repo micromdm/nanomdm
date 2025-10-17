@@ -169,6 +169,63 @@ paths:
           description: "Unexpected server error; try again later."
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+  /v1/enrollments/query:
+    post:
+      description: "Query MDM enrollments with filtering and pagination."
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollmentAPIRequest'
+            example:
+              enrollment_types: ['Device']
+              is_enabled: true
+              limit: 50
+      responses:
+        '200':
+          description: Success. Returns a list of enrollments matching the query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentAPIResult'
+              example:
+                enrollments:
+                  - id: '299BD49-1A0C-422C-B285-2E4FF087C673'
+                    type: 'Device'
+                    device:
+                      serial_number: 'C8TJ500QF1MN'
+                    enabled: true
+                    token_update_tally: 12
+                    last_seen: '2025-01-15T14:30:00Z'
+                  - id: 'A1B2C3D4-5E6F-7G8H-9I0J-K1L2M3N4O5P6'
+                    type: 'Device'
+                    device:
+                      serial_number: 'DNPH3X2PQ1GY'
+                    enabled: true
+                    token_update_tally: 8
+                    last_seen: '2025-01-15T10:15:00Z'
+                next_token: '74CE1CA9-8ADD-43CD-B59D-3AC0375EE25F'
+        '400':
+          description: "Failure: bad request; likely cause is a malformed request query or body."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentAPIResult'
+              example:
+                error: "invalid request: 'NonExistentType' is not a valid enrollment type"
+        '500':
+          description: "Unexpected server error; try again later."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentAPIResult'
+              example:
+                error: "database connection failed"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
   /version:
     get:
       description: Returns the running NanoMDM version
@@ -276,3 +333,116 @@ components:
           format: date-time
           description: Expiration date of the uploaded APNs certificate.
           example: '2026-01-07T04:04:46Z'
+    EnrollmentAPIRequest:
+      type: object
+      description: |
+        Query for MDM enrollments. All query parameters are optional.
+        If multiple parameters are provided, they are combined with logical AND.
+        e.g. if both enrollment_types and serials are provided, only enrollments matching both criteria are returned.
+      properties:
+        enrollment_types:
+          type: array
+          items:
+            type: string
+            enum: ['Device', 'User', 'User Enrollment (Device)', 'User Enrollment', 'Shared iPad']
+          description: Filters enrollments by their enrollment types.
+          example: ['Device', 'User Enrollment (Device)']
+        ids:
+          type: array
+          items:
+            type: string
+          description: Returns only enrollments matching the given enrollment IDs.
+          example: ['299BD49-1A0C-422C-B285-2E4FF087C673']
+        serials:
+          type: array
+          items:
+            type: string
+          description: Returns only enrollments matching the given serial numbers.
+          example: ['C8TJ500QF1MN']
+        is_enabled:
+          type: boolean
+          description: Filters enrollments by their enabled/disabled status. If omitted, both enabled and disabled enrollments are returned.
+          example: true
+        limit:
+          type: integer
+          description: Maximum number of enrollments to return in the response. If zero or omitted, all matching enrollments are returned.
+          example: 100
+        next_token:
+          type: string
+          description: Cursor for pagination. The first request should leave this empty. Subsequent requests should set this to the next_token value from the previous response.
+          example: '74CE1CA9-8ADD-43CD-B59D-3AC0375EE25F'
+    EnrollmentAPIResult:
+      type: object
+      description: Response containing a list of enrollments and pagination information.
+      properties:
+        enrollments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Enrollment'
+          description: List of enrollments matching the query.
+        next_token:
+          type: string
+          description: Cursor for pagination. If non-empty, more results may be fetched by setting this value in the next_token field of a subsequent request. Clients should not depend on a particular format of this token.
+          example: '74CE1CA9-8ADD-43CD-B59D-3AC0375EE25F'
+        error:
+          type: string
+          description: Error message if there was an error processing the request.
+    Enrollment:
+      type: object
+      description: Represents an MDM enrollment (device or user channel).
+      properties:
+        id:
+          type: string
+          description: The NanoMDM enrollment ID
+          example: '299BD49-1A0C-422C-B285-2E4FF087C673'
+        type:
+          type: string
+          enum: ['Device', 'User', 'User Enrollment (Device)', 'User Enrollment', 'Shared iPad']
+          description: Type of the enrollment. This value may be empty if the server has not receieved a TokenUpdate from this enrollment yet.
+          example: 'Device'
+        device:
+          $ref: '#/components/schemas/DeviceEnrollment'
+          description: Device information (present for device channel enrollments).
+        user:
+          $ref: '#/components/schemas/UserEnrollment'
+          description: User information (present for user channel enrollments).
+        enabled:
+          type: boolean
+          description: Indicates if the enrollment is active.
+          example: true
+        token_update_tally:
+          type: integer
+          description: Number of TokenUpdate messages received for this enrollment.
+          example: 5
+        last_seen:
+          type: string
+          format: date-time
+          description: Time of the last request from this enrollment.
+          example: '2025-01-15T14:30:00Z'
+      required:
+        - id
+        - enabled
+        - token_update_tally
+        - last_seen
+    DeviceEnrollment:
+      type: object
+      description: Device-specific enrollment information.
+      properties:
+        serial_number:
+          type: string
+          description: Device serial number.
+          example: 'C8TJ500QF1MN'
+      required:
+        - serial_number
+    UserEnrollment:
+      type: object
+      description: User-specific enrollment information.
+      properties:
+        user_short_name:
+          type: string
+          description: For macOS, this value is the short name of the user. For Shared iPad, this value is the Managed Apple Account identifier of the user on Shared iPad.
+          example: 'jane_smith'
+        user_long_name:
+          type: string
+          description: Full name of the user.
+          example: 'Jane Smith'
