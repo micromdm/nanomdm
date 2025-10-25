@@ -104,7 +104,7 @@ paths:
             example: '1'
   /v1/queue/{id}:
     get:
-      description: Retrieve queued MDM commands for a specific enrollment ID with pagination support
+      description: Retrieve queued MDM commands for a specific enrollment ID. Supports both offset-based and cursor-based pagination via query parameters.
       security:
         - basicAuth: []
       parameters:
@@ -115,26 +115,34 @@ paths:
           schema:
             type: string
             example: '299BD49-1A0C-422C-B285-2E4FF087C673'
-        - name: cursor
-          in: query
-          description: Pagination cursor for retrieving the next page of results. Omit or leave empty to start from the beginning.
-          required: false
-          schema:
-            type: string
         - name: limit
           in: query
-          description: Maximum number of commands to retrieve per page.
+          description: Maximum number of commands to return in the response. If zero or omitted, all commands are returned.
           required: false
           schema:
             type: integer
             example: 100
+        - name: offset
+          in: query
+          description: Offset for offset-based pagination. Use offset = 0 for the first request. Mutually exclusive with cursor-based pagination.
+          required: false
+          schema:
+            type: integer
+            example: 0
+        - name: cursor
+          in: query
+          description: Cursor for cursor-based pagination. The first request should leave this empty. Subsequent requests should set this to the next_cursor value from the previous response. Mutually exclusive with offset-based pagination.
+          required: false
+          schema:
+            type: string
+            example: ''
       responses:
         '200':
           description: Successfully retrieved queued commands
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueuedCommandsResponse'
+                $ref: '#/components/schemas/QueueQueryResult'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -551,8 +559,9 @@ components:
           type: string
           description: Full name of the user.
           example: 'Jane Smith'
-    QueuedCommandsResponse:
+    QueueQueryResult:
       type: object
+      description: Result of a queue query containing commands and pagination information.
       properties:
         commands:
           type: array
@@ -575,7 +584,7 @@ components:
                   PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPCFET0NUWVBFIHBsaXN0IFBVQkxJQyAiLS8vQXBwbGUvL0RURCBQTElTVCAxLjAvL0VOIiAiaHR0cDovL3d3dy5hcHBsZS5jb20vRFREcy9Qcm9wZXJ0eUxpc3QtMS4wLmR0ZCI+CjxwbGlzdCB2ZXJzaW9uPSIxLjAiPgo8ZGljdD4KPGtleT5Db21tYW5kPC9rZXk+CjxkaWN0PgogICAgPGtleT5SZXF1ZXN0VHlwZTwva2V5PgogICAgPHN0cmluZz5Qcm9maWxlTGlzdDwvc3RyaW5nPgo8L2RpY3Q+CjxrZXk+Q29tbWFuZFVVSUQ8L2tleT4KPHN0cmluZz5mZWRkNjU5ZS1mYzNjLTRlMzUtOGJiMS1jOGY1MWFlNTQyYTU8L3N0cmluZz4KPC9kaWN0Pgo8L3BsaXN0Pg==
         next_cursor:
           type: string
-          description: Cursor for retrieving the next page of results. Empty if no more results available.
+          description: Cursor for pagination. If non-empty, more commands may be fetched by setting this value in the Cursor field (query parameter) of a subsequent request.
     QueueAPIResult:
       type: object
       description: Result of queue API operations
