@@ -11,23 +11,30 @@ import (
 // If multiple parameters are provided, they are combined with logical AND.
 // e.g. if both EnrollmentTypes and Serials are provided, only enrollments matching
 // both criteria are returned.
-type EnrollmentAPIRequest struct {
-	// EnrollmentTypes, if non-empty, filters enrollments by their enrollment types.
-	EnrollmentTypes []mdm.EnrollType `json:"enrollment_types,omitempty"`
-	// IDs, if non-empty, returns only enrollments matching the given enrollment IDs.
-	IDs []string `json:"ids,omitempty"`
-	// Serials, if non-empty, returns only enrollments matching the given serial numbers.
-	Serials []string `json:"serials,omitempty"`
-	// IsEnabled filters enrollments by their enabled/disabled status.
-	// If nil, both enabled and disabled enrollments are returned.
-	IsEnabled *bool `json:"is_enabled,omitempty"`
-	// Limit is the maximum number of enrollments to return in the response.
-	// If zero, all matching enrollments are returned.
+type EnrollmentQueryFilter struct {
+	IDs            []string
+	Serials        []string
+	UserShortNames []string
+	Types          []string
+	Enabled        *bool
+}
 
-	Limit int `json:"limit,omitempty"`
-	// NextToken is a cursor for pagination. The first request should leave this empty.
-	// Subsequent requests should set this to the NextToken value from the previous response.
-	NextToken string `json:"next_token,omitempty"`
+// Support both limit/offset, as well as cursor
+type Pagination struct {
+	Limit  int
+	Offset int
+	Cursor string
+}
+
+type EnrollmentQueryOptions struct {
+	// By default we do not include the Device Identity certificate in the response.
+	IncludeDeviceCert bool
+}
+
+type EnrollmentsQuery struct {
+	Filter     EnrollmentQueryFilter
+	Pagination Pagination
+	Options    EnrollmentQueryOptions
 }
 
 type DeviceEnrollment struct {
