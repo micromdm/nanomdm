@@ -171,26 +171,50 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
   /v1/enrollments/query:
     post:
-      description: "Query MDM enrollments with filtering and pagination."
+      description: "Query MDM enrollments with filtering and pagination. Supports both offset-based and cursor-based pagination via query parameters."
       security:
         - basicAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of enrollments to return in the response. If zero or omitted, all matching enrollments are returned.
+          required: false
+          schema:
+            type: integer
+            example: 50
+        - name: offset
+          in: query
+          description: Offset for offset-based pagination. Use offset = 0 for the first request. Mutually exclusive with cursor-based pagination.
+          required: false
+          schema:
+            type: integer
+            example: 0
+        - name: cursor
+          in: query
+          description: Cursor for cursor-based pagination. The first request should leave this empty. Subsequent requests should set this to the next_token value from the previous response. Mutually exclusive with offset-based pagination.
+          required: false
+          schema:
+            type: string
+            example: '74CE1CA9-8ADD-43CD-B59D-3AC0375EE25F'
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EnrollmentAPIRequest'
+              $ref: '#/components/schemas/EnrollmentsQuery'
             example:
-              enrollment_types: ['Device']
-              is_enabled: true
-              limit: 50
+              filter:
+                types: ['Device']
+                enabled: true
+              options:
+                include_device_cert: false
       responses:
         '200':
           description: Success. Returns a list of enrollments matching the query.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnrollmentAPIResult'
+                $ref: '#/components/schemas/EnrollmentsQueryResult'
               example:
                 enrollments:
                   - id: '299BD49-1A0C-422C-B285-2E4FF087C673'
@@ -213,7 +237,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnrollmentAPIResult'
+                $ref: '#/components/schemas/EnrollmentsQueryResult'
               example:
                 error: "invalid request: 'NonExistentType' is not a valid enrollment type"
         '500':
@@ -221,7 +245,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnrollmentAPIResult'
+                $ref: '#/components/schemas/EnrollmentsQueryResult'
               example:
                 error: "database connection failed"
         '401':
@@ -333,20 +357,21 @@ components:
           format: date-time
           description: Expiration date of the uploaded APNs certificate.
           example: '2026-01-07T04:04:46Z'
-    EnrollmentAPIRequest:
+    EnrollmentsQuery:
+      type: object
+      description: Query for MDM enrollments. All fields are optional.
+      properties:
+        filter:
+          $ref: '#/components/schemas/EnrollmentsQueryFilter'
+        options:
+          $ref: '#/components/schemas/EnrollmentQueryOptions'
+    EnrollmentsQueryFilter:
       type: object
       description: |
-        Query for MDM enrollments. All query parameters are optional.
+        Filter for enrollments. All query parameters are optional.
         If multiple parameters are provided, they are combined with logical AND.
-        e.g. if both enrollment_types and serials are provided, only enrollments matching both criteria are returned.
+        e.g. if both types and serials are provided, only enrollments matching both criteria are returned.
       properties:
-        enrollment_types:
-          type: array
-          items:
-            type: string
-            enum: ['Device', 'User', 'User Enrollment (Device)', 'User Enrollment', 'Shared iPad']
-          description: Filters enrollments by their enrollment types.
-          example: ['Device', 'User Enrollment (Device)']
         ids:
           type: array
           items:
@@ -359,19 +384,33 @@ components:
             type: string
           description: Returns only enrollments matching the given serial numbers.
           example: ['C8TJ500QF1MN']
-        is_enabled:
+        user_short_names:
+          type: array
+          items:
+            type: string
+          description: Returns only enrollments matching the given user short names.
+          example: ['jane_smith', 'john_doe']
+        types:
+          type: array
+          items:
+            type: string
+            enum: ['Device', 'User', 'User Enrollment (Device)', 'User Enrollment', 'Shared iPad']
+          description: Filters enrollments by their enrollment types.
+          example: ['Device', 'User Enrollment (Device)']
+        enabled:
           type: boolean
           description: Filters enrollments by their enabled/disabled status. If omitted, both enabled and disabled enrollments are returned.
           example: true
-        limit:
-          type: integer
-          description: Maximum number of enrollments to return in the response. If zero or omitted, all matching enrollments are returned.
-          example: 100
-        next_token:
-          type: string
-          description: Cursor for pagination. The first request should leave this empty. Subsequent requests should set this to the next_token value from the previous response.
-          example: '74CE1CA9-8ADD-43CD-B59D-3AC0375EE25F'
-    EnrollmentAPIResult:
+    EnrollmentQueryOptions:
+      type: object
+      description: Options for enrollment query results.
+      properties:
+        include_device_cert:
+          type: boolean
+          description: By default, the Device Identity certificate is not included in the response. Set to true to include it.
+          default: false
+          example: false
+    EnrollmentsQueryResult:
       type: object
       description: Response containing a list of enrollments and pagination information.
       properties:

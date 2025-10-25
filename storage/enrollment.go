@@ -12,11 +12,11 @@ import (
 // e.g. if both EnrollmentTypes and Serials are provided, only enrollments matching
 // both criteria are returned.
 type EnrollmentsQueryFilter struct {
-	IDs            []string
-	Serials        []string
-	UserShortNames []string
-	Types          []string
-	Enabled        *bool
+	IDs            []string `json:"ids,omitempty"`
+	Serials        []string `json:"serials,omitempty"`
+	UserShortNames []string `json:"user_short_names,omitempty"`
+	Types          []string `json:"types,omitempty"`
+	Enabled        *bool    `json:"enabled,omitempty"`
 }
 
 // Pagination supports both limit/offset, as well as cursor.
@@ -30,14 +30,14 @@ type Pagination struct {
 
 type EnrollmentQueryOptions struct {
 	// By default we do not include the Device Identity certificate in the response.
-	IncludeDeviceCert bool
+	IncludeDeviceCert bool `json:"include_device_cert,omitempty"`
 }
 
 // EnrollmentsQuery represents a query for MDM enrollments.
 type EnrollmentsQuery struct {
-	Filter     EnrollmentsQueryFilter
-	Pagination Pagination
-	Options    EnrollmentQueryOptions
+	Filter     EnrollmentsQueryFilter `json:"filter,omitempty"`
+	Pagination Pagination             `json:"-"`
+	Options    EnrollmentQueryOptions `json:"options,omitempty"`
 }
 
 type DeviceEnrollment struct {
