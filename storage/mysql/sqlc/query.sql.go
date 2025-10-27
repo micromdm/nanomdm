@@ -27,6 +27,17 @@ func (q *Queries) DisableEnrollment(ctx context.Context, deviceID string) error 
 	return err
 }
 
+const retrieveBootstrapToken = `-- name: RetrieveBootstrapToken :one
+SELECT bootstrap_token_b64 FROM devices WHERE id = ?
+`
+
+func (q *Queries) RetrieveBootstrapToken(ctx context.Context, id string) (sql.NullString, error) {
+	row := q.db.QueryRowContext(ctx, retrieveBootstrapToken, id)
+	var bootstrap_token_b64 sql.NullString
+	err := row.Scan(&bootstrap_token_b64)
+	return bootstrap_token_b64, err
+}
+
 const retrieveMigrationCheckinsDevices = `-- name: RetrieveMigrationCheckinsDevices :many
 SELECT authenticate, token_update FROM devices
 `

@@ -21,11 +21,7 @@ func (s *MySQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrap
 
 func (s *MySQLStorage) RetrieveBootstrapToken(r *mdm.Request, _ *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
 	var tokenB64 sql.NullString
-	err := s.db.QueryRowContext(
-		r.Context(),
-		`SELECT bootstrap_token_b64 FROM devices WHERE id = ?;`,
-		r.ID,
-	).Scan(&tokenB64)
+	tokenB64, err := s.q.RetrieveBootstrapToken(r.Context(), r.ID)
 	if err != nil || !tokenB64.Valid {
 		return nil, err
 	}
