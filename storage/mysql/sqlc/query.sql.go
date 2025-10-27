@@ -97,6 +97,20 @@ func (q *Queries) RetrieveTokenUpdateTally(ctx context.Context, id string) (int3
 	return token_update_tally, err
 }
 
+const storeBootstrapToken = `-- name: StoreBootstrapToken :exec
+UPDATE devices SET bootstrap_token_b64 = ?, bootstrap_token_at = CURRENT_TIMESTAMP WHERE id = ? LIMIT 1
+`
+
+type StoreBootstrapTokenParams struct {
+	BootstrapTokenB64 sql.NullString
+	ID                string
+}
+
+func (q *Queries) StoreBootstrapToken(ctx context.Context, arg StoreBootstrapTokenParams) error {
+	_, err := q.db.ExecContext(ctx, storeBootstrapToken, arg.BootstrapTokenB64, arg.ID)
+	return err
+}
+
 const storeDeviceTokenUpdateWithUnlock = `-- name: StoreDeviceTokenUpdateWithUnlock :exec
 UPDATE devices
 SET

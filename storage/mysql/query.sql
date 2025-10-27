@@ -36,3 +36,6 @@ SELECT authenticate, token_update FROM devices;
 
 -- name: RetrieveMigrationCheckinsUsers :many
 SELECT token_update FROM users;
+
+-- name: StoreBootstrapToken :exec
+UPDATE devices SET bootstrap_token_b64 = ?, bootstrap_token_at = CURRENT_TIMESTAMP WHERE id = ? LIMIT 1;
