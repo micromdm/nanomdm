@@ -30,3 +30,9 @@ SET
     unlock_token = ?,
     unlock_token_at = CURRENT_TIMESTAMP
 WHERE id = ? LIMIT 1;
+
+-- name: RetrieveMigrationCheckinsDevices :many
+SELECT authenticate, token_update FROM devices;
+
+-- name: RetrieveMigrationCheckinsUsers :many
+SELECT token_update FROM users;

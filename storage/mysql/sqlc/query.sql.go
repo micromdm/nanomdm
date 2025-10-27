@@ -27,6 +27,65 @@ func (q *Queries) DisableEnrollment(ctx context.Context, deviceID string) error 
 	return err
 }
 
+const retrieveMigrationCheckinsDevices = `-- name: RetrieveMigrationCheckinsDevices :many
+SELECT authenticate, token_update FROM devices
+`
+
+type RetrieveMigrationCheckinsDevicesRow struct {
+	Authenticate string
+	TokenUpdate  sql.NullString
+}
+
+func (q *Queries) RetrieveMigrationCheckinsDevices(ctx context.Context) ([]RetrieveMigrationCheckinsDevicesRow, error) {
+	rows, err := q.db.QueryContext(ctx, retrieveMigrationCheckinsDevices)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RetrieveMigrationCheckinsDevicesRow
+	for rows.Next() {
+		var i RetrieveMigrationCheckinsDevicesRow
+		if err := rows.Scan(&i.Authenticate, &i.TokenUpdate); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const retrieveMigrationCheckinsUsers = `-- name: RetrieveMigrationCheckinsUsers :many
+SELECT token_update FROM users
+`
+
+func (q *Queries) RetrieveMigrationCheckinsUsers(ctx context.Context) ([]sql.NullString, error) {
+	rows, err := q.db.QueryContext(ctx, retrieveMigrationCheckinsUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []sql.NullString
+	for rows.Next() {
+		var token_update sql.NullString
+		if err := rows.Scan(&token_update); err != nil {
+			return nil, err
+		}
+		items = append(items, token_update)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const retrieveTokenUpdateTally = `-- name: RetrieveTokenUpdateTally :one
 SELECT token_update_tally FROM enrollments WHERE id = ?
 `
