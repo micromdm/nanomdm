@@ -22,6 +22,7 @@ import (
 	pushsvc "github.com/micromdm/nanomdm/push/service"
 	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/service/certauth"
+	"github.com/micromdm/nanomdm/service/dmhook"
 	"github.com/micromdm/nanomdm/service/dump"
 	"github.com/micromdm/nanomdm/service/multi"
 	"github.com/micromdm/nanomdm/service/nanomdm"
@@ -72,6 +73,8 @@ func main() {
 		flMigration  = flag.Bool("migration", false, "enable HTTP endpoint for enrollment migrations")
 		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
 		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
+		flDMSendKey  = flag.String("dm-send-hmac-key", "", "attaches an HMAC HTTP header to each DM request using this key")
+		flDMRecvKey  = flag.String("dm-recv-hmac-key", "", "verifies an HMAC HTTP header from each DM request using this key")
 		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
 		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
 		flWHHMACKey  = flag.String("webhook-hmac-key", "", "attaches an HMAC HTTP header to each webhook request using this key")
@@ -127,11 +130,18 @@ func main() {
 			warningText = ": warning: URL has no trailing slash"
 		}
 		logger.Debug("msg", "declarative management setup"+warningText, "url", *flDMURLPfx)
-		dm, err := nanomdm.NewDeclarativeManagementHTTPCaller(*flDMURLPfx, http.DefaultClient)
+		var dmHookOpts []dmhook.Option
+		if *flDMSendKey != "" {
+			dmHookOpts = append(dmHookOpts, dmhook.WithSetHMACSecret([]byte(*flDMSendKey)))
+		}
+		if *flDMRecvKey != "" {
+			dmHookOpts = append(dmHookOpts, dmhook.WithVerifyHMACSecret([]byte(*flDMRecvKey)))
+		}
+		dmHook, err := dmhook.New(*flDMURLPfx, dmHookOpts...)
 		if err != nil {
 			stdlog.Fatal(err)
 		}
-		nanoOpts = append(nanoOpts, nanomdm.WithDeclarativeManagement(dm))
+		nanoOpts = append(nanoOpts, nanomdm.WithDeclarativeManagement(dmHook))
 	}
 	nano := nanomdm.New(mdmStorage, nanoOpts...)
 

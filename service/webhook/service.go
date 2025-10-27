@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"hash"
 	"net/http"
 	"time"
 
@@ -63,7 +64,6 @@ type Webhook struct {
 	doer  Doer
 	store storage.TokenUpdateTallyStore
 	nowFn func() time.Time
-	key   []byte
 }
 
 // Options configure webhook services.
@@ -88,7 +88,14 @@ func WithClient(doer Doer) Option {
 // The HMAC is provided in the [HMACHeader] header and is Base-64 encoded.
 func WithHMACSecret(key []byte) Option {
 	return func(w *Webhook) {
-		w.key = key
+		w.doer = hashbody.NewSetBodyHashClient(
+			w.doer,
+			HMACHeader,
+			func() hash.Hash {
+				return hmac.New(sha256.New, key)
+			},
+			base64.StdEncoding.EncodeToString,
+		)
 	}
 }
 
@@ -118,21 +125,6 @@ func (w *Webhook) send(ctx context.Context, event *EventJson) error {
 	}
 
 	req.Header.Set("Content-Type", ContentType)
-
-	if len(w.key) > 0 {
-		// generate SHA-256 HMAC header for body
-		_, err := hashbody.SetBodyHashHeader(
-			req,
-			HMACHeader,
-			hmac.New(sha256.New, w.key),
-			func(b []byte) string {
-				return base64.StdEncoding.EncodeToString(b)
-			},
-		)
-		if err != nil {
-			return err
-		}
-	}
 
 	resp, err := w.doer.Do(req)
 	if err != nil {
