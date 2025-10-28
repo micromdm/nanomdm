@@ -10,13 +10,6 @@ import (
 	"github.com/micromdm/nanomdm/storage/mysql/sqlc"
 )
 
-// Executes SQL statements that return a single COUNT(*) of rows.
-func (s *MySQLStorage) queryRowContextRowExists(ctx context.Context, query string, args ...interface{}) (bool, error) {
-	var ct int
-	err := s.db.QueryRowContext(ctx, query, args...).Scan(&ct)
-	return ct > 0, err
-}
-
 func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
 	ct, err := s.q.EnrollmentHasCertHash(r.Context(), r.ID)
 	return ct > 0, err
