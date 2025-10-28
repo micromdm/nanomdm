@@ -4,15 +4,15 @@ import (
 	"database/sql"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage/mysql/sqlc"
 )
 
 func (s *MySQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrapToken) error {
-	_, err := s.db.ExecContext(
-		r.Context(),
-		`UPDATE devices SET bootstrap_token_b64 = ?, bootstrap_token_at = CURRENT_TIMESTAMP WHERE id = ? LIMIT 1;`,
-		nullEmptyString(msg.BootstrapToken.BootstrapToken.String()),
-		r.ID,
-	)
+	params := sqlc.StoreBootstrapTokenParams{
+		BootstrapTokenB64: nullEmptyString(msg.BootstrapToken.BootstrapToken.String()),
+		ID:                r.ID,
+	}
+	err := s.q.StoreBootstrapToken(r.Context(), params)
 	if err != nil {
 		return err
 	}
@@ -21,11 +21,7 @@ func (s *MySQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrap
 
 func (s *MySQLStorage) RetrieveBootstrapToken(r *mdm.Request, _ *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
 	var tokenB64 sql.NullString
-	err := s.db.QueryRowContext(
-		r.Context(),
-		`SELECT bootstrap_token_b64 FROM devices WHERE id = ?;`,
-		r.ID,
-	).Scan(&tokenB64)
+	tokenB64, err := s.q.RetrieveBootstrapToken(r.Context(), r.ID)
 	if err != nil || !tokenB64.Valid {
 		return nil, err
 	}
