@@ -49,6 +49,22 @@ func (q *Queries) HasCertHash(ctx context.Context, sha256 string) (int64, error)
 	return count, err
 }
 
+const isCertHashAssociated = `-- name: IsCertHashAssociated :one
+SELECT COUNT(*) FROM cert_auth_associations WHERE id = ? AND sha256 = ?
+`
+
+type IsCertHashAssociatedParams struct {
+	ID     string
+	Sha256 string
+}
+
+func (q *Queries) IsCertHashAssociated(ctx context.Context, arg IsCertHashAssociatedParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, isCertHashAssociated, arg.ID, arg.Sha256)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const retrieveBootstrapToken = `-- name: RetrieveBootstrapToken :one
 SELECT bootstrap_token_b64 FROM devices WHERE id = ?
 `

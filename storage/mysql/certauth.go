@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage/mysql/sqlc"
 )
 
 // Executes SQL statements that return a single COUNT(*) of rows.
@@ -27,11 +28,12 @@ func (s *MySQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
 }
 
 func (s *MySQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, error) {
-	return s.queryRowContextRowExists(
-		r.Context(),
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = ? AND sha256 = ?;`,
-		r.ID, strings.ToLower(hash),
-	)
+	params := sqlc.IsCertHashAssociatedParams{
+		ID:     r.ID,
+		Sha256: strings.ToLower(hash),
+	}
+	ct, err := s.q.IsCertHashAssociated(r.Context(), params)
+	return ct > 0, err
 }
 
 func (s *MySQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
