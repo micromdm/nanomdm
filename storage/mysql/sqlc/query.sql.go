@@ -27,6 +27,17 @@ func (q *Queries) DisableEnrollment(ctx context.Context, deviceID string) error 
 	return err
 }
 
+const enrollmentFromHash = `-- name: EnrollmentFromHash :one
+SELECT id FROM cert_auth_associations WHERE sha256 = ? LIMIT 1
+`
+
+func (q *Queries) EnrollmentFromHash(ctx context.Context, sha256 string) (string, error) {
+	row := q.db.QueryRowContext(ctx, enrollmentFromHash, sha256)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const enrollmentHasCertHash = `-- name: EnrollmentHasCertHash :one
 SELECT COUNT(*) FROM cert_auth_associations WHERE id = ?
 `

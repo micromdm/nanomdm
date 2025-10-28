@@ -51,3 +51,6 @@ SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = ?;
 
 -- name: IsCertHashAssociated :one
 SELECT COUNT(*) FROM cert_auth_associations WHERE id = ? AND sha256 = ?;
+
+-- name: EnrollmentFromHash :one
+SELECT id FROM cert_auth_associations WHERE sha256 = ? LIMIT 1;
