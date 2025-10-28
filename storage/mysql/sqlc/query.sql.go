@@ -146,6 +146,23 @@ func (q *Queries) RetrieveMigrationCheckinsUsers(ctx context.Context) ([]sql.Nul
 	return items, nil
 }
 
+const retrievePushCert = `-- name: RetrievePushCert :one
+SELECT cert_pem, key_pem, stale_token FROM push_certs WHERE topic = ?
+`
+
+type RetrievePushCertRow struct {
+	CertPem    string
+	KeyPem     string
+	StaleToken int32
+}
+
+func (q *Queries) RetrievePushCert(ctx context.Context, topic string) (RetrievePushCertRow, error) {
+	row := q.db.QueryRowContext(ctx, retrievePushCert, topic)
+	var i RetrievePushCertRow
+	err := row.Scan(&i.CertPem, &i.KeyPem, &i.StaleToken)
+	return i, err
+}
+
 const retrieveTokenUpdateTally = `-- name: RetrieveTokenUpdateTally :one
 SELECT token_update_tally FROM enrollments WHERE id = ?
 `
