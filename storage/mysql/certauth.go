@@ -22,11 +22,8 @@ func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, er
 }
 
 func (s *MySQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
-	return s.queryRowContextRowExists(
-		r.Context(),
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = ?;`,
-		strings.ToLower(hash),
-	)
+	ct, err := s.q.HasCertHash(r.Context(), strings.ToLower(hash))
+	return ct > 0, err
 }
 
 func (s *MySQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, error) {

@@ -38,6 +38,17 @@ func (q *Queries) EnrollmentHasCertHash(ctx context.Context, id string) (int64, 
 	return count, err
 }
 
+const hasCertHash = `-- name: HasCertHash :one
+SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = ?
+`
+
+func (q *Queries) HasCertHash(ctx context.Context, sha256 string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, hasCertHash, sha256)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const retrieveBootstrapToken = `-- name: RetrieveBootstrapToken :one
 SELECT bootstrap_token_b64 FROM devices WHERE id = ?
 `
