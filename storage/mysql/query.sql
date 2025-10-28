@@ -42,3 +42,6 @@ UPDATE devices SET bootstrap_token_b64 = ?, bootstrap_token_at = CURRENT_TIMESTA
 
 -- name: RetrieveBootstrapToken :one
 SELECT bootstrap_token_b64 FROM devices WHERE id = ?;
+
+-- name: EnrollmentHasCertHash :one
+SELECT COUNT(*) FROM cert_auth_associations WHERE id = ?;

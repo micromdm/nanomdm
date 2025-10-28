@@ -17,11 +17,8 @@ func (s *MySQLStorage) queryRowContextRowExists(ctx context.Context, query strin
 }
 
 func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
-	return s.queryRowContextRowExists(
-		r.Context(),
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = ?;`,
-		r.ID,
-	)
+	ct, err := s.q.EnrollmentHasCertHash(r.Context(), r.ID)
+	return ct > 0, err
 }
 
 func (s *MySQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {

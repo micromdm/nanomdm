@@ -27,6 +27,17 @@ func (q *Queries) DisableEnrollment(ctx context.Context, deviceID string) error 
 	return err
 }
 
+const enrollmentHasCertHash = `-- name: EnrollmentHasCertHash :one
+SELECT COUNT(*) FROM cert_auth_associations WHERE id = ?
+`
+
+func (q *Queries) EnrollmentHasCertHash(ctx context.Context, id string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, enrollmentHasCertHash, id)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const retrieveBootstrapToken = `-- name: RetrieveBootstrapToken :one
 SELECT bootstrap_token_b64 FROM devices WHERE id = ?
 `
