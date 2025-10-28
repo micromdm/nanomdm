@@ -76,6 +76,17 @@ func (q *Queries) IsCertHashAssociated(ctx context.Context, arg IsCertHashAssoci
 	return count, err
 }
 
+const isPushCertStale = `-- name: IsPushCertStale :one
+SELECT stale_token FROM push_certs WHERE topic = ?
+`
+
+func (q *Queries) IsPushCertStale(ctx context.Context, topic string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, isPushCertStale, topic)
+	var stale_token int32
+	err := row.Scan(&stale_token)
+	return stale_token, err
+}
+
 const retrieveBootstrapToken = `-- name: RetrieveBootstrapToken :one
 SELECT bootstrap_token_b64 FROM devices WHERE id = ?
 `

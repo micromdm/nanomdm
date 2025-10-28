@@ -57,3 +57,6 @@ SELECT id FROM cert_auth_associations WHERE sha256 = ? LIMIT 1;
 
 -- name: RetrievePushCert :one
 SELECT cert_pem, key_pem, stale_token FROM push_certs WHERE topic = ?;
+
+-- name: IsPushCertStale :one
+SELECT stale_token FROM push_certs WHERE topic = ?;

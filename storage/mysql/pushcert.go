@@ -21,17 +21,13 @@ func (s *MySQLStorage) RetrievePushCert(ctx context.Context, topic string) (*tls
 }
 
 func (s *MySQLStorage) IsPushCertStale(ctx context.Context, topic, staleToken string) (bool, error) {
-	var staleTokenInt, dbStaleToken int
+	var staleTokenInt int
 	staleTokenInt, err := strconv.Atoi(staleToken)
 	if err != nil {
 		return true, err
 	}
-	err = s.db.QueryRowContext(
-		ctx,
-		`SELECT stale_token FROM push_certs WHERE topic = ?;`,
-		topic,
-	).Scan(&dbStaleToken)
-	return dbStaleToken != staleTokenInt, err
+	dbStaleToken, err := s.q.IsPushCertStale(ctx, topic)
+	return int(dbStaleToken) != staleTokenInt, err
 }
 
 func (s *MySQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte) error {
