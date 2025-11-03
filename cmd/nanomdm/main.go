@@ -15,7 +15,6 @@ import (
 	"github.com/micromdm/nanomdm/certverify"
 	"github.com/micromdm/nanomdm/cli"
 	"github.com/micromdm/nanomdm/cryptoutil"
-	mdmhttp "github.com/micromdm/nanomdm/http"
 	httpapi "github.com/micromdm/nanomdm/http/api"
 	"github.com/micromdm/nanomdm/http/authproxy"
 	httpmdm "github.com/micromdm/nanomdm/http/mdm"
@@ -137,7 +136,7 @@ func main() {
 	nano := nanomdm.New(mdmStorage, nanoOpts...)
 
 	mux := http.NewServeMux()
-	mdmAuthMux := mdmhttp.NewMWMux(mux)
+	mdmAuthMux := nlhttp.NewMWMux(mux)
 
 	if *flCertHeader != "" {
 		// extract certificate from HTTP header (mTLS)
@@ -203,7 +202,7 @@ func main() {
 				stdlog.Fatal(err)
 			}
 
-			apMux := mdmhttp.NewMWMux(mdmAuthMux)
+			apMux := nlhttp.NewMWMux(mdmAuthMux)
 
 			// wrap with enrollment ID lookup middleware
 			apMux.Use(func(h http.Handler) http.Handler {
@@ -224,7 +223,7 @@ func main() {
 	if *flAPIKey != "" {
 		const apiUsername = "nanomdm"
 
-		apiAuthMux := mdmhttp.NewMWMux(mux)
+		apiAuthMux := nlhttp.NewMWMux(mux)
 
 		apiAuthMux.Use(func(h http.Handler) http.Handler {
 			return nlhttp.NewSimpleBasicAuthHandler(h, apiUsername, *flAPIKey, "nanomdm")

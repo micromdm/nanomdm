@@ -6,15 +6,16 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/micromdm/nanolib/log"
 	"github.com/micromdm/nanomdm/cryptoutil"
-	mdmhttp "github.com/micromdm/nanomdm/http"
 	httpapi "github.com/micromdm/nanomdm/http/api"
 	httpmdm "github.com/micromdm/nanomdm/http/mdm"
 	"github.com/micromdm/nanomdm/service"
 	"github.com/micromdm/nanomdm/service/certauth"
 	"github.com/micromdm/nanomdm/service/nanomdm"
 	"github.com/micromdm/nanomdm/storage"
+
+	nlhttp "github.com/micromdm/nanolib/http"
+	"github.com/micromdm/nanolib/log"
 )
 
 const (
@@ -33,7 +34,7 @@ func setupNanoMDM(serverURL string, logger log.Logger, store storage.AllStorage)
 	svc = certauth.New(svc, store, certauth.WithLogger(logger))
 
 	mux := http.NewServeMux()
-	mdmMux := mdmhttp.NewMWMux(mux)
+	mdmMux := nlhttp.NewMWMux(mux)
 
 	// setup certificate extraction
 	// note missing auth for tests
