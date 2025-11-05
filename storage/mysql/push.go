@@ -8,7 +8,7 @@ import (
 	"github.com/micromdm/nanomdm/mdm"
 )
 
-// RetrievePushInfo retreives push info for identifiers ids.
+// RetrievePushInfo retrieves push info for identifiers ids.
 //
 // Note that we may return fewer results than input. The user of this
 // method needs to reconcile that with their requested ids.
