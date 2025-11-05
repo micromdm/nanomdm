@@ -183,6 +183,18 @@ Specifies the "base" URL to send Declarative Management requests to. The full UR
 
 Note that the URL should likely have a trailing slash. Otherwise path elements of the URL may be cut off by Golang's relative URL path resolver.
 
+### -dm-send-hmac-key string
+
+* attaches an HMAC HTTP header to each DM request using this key [NANOMDM_DM_SEND_HMAC_KEY]
+
+When configured to use a Declarative Management (see the `-dm` flag) this flag turns on generation of a SHA-256 HMAC digest of each HTTP request body. The HMAC is included in the HTTP header `X-Hmac-Signature` and is Base-64 encoded.
+
+### -dm-recv-hmac-key string
+
+* verifies an HMAC HTTP header from each DM request using this key [NANOMDM_DM_RECV_HMAC_KEY]
+
+When configured to use a Declarative Management (see the `-dm` flag) this flag turns on verification of a SHA-256 HMAC digest of each HTTP request body. The HMAC is read from the HTTP header `X-Hmac-Signature` and is expected to be Base-64 encoded.
+
 ### -migration
 
 * enable HTTP endpoint for enrollment migrations [NANOMDM_MIGRATION]
