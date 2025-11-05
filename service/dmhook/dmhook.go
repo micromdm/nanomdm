@@ -42,6 +42,7 @@ type DMHook struct {
 type Option func(*DMHook)
 
 // WithClient configures an HTTP client to use when sending HTTP requests.
+// This option should be specified before other options that modify the client.
 func WithClient(client Doer) Option {
 	return func(d *DMHook) {
 		d.doer = client
@@ -50,6 +51,7 @@ func WithClient(client Doer) Option {
 
 // WithSetHMACSecret will add a SHA-256 HMAC of the webhook DM request body using key.
 // The HMAC is provided in the [HMACHeader] header and is Base-64 encoded.
+// This option wraps the existing configured HTTP client. Beware client ordering.
 func WithSetHMACSecret(key []byte) Option {
 	return func(s *DMHook) {
 		s.doer = hashbody.NewSetBodyHashClient(
@@ -65,6 +67,7 @@ func WithSetHMACSecret(key []byte) Option {
 
 // WithVerifyHMACSecret will verify a SHA-256 HMAC of the webhook DM response body using key.
 // The HMAC is read from the [HMACHeader] header and is assumed to be Base-64 encoded.
+// This option wraps the existing configured HTTP client. Beware client ordering.
 func WithVerifyHMACSecret(key []byte) Option {
 	return func(s *DMHook) {
 		s.doer = hashbody.NewVerifyBodyHashClient(
