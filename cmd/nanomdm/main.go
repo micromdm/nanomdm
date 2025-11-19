@@ -174,7 +174,10 @@ func main() {
 	if !*flDisableMDM {
 		var mdmService service.CheckinAndCommandService = nano
 		if *flWebhook != "" {
-			whOpts := []webhook.Option{webhook.WithTokenUpdateTalley(mdmStorage)}
+			whOpts := []webhook.Option{
+				webhook.WithTokenUpdateTalley(mdmStorage),
+				webhook.WithEventID(trace.GetTraceID),
+			}
 			if *flWHHMACKey != "" {
 				whOpts = append(whOpts, webhook.WithHMACSecret([]byte(*flWHHMACKey)))
 			}
