@@ -117,7 +117,7 @@ func TestWebhook(t *testing.T) {
 	if !bytes.Equal(bytes.TrimSpace(eventBytes), bytes.TrimSpace(reqBody)) {
 		t.Error("submitted event is not equal to testdata")
 
-		// uncomment for inspection of JSON
+		// uncomment for inspection of JSON (i.e. to debug tests)
 		// os.WriteFile("testdata/output.Authenticate.2.json", reqBody, 0644)
 	}
 
@@ -187,7 +187,7 @@ func TestWebhook(t *testing.T) {
 	if !bytes.Equal(bytes.TrimSpace(eventBytes), bytes.TrimSpace(reqBody)) {
 		t.Error("submitted event is not equal to testdata")
 
-		// uncomment for inspection of JSON
-		os.WriteFile("testdata/output.DeviceInformation.1.json", reqBody, 0644)
+		// uncomment for inspection of JSON (i.e. to debug tests)
+		// os.WriteFile("testdata/output.DeviceInformation.1.json", reqBody, 0644)
 	}
 }
