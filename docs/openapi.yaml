@@ -36,11 +36,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/PushCertResponse'
         '400':
-          $ref: '#/components/responses/APIError'
+          description: Error(s) with the uploaded APNs certificate or private key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          $ref: '#/components/responses/APIError'
+          description: Server errors reading HTTP request or storing APNs certificate or private key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/push/{id*}:
     get:
       description: Send APNs push notifications to MDM enrollments
@@ -230,12 +238,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/APIResult'
-    APIError:
-      description: Errors returned from an API endpoint. HTTP status code may indicate the source of the error (i.e. server-side or request/input side).
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
   schemas:
     APIResult:
       type: object
