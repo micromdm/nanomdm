@@ -45,12 +45,12 @@ func readPEMCertAndKey(input []byte) (cert []byte, key []byte, err error) {
 	return
 }
 
-// StorePushCertHandler reads a PEM-encoded certificate and private
+// NewStorePushCertHandler reads a PEM-encoded certificate and private
 // key from the HTTP body and saves it to storage. This effectively
 // enables us to do something like:
-// "% cat push.pem push.key | curl -T - http://api.example.com/" to
-// upload our push certs.
-func StorePushCertHandler(storage storage.PushCertStore, logger log.Logger) http.HandlerFunc {
+// `% cat push.pem push.key | curl -T - http://example.com:9001/v1/pushcert` to
+// upload our MDM APNs push cert.
+func NewStorePushCertHandler(storage storage.PushCertStorer, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 

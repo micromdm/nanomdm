@@ -17,7 +17,12 @@ type pushCertUploader interface {
 	PushCert(ctx context.Context, pemCert, pemKey []byte) error
 }
 
-func pushcert(t *testing.T, ctx context.Context, a pushCertUploader, store storage.PushCertStore) {
+type pushStore interface {
+	storage.PushCertStore
+	storage.PushCertStorer
+}
+
+func pushcert(t *testing.T, ctx context.Context, a pushCertUploader, store pushStore) {
 	pemCert, err := os.ReadFile("../../test/e2e/testdata/push.pem")
 	if err != nil {
 		t.Fatal(err)

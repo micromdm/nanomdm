@@ -28,6 +28,7 @@ type Mux interface {
 // APIStorage is required for the API handlers.
 type APIStorage interface {
 	storage.PushCertStore
+	storage.PushCertStorer
 	storage.CommandEnqueuer
 }
 
@@ -46,7 +47,7 @@ func HandleAPIv1(prefix string, mux Mux, logger log.Logger, store APIStorage, pu
 	// register API handler for push cert storage/upload
 	mux.Handle(
 		prefix+APIEndpointPushCert,
-		StorePushCertHandler(
+		NewStorePushCertHandler(
 			store,
 			logger.With("handler", handlerName(APIEndpointPushCert)),
 		),
