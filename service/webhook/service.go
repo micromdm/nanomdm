@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/micromdm/nanolib/http/trace"
 	"github.com/micromdm/nanomdm/http/hashbody"
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/storage"
@@ -60,10 +59,11 @@ func ids(eid *mdm.EnrollID) *IDs {
 
 // Webhook is a NanoMDM service for sending HTTP webhook events.
 type Webhook struct {
-	url   string
-	doer  Doer
-	store storage.TokenUpdateTallyStore
-	nowFn func() time.Time
+	url       string
+	doer      Doer
+	store     storage.TokenUpdateTallyStore
+	nowFn     func() time.Time
+	eventIDFn func(context.Context) string
 }
 
 // Options configure webhook services.
@@ -81,6 +81,14 @@ func WithTokenUpdateTalley(store storage.TokenUpdateTallyStore) Option {
 func WithClient(doer Doer) Option {
 	return func(w *Webhook) {
 		w.doer = doer
+	}
+}
+
+// WithEventID uses fn to get the event ID for each webhook event.
+// Commonly a trace ID or other identifier is used from the context.
+func WithEventID(fn func(context.Context) string) Option {
+	return func(w *Webhook) {
+		w.eventIDFn = fn
 	}
 }
 
@@ -144,7 +152,6 @@ func (w *Webhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmAuthenticate,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -152,6 +159,9 @@ func (w *Webhook) Authenticate(r *mdm.Request, m *mdm.Authenticate) error {
 			RawPayload:   b64(m.Raw),
 			UrlParams:    r.Params,
 		},
+	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
 	}
 	return w.send(r.Context(), ev)
 }
@@ -161,7 +171,6 @@ func (w *Webhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmTokenUpdate,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -169,6 +178,9 @@ func (w *Webhook) TokenUpdate(r *mdm.Request, m *mdm.TokenUpdate) error {
 			RawPayload:   b64(m.Raw),
 			UrlParams:    r.Params,
 		},
+	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
 	}
 	if w.store != nil {
 		tally, err := w.store.RetrieveTokenUpdateTally(r.Context(), r.ID)
@@ -185,7 +197,6 @@ func (w *Webhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmCheckOut,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -193,6 +204,9 @@ func (w *Webhook) CheckOut(r *mdm.Request, m *mdm.CheckOut) error {
 			RawPayload:   b64(m.Raw),
 			UrlParams:    r.Params,
 		},
+	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
 	}
 	return w.send(r.Context(), ev)
 }
@@ -202,7 +216,6 @@ func (w *Webhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]b
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmUserAuthenticate,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -210,6 +223,9 @@ func (w *Webhook) UserAuthenticate(r *mdm.Request, m *mdm.UserAuthenticate) ([]b
 			RawPayload:   b64(m.Raw),
 			UrlParams:    r.Params,
 		},
+	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
 	}
 	return nil, w.send(r.Context(), ev)
 }
@@ -219,7 +235,6 @@ func (w *Webhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) er
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmSetBootstrapToken,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -227,6 +242,9 @@ func (w *Webhook) SetBootstrapToken(r *mdm.Request, m *mdm.SetBootstrapToken) er
 			RawPayload:   b64(m.Raw),
 			UrlParams:    r.Params,
 		},
+	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
 	}
 	return w.send(r.Context(), ev)
 }
@@ -236,7 +254,6 @@ func (w *Webhook) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmGetBootstrapToken,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -244,6 +261,9 @@ func (w *Webhook) GetBootstrapToken(r *mdm.Request, m *mdm.GetBootstrapToken) (*
 			RawPayload:   b64(m.Raw),
 			UrlParams:    r.Params,
 		},
+	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
 	}
 	return nil, w.send(r.Context(), ev)
 }
@@ -253,7 +273,6 @@ func (w *Webhook) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmConnect,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		AcknowledgeEvent: &AcknowledgeEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](results.EnrollmentID),
@@ -264,6 +283,9 @@ func (w *Webhook) CommandAndReportResults(r *mdm.Request, results *mdm.CommandRe
 			UrlParams:    r.Params,
 		},
 	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
+	}
 	return nil, w.send(r.Context(), ev)
 }
 
@@ -272,7 +294,6 @@ func (w *Webhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManage
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmDeclarativeManagement,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -280,6 +301,9 @@ func (w *Webhook) DeclarativeManagement(r *mdm.Request, m *mdm.DeclarativeManage
 			RawPayload:   b64(m.Raw),
 			UrlParams:    r.Params,
 		},
+	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
 	}
 	return nil, w.send(r.Context(), ev)
 }
@@ -289,7 +313,6 @@ func (w *Webhook) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenRespon
 	ev := &EventJson{
 		Topic:     EventJsonTopicMdmGetToken,
 		CreatedAt: w.nowFn(),
-		EventId:   stringPtr[string](trace.GetTraceID(r.Context())),
 		CheckinEvent: &CheckinEvent{
 			Ids:          ids(r.EnrollID),
 			EnrollmentId: stringPtr[EnrollmentID](m.EnrollmentID),
@@ -297,6 +320,9 @@ func (w *Webhook) GetToken(r *mdm.Request, m *mdm.GetToken) (*mdm.GetTokenRespon
 			RawPayload:   b64(m.Raw),
 			UrlParams:    r.Params,
 		},
+	}
+	if w.eventIDFn != nil {
+		ev.EventId = stringPtr[string](w.eventIDFn(r.Context()))
 	}
 	return nil, w.send(r.Context(), ev)
 }

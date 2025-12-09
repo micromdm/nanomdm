@@ -42,7 +42,7 @@ func TestWebhook(t *testing.T) {
 	var hmacKey = []byte("12345")
 
 	// url isn't used when using c so can be blank
-	w := New("", WithClient(c), WithHMACSecret(hmacKey))
+	w := New("", WithClient(c), WithHMACSecret(hmacKey), WithEventID(func(ctx context.Context) string { return "test_event_id" }))
 
 	// override timestamp generation for repeatable output
 	w.nowFn = func() time.Time { return time.Time{} }
@@ -117,7 +117,7 @@ func TestWebhook(t *testing.T) {
 	if !bytes.Equal(bytes.TrimSpace(eventBytes), bytes.TrimSpace(reqBody)) {
 		t.Error("submitted event is not equal to testdata")
 
-		// uncomment for inspection of JSON
+		// uncomment for inspection of JSON (i.e. to debug tests)
 		// os.WriteFile("testdata/output.Authenticate.2.json", reqBody, 0644)
 	}
 
@@ -187,7 +187,7 @@ func TestWebhook(t *testing.T) {
 	if !bytes.Equal(bytes.TrimSpace(eventBytes), bytes.TrimSpace(reqBody)) {
 		t.Error("submitted event is not equal to testdata")
 
-		// uncomment for inspection of JSON
+		// uncomment for inspection of JSON (i.e. to debug tests)
 		// os.WriteFile("testdata/output.DeviceInformation.1.json", reqBody, 0644)
 	}
 }
