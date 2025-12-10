@@ -30,15 +30,25 @@ paths:
               -----END RSA PRIVATE KEY-----
       responses:
         '200':
-          description: The topic, expiry, and/or any errors are returned.
+          description: The topic and expiry of the APNs certificate are returned.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PushCertResponse'
+        '400':
+          description: Error(s) with the uploaded APNs certificate or private key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
-           $ref: '#/components/responses/UnauthorizedError'
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
-          description: Error reading HTTP body from request
+          description: Server errors reading HTTP request or storing APNs certificate or private key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/push/{id*}:
     get:
       description: Send APNs push notifications to MDM enrollments
@@ -231,7 +241,6 @@ components:
   schemas:
     APIResult:
       type: object
-      description: foo
       properties:
         no_push:
           type: boolean
@@ -263,10 +272,11 @@ components:
                   type: string
     PushCertResponse:
       type: object
+      description: APNs push certificate and key upload response.
+      required:
+        - topic
+        - not_after
       properties:
-        error:
-          description: Error response string.
-          type: string
         topic:
           type: string
           description: The "topic" (UID attribute) from the uploaded APNs certificate.
@@ -276,3 +286,13 @@ components:
           format: date-time
           description: Expiration date of the uploaded APNs certificate.
           example: '2026-01-07T04:04:46Z'
+    ErrorResponse:
+      type: object
+      description: Error response.
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error response string.
+          example: The sun is shining.

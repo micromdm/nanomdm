@@ -1,21 +1,14 @@
 package api
 
 import (
-	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/micromdm/nanomdm/api"
-	"github.com/micromdm/nanomdm/cryptoutil"
-	mdmhttp "github.com/micromdm/nanomdm/http"
 	"github.com/micromdm/nanomdm/push"
 	"github.com/micromdm/nanomdm/storage"
 
@@ -23,30 +16,56 @@ import (
 	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
-// writeAPIResult encodes r to JSON to w, logging errors to logger if necessary.
-func writeAPIResult(logger log.Logger, w http.ResponseWriter, r *api.APIResult, header int) {
+// writeJSON encodes v to JSON writing to w using the HTTP status of header.
+// An error during encoding is logged to logger if it is not nil.
+func writeJSON(w http.ResponseWriter, v interface{}, header int, logger log.Logger) {
 	if header < 1 {
 		header = http.StatusInternalServerError
 	}
 
+	w.Header().Set("Content-type", "application/json")
+	w.WriteHeader(header)
+
+	if v == nil {
+		return
+	}
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "\t")
+	err := enc.Encode(v)
+	if err != nil && logger != nil {
+		logger.Info("msg", "encoding json", "err", err)
+	}
+}
+
+// logAndWriteJSONError logs msg and err to logger as well as writes err to w as JSON.
+func logAndWriteJSONError(logger log.Logger, w http.ResponseWriter, msg string, err error, header int) {
+	if logger != nil {
+		logger.Info("msg", msg, "err", err)
+	}
+
+	errStr := "<nil error>"
+	if err != nil {
+		errStr = err.Error()
+	}
+
+	out := &ErrorResponseJson{Error: errStr}
+
+	writeJSON(w, out, header, logger)
+}
+
+// writeAPIResult encodes r to JSON writing to w using the HTTP status of header.
+func writeAPIResult(r *api.APIResult, w http.ResponseWriter, header int, logger log.Logger) {
 	if r == nil {
 		nilErr := api.NewError(errors.New("nil API result"))
 		r = &api.APIResult{
 			EnqueueError: nilErr,
 			PushError:    nilErr,
 		}
+		header = 0 // override http status if a nil API result happens
 	}
 
-	w.Header().Set("Content-type", "application/json")
-	w.WriteHeader(header)
-
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "\t")
-
-	err := enc.Encode(r)
-	if err != nil && logger != nil {
-		logger.Info("msg", "encoding json", "err", err)
-	}
+	writeJSON(w, r, header, logger)
 }
 
 // amendAPIError amends or inserts err into e.
@@ -102,7 +121,7 @@ func PushToIDsHandler(pusher push.Pusher, logger log.Logger, idGetter func(*http
 		logger := ctxlog.Logger(r.Context(), logger)
 
 		defer func() {
-			writeAPIResult(logger, w, pr, header)
+			writeAPIResult(pr, w, header, logger)
 		}()
 
 		ids, err := idGetter(r)
@@ -169,7 +188,7 @@ func RawCommandEnqueueToIDsHandler(enqueuer storage.CommandEnqueuer, pusher push
 		logger := ctxlog.Logger(r.Context(), logger)
 
 		defer func() {
-			writeAPIResult(logger, w, er, header)
+			writeAPIResult(er, w, header, logger)
 		}()
 
 		ids, err := idGetter(r)
@@ -211,117 +230,5 @@ func RawCommandEnqueueToIDsHandler(enqueuer storage.CommandEnqueuer, pusher push
 			}
 			logger.Info(logs...)
 		}
-	}
-}
-
-// readPEMCertAndKey reads a PEM-encoded certificate and non-encrypted
-// private key from input bytes and returns the separate PEM certificate
-// and private key in cert and key respectively.
-func readPEMCertAndKey(input []byte) (cert []byte, key []byte, err error) {
-	// if the PEM blocks are mushed together with no newline then add one
-	input = bytes.ReplaceAll(input, []byte("----------"), []byte("-----\n-----"))
-	var block *pem.Block
-	for {
-		block, input = pem.Decode(input)
-		if block == nil {
-			break
-		}
-		if block.Type == "CERTIFICATE" {
-			cert = pem.EncodeToMemory(block)
-		} else if block.Type == "PRIVATE KEY" || strings.HasSuffix(block.Type, " PRIVATE KEY") {
-			if x509.IsEncryptedPEMBlock(block) {
-				err = errors.New("private key PEM appears to be encrypted")
-				break
-			}
-			key = pem.EncodeToMemory(block)
-		} else {
-			err = fmt.Errorf("unrecognized PEM type: %q", block.Type)
-			break
-		}
-	}
-	return
-}
-
-// StorePushCertHandler reads a PEM-encoded certificate and private
-// key from the HTTP body and saves it to storage. This effectively
-// enables us to do something like:
-// "% cat push.pem push.key | curl -T - http://api.example.com/" to
-// upload our push certs.
-func StorePushCertHandler(storage storage.PushCertStore, logger log.Logger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		logger := ctxlog.Logger(r.Context(), logger)
-		b, err := mdmhttp.ReadAllAndReplaceBody(r)
-		if err != nil {
-			logger.Info("msg", "reading body", "err", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-		certPEM, keyPEM, err := readPEMCertAndKey(b)
-		if err == nil {
-			// sanity check the provided cert and key to make sure they're usable as a pair.
-			_, err = tls.X509KeyPair(certPEM, keyPEM)
-		}
-		var cert *x509.Certificate
-		if err == nil {
-			cert, err = cryptoutil.DecodePEMCertificate(certPEM)
-		}
-		var topic string
-		if err == nil {
-			topic, err = cryptoutil.TopicFromCert(cert)
-		}
-		if err == nil {
-			err = storage.StorePushCert(r.Context(), certPEM, keyPEM)
-		}
-		output := &struct {
-			Error    string    `json:"error,omitempty"`
-			Topic    string    `json:"topic,omitempty"`
-			NotAfter time.Time `json:"not_after,omitempty"`
-		}{
-			Topic: topic,
-		}
-		if cert != nil {
-			output.NotAfter = cert.NotAfter
-		}
-		if err != nil {
-			logger.Info("msg", "store push cert", "err", err)
-			output.Error = err.Error()
-			w.WriteHeader(http.StatusInternalServerError)
-		} else {
-			logger.Debug("msg", "stored push cert", "topic", topic)
-		}
-		json, err := json.MarshalIndent(output, "", "\t")
-		if err != nil {
-			logger.Info("msg", "marshal json", "err", err)
-		}
-		w.Header().Set("Content-type", "application/json")
-		_, err = w.Write(json)
-		if err != nil {
-			logger.Info("msg", "writing body", "err", err)
-		}
-	}
-}
-
-// logAndJSONError is a helper for both logging and outputting errors in JSON.
-func logAndJSONError(logger log.Logger, w http.ResponseWriter, msg string, inErr error, header int) {
-	logger.Info("msg", msg, "err", inErr)
-
-	if header < 1 {
-		header = http.StatusInternalServerError
-	}
-
-	w.Header().Set("Content-type", "application/json")
-	w.WriteHeader(header)
-
-	type jsonError struct {
-		Error string `json:"error"`
-	}
-
-	out := &jsonError{Error: inErr.Error()}
-
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "\t")
-	err := enc.Encode(out)
-	if err != nil && logger != nil {
-		logger.Info("msg", "encoding json", "err", err)
 	}
 }

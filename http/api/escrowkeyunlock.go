@@ -39,14 +39,14 @@ func NewEscrowKeyUnlockHandler(store storage.PushCertStore, client *http.Client,
 
 		if !params.Valid() {
 			err := errors.New("invalid or missing parameters")
-			logAndJSONError(logger, w, "validating parameters", err, http.StatusBadRequest)
+			logAndWriteJSONError(logger, w, "validating parameters", err, http.StatusBadRequest)
 			return
 		}
 
 		topic := values.Get("topic")
 		if topic == "" {
 			err := errors.New("empty topic")
-			logAndJSONError(logger, w, "validating parameters", err, http.StatusBadRequest)
+			logAndWriteJSONError(logger, w, "validating parameters", err, http.StatusBadRequest)
 			return
 		}
 
@@ -59,7 +59,7 @@ func NewEscrowKeyUnlockHandler(store storage.PushCertStore, client *http.Client,
 			params.FormParams(),
 		)
 		if err != nil {
-			logAndJSONError(logger, w, "escrow key unlock", err, 0)
+			logAndWriteJSONError(logger, w, "escrow key unlock", err, 0)
 			return
 		}
 		defer resp.Body.Close()

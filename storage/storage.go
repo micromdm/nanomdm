@@ -19,6 +19,7 @@ type AllStorage interface {
 	CertAuthRetriever
 	StoreMigrator
 	TokenUpdateTallyStore
+	PushCertStorer
 }
 
 // ServiceStore stores & retrieves both command and check-in data.
