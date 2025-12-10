@@ -9,35 +9,25 @@ import (
 )
 
 func (s *MySQLStorage) RetrievePushCert(ctx context.Context, topic string) (*tls.Certificate, string, error) {
-	var certPEM, keyPEM []byte
-	var staleToken int
-	err := s.db.QueryRowContext(
-		ctx,
-		`SELECT cert_pem, key_pem, stale_token FROM push_certs WHERE topic = ?;`,
-		topic,
-	).Scan(&certPEM, &keyPEM, &staleToken)
+	row, err := s.q.RetrievePushCert(ctx, topic)
 	if err != nil {
 		return nil, "", err
 	}
-	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	cert, err := tls.X509KeyPair([]byte(row.CertPem), []byte(row.KeyPem))
 	if err != nil {
 		return nil, "", err
 	}
-	return &cert, strconv.Itoa(staleToken), err
+	return &cert, strconv.Itoa(int(row.StaleToken)), err
 }
 
 func (s *MySQLStorage) IsPushCertStale(ctx context.Context, topic, staleToken string) (bool, error) {
-	var staleTokenInt, dbStaleToken int
+	var staleTokenInt int
 	staleTokenInt, err := strconv.Atoi(staleToken)
 	if err != nil {
 		return true, err
 	}
-	err = s.db.QueryRowContext(
-		ctx,
-		`SELECT stale_token FROM push_certs WHERE topic = ?;`,
-		topic,
-	).Scan(&dbStaleToken)
-	return dbStaleToken != staleTokenInt, err
+	dbStaleToken, err := s.q.IsPushCertStale(ctx, topic)
+	return int(dbStaleToken) != staleTokenInt, err
 }
 
 func (s *MySQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte) error {
