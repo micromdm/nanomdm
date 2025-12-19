@@ -7,37 +7,26 @@ import (
 	"strings"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage/mysql/sqlc"
 )
 
-// Executes SQL statements that return a single COUNT(*) of rows.
-func (s *MySQLStorage) queryRowContextRowExists(ctx context.Context, query string, args ...interface{}) (bool, error) {
-	var ct int
-	err := s.db.QueryRowContext(ctx, query, args...).Scan(&ct)
+func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
+	ct, err := s.q.EnrollmentHasCertHash(r.Context(), r.ID)
 	return ct > 0, err
 }
 
-func (s *MySQLStorage) EnrollmentHasCertHash(r *mdm.Request, _ string) (bool, error) {
-	return s.queryRowContextRowExists(
-		r.Context(),
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = ?;`,
-		r.ID,
-	)
-}
-
 func (s *MySQLStorage) HasCertHash(r *mdm.Request, hash string) (bool, error) {
-	return s.queryRowContextRowExists(
-		r.Context(),
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = ?;`,
-		strings.ToLower(hash),
-	)
+	ct, err := s.q.HasCertHash(r.Context(), strings.ToLower(hash))
+	return ct > 0, err
 }
 
 func (s *MySQLStorage) IsCertHashAssociated(r *mdm.Request, hash string) (bool, error) {
-	return s.queryRowContextRowExists(
-		r.Context(),
-		`SELECT COUNT(*) FROM cert_auth_associations WHERE id = ? AND sha256 = ?;`,
-		r.ID, strings.ToLower(hash),
-	)
+	params := sqlc.IsCertHashAssociatedParams{
+		ID:     r.ID,
+		Sha256: strings.ToLower(hash),
+	}
+	ct, err := s.q.IsCertHashAssociated(r.Context(), params)
+	return ct > 0, err
 }
 
 func (s *MySQLStorage) AssociateCertHash(r *mdm.Request, hash string) error {
@@ -53,12 +42,7 @@ UPDATE sha256 = new.sha256;`,
 }
 
 func (s *MySQLStorage) EnrollmentFromHash(ctx context.Context, hash string) (string, error) {
-	var id string
-	err := s.db.QueryRowContext(
-		ctx,
-		`SELECT id FROM cert_auth_associations WHERE sha256 = ? LIMIT 1;`,
-		hash,
-	).Scan(&id)
+	id, err := s.q.EnrollmentFromHash(ctx, hash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
