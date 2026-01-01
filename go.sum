@@ -11,8 +11,8 @@ github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeN
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
-github.com/micromdm/nanolib v0.5.0 h1:+W40RfdSXzLiTYlJOGzgKTaKutfMSRv27NfnDnqDYAU=
-github.com/micromdm/nanolib v0.5.0/go.mod h1:FwBKCvvphgYvbdUZ+qw5kay7NHJcg6zPi8W7kXNajmE=
+github.com/micromdm/nanolib v0.5.1 h1:ZYXg9B6+aGSe0GjTO2HYolUT2GR6Kj4Oo2aDKQwShoE=
+github.com/micromdm/nanolib v0.5.1/go.mod h1:FwBKCvvphgYvbdUZ+qw5kay7NHJcg6zPi8W7kXNajmE=
 github.com/micromdm/plist v0.2.1 h1:4SoSMOVAyzv1ThT8IKLgXLJEKezLkcVDN6wivqTTFdo=
 github.com/micromdm/plist v0.2.1/go.mod h1:flkfm0od6GzyXBqI28h5sgEyi3iPO28W2t1Zm9LpwWs=
 github.com/peterbourgon/diskv/v3 v3.0.1 h1:x06SQA46+PKIUftmEujdwSEpIx8kR+M9eLYsUxeYveU=
