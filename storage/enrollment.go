@@ -19,31 +19,6 @@ type EnrollmentsQueryFilter struct {
 	Enabled        *bool    `json:"enabled,omitempty"`
 }
 
-// Pagination supports either offset or cursor based pagination methods for results.
-// Backend implementations may support one or both methods, and may use either by default.
-// Offset and Cursor cannot both be set.
-// Backend implementations may have a default Limit, so omitting it may be possible.
-// For offset based queries, Offset must be set.
-// For cursor based queries, Cursor must be set.
-type Pagination struct {
-	Limit *int `json:"limit,omitempty"`
-	Offset *int  `json:"offset,omitempty"`
-	Cursor *string `json:"cursor,omitempty"`
-}
-
-// ValidErr returns any validation errors with p.
-func (p Pagination) ValidError() error {
-  if p.Cursor != nil && p.Offset != nil {
-  	return errors.New("cursor and offset both exist")
-  }
-  return nil
-}
-
-// Valid returns true if p is valid.
-func (p Pagination) Valid() bool {
-	return p.ValidErr() == nil
-}
-
 type EnrollmentQueryOptions struct {
 	// By default we do not include the Device Identity certificate in the response.
 	IncludeDeviceCert bool `json:"include_device_cert,omitempty"`
@@ -101,12 +76,7 @@ type Enrollment struct {
 type EnrollmentsQueryResult struct {
 	Enrollments []*Enrollment `json:"enrollments"`
 
-	// NextCursor is the enxt cursor for pagination. 
-	// If present and using cursor based pagination more results may be fetched by
-	// setting this value in the Cursor field of a subsequent request in the Pagination.
-	NextCursor *string `json:"next_cursor,omitempty"`
-
-	// Error is present if there was an error processing the request.
+	PaginationNextCursor
 }
 
 type EnrollmentsStore interface {

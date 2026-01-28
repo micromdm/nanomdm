@@ -177,11 +177,12 @@ paths:
       parameters:
         - name: limit
           in: query
-          description: Maximum number of enrollments to return in the response. If zero or omitted, all matching enrollments are returned.
+          description: Maximum number of enrollments to return in the response.
           required: false
           schema:
             type: integer
-            example: 50
+            example: 20
+            default: 100
         - name: offset
           in: query
           description: Offset for offset-based pagination. Use offset = 0 for the first request. Mutually exclusive with cursor-based pagination.
@@ -191,7 +192,7 @@ paths:
             example: 0
         - name: cursor
           in: query
-          description: Cursor for cursor-based pagination. The first request should leave this empty. Subsequent requests should set this to the next_token value from the previous response. Mutually exclusive with offset-based pagination.
+          description: Cursor for cursor-based pagination. The first request should leave this empty. Subsequent requests should set this to the next_cursor value from the previous response. Mutually exclusive with offset-based pagination.
           required: false
           schema:
             type: string
@@ -231,7 +232,7 @@ paths:
                     enabled: true
                     token_update_tally: 8
                     last_seen: '2025-01-15T10:15:00Z'
-                next_token: '74CE1CA9-8ADD-43CD-B59D-3AC0375EE25F'
+                next_cursor: '74CE1CA9-8ADD-43CD-B59D-3AC0375EE25F'
         '400':
           description: "Failure: bad request; likely cause is a malformed request query or body."
           content:
@@ -419,9 +420,9 @@ components:
           items:
             $ref: '#/components/schemas/Enrollment'
           description: List of enrollments matching the query.
-        next_token:
+        next_cursor:
           type: string
-          description: Cursor for pagination. If non-empty, more results may be fetched by setting this value in the next_token field of a subsequent request. Clients should not depend on a particular format of this token.
+          description: For storage backends that support cursor-based pagination this will contain the next cursor value.
           example: '74CE1CA9-8ADD-43CD-B59D-3AC0375EE25F'
         error:
           type: string
