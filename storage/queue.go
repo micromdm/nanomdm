@@ -23,16 +23,17 @@ type QueueQuery struct {
 	// ID is the enrollment ID to retrieve queued commands for.
 	ID string
 	// Pagination supports cursor-based pagination.
-	Pagination Pagination
+	Pagination *Pagination
 }
 
 // QueueQueryResult contains the result of a queue query.
 type QueueQueryResult struct {
 	Commands []*mdm.Command `json:"commands"`
 
-	// NextCursor is a cursor for pagination. If non-empty, more commands may be fetched by
-	// setting this value in the Cursor field of a subsequent request.
-	NextCursor string `json:"next_cursor,omitempty"`
+	PaginationNextCursor
+
+	// Error contains an error message if there was an error processing the request.
+	Error string `json:"error,omitempty"`
 }
 
 // CommandQueueAPIStore can retrieve and clear queued commands by enrollment ID.
