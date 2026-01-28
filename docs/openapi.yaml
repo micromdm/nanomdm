@@ -102,6 +102,82 @@ paths:
           schema:
             type: string
             example: '1'
+  /v1/queue/{id}:
+    get:
+      description: Retrieve queued MDM commands for a specific enrollment ID. Supports both offset-based and cursor-based pagination via query parameters.
+      security:
+        - basicAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Enrollment ID of device- or user-channel enrollment. Typically a UUID-looking identifier.
+          required: true
+          schema:
+            type: string
+            example: '299BD49-1A0C-422C-B285-2E4FF087C673'
+        - name: limit
+          in: query
+          description: Maximum number of commands to return in the response.
+          required: false
+          schema:
+            type: integer
+            example: 100
+            default: 100
+        - name: offset
+          in: query
+          description: Offset for offset-based pagination. Use offset = 0 for the first request. Mutually exclusive with cursor-based pagination.
+          required: false
+          schema:
+            type: integer
+            example: 0
+        - name: cursor
+          in: query
+          description: Cursor for cursor-based pagination. The first request should leave this empty. Subsequent requests should set this to the next_cursor value from the previous response. Mutually exclusive with offset-based pagination.
+          required: false
+          schema:
+            type: string
+            example: ''
+      responses:
+        '200':
+          description: Success. Returns queued commands for the enrollment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueQueryResult'
+        '400':
+          description: "Failure: bad request; likely cause is a malformed request query."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueQueryResult'
+              example:
+                error: "invalid request: both cursor and offset set"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: "Unexpected server error; try again later."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueQueryResult'
+              example:
+                error: "database connection failed"
+  /v1/queue/{id*}:
+    delete:
+      description: Clear all queued MDM commands for one or more enrollment IDs
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '204':
+          description: Successfully cleared queued commands for all enrollment IDs
+        '207':
+          $ref: '#/components/responses/QueueAPIResultSomeFailed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/QueueAPIResultAllFailed'
   /v1/escrowkeyunlock:
     post:
       description: "Perform an Escrow Key Unlock against Apple's API. Uses the APNs certificate of the provided topic for mTLS authentication. Note that despite all parameters being in the HTTP body (form) this endpoint moves the appropriate parameters to the URL query parameters per Apple's documentation. The response body, status, and headers are handed straight through from the Apple endpoint."
@@ -310,6 +386,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/APIResult'
+    QueueAPIResultSomeFailed:
+      description: Some requests succeeded and some failed. Returns JSON queue API response object including errors.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QueueAPIResult'
+    QueueAPIResultAllFailed:
+      description: All requests failed. Returns JSON queue API response object including errors.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QueueAPIResult'
   schemas:
     APIResult:
       type: object
@@ -486,3 +574,48 @@ components:
           type: string
           description: Full name of the user.
           example: 'Jane Smith'
+    QueueQueryResult:
+      type: object
+      description: Result of a queue query containing commands and pagination information.
+      properties:
+        commands:
+          type: array
+          description: Array of queued MDM commands
+          items:
+            type: object
+            properties:
+              command_uuid:
+                type: string
+                format: uuid
+                example: 'fedd659e-fc3c-4e35-8bb1-c8f51ae542a5'
+              request_type:
+                type: string
+                example: 'ProfileList'
+              command:
+                type: string
+                format: byte
+                description: The full MDM command plist data, base64-encoded.
+                example: |-
+                  PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPCFET0NUWVBFIHBsaXN0IFBVQkxJQyAiLS8vQXBwbGUvL0RURCBQTElTVCAxLjAvL0VOIiAiaHR0cDovL3d3dy5hcHBsZS5jb20vRFREcy9Qcm9wZXJ0eUxpc3QtMS4wLmR0ZCI+CjxwbGlzdCB2ZXJzaW9uPSIxLjAiPgo8ZGljdD4KPGtleT5Db21tYW5kPC9rZXk+CjxkaWN0PgogICAgPGtleT5SZXF1ZXN0VHlwZTwva2V5PgogICAgPHN0cmluZz5Qcm9maWxlTGlzdDwvc3RyaW5nPgo8L2RpY3Q+CjxrZXk+Q29tbWFuZFVVSUQ8L2tleT4KPHN0cmluZz5mZWRkNjU5ZS1mYzNjLTRlMzUtOGJiMS1jOGY1MWFlNTQyYTU8L3N0cmluZz4KPC9kaWN0Pgo8L3BsaXN0Pg==
+        next_cursor:
+          type: string
+          description: For storage backends that support cursor-based pagination this will contain the next cursor value.
+        error:
+          type: string
+          description: Error message if there was an error processing the request.
+    QueueAPIResult:
+      type: object
+      description: Result of queue API operations
+      properties:
+        status:
+          type: object
+          description: Per-enrollment ID error status. Map key is the enrollment ID.
+          properties:
+            $id:
+              type: string
+              description: Error message for this enrollment ID
+          example:
+            '299BD49-1A0C-422C-B285-2E4FF087C673': 'queue not found'
+            'E2E4A8EB-45EE-488D-B9D7-4CC3B1C40699': 'database error'
+        error:
+          type: string
