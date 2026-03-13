@@ -6,6 +6,39 @@ servers:
   - url: http://[::1]:9000/
 paths:
   /v1/pushcert:
+    get:
+      description: Retrieve the topic and expiry of the stored APNs push certificate.
+      security:
+        - basicAuth: []
+      parameters:
+        - in: query
+          name: topic
+          required: true
+          schema:
+            type: string
+            example: 'com.apple.mgmt.External.e3b8ceac-1f18-2c8e-8a63-dd17d99435d9'
+          description: The APNs topic identifying which push certificate to retrieve.
+      responses:
+        '200':
+          description: The topic and expiry of the stored APNs certificate are returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushCertResponse'
+        '400':
+          description: Missing or invalid topic query parameter.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Server error retrieving or parsing the stored APNs certificate.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     put:
       description: Upload APNs certificate and private key.
       security:

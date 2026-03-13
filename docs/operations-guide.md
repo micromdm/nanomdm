@@ -262,6 +262,8 @@ The MDM check-in endpoint, if enabled, needs to correspond to the `CheckInURL` k
 
 * Endpoint: `/v1/pushcert`
 
+#### Uploading (PUT)
+
 The push cert API endpoint allows for uploading an APNS push certificate. It takes a concatenated PEM-encoded APNs push certificate and private key as its HTTP body. Note the private key should not be encrypted. A quick way to utilize this endpoint is to use `curl`. For example:
 
 ```bash
@@ -272,6 +274,18 @@ $ cat /path/to/push.pem /path/to/push.key | curl -T - -u nanomdm:nanomdm 'http:/
 ```
 
 Here the `-T -` switch to `curl` tells it to take the standard-input and use it as the body for a PUT request to `/v1/pushcert`. We're also using `-u` to specify the API key (HTTP authentication). The server responded by telling us the topic that this Push certificate corresponds to.
+
+#### Retrieving (GET)
+
+To check the topic and expiry of an already-stored push certificate without re-uploading it, send a GET request with the `topic` query parameter:
+
+```bash
+$ curl -u nanomdm:nanomdm 'http://127.0.0.1:9000/v1/pushcert?topic=com.apple.mgmt.External.e3b8ceac-1f18-2c8e-8a63-dd17d99435d9'
+{
+	"topic": "com.apple.mgmt.External.e3b8ceac-1f18-2c8e-8a63-dd17d99435d9",
+	"not_after": "2026-01-07T04:04:46Z"
+}
+```
 
 ### Push
 

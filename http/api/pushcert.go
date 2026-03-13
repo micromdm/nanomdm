@@ -17,6 +17,42 @@ import (
 	"github.com/micromdm/nanomdm/storage"
 )
 
+// NewRetrievePushCertHandler returns the topic and expiry of the stored APNs
+// push certificate identified by the required "topic" query parameter.
+// Example: GET /v1/pushcert?topic=com.apple.mgmt.External.xxxxx
+func NewRetrievePushCertHandler(store storage.PushCertStore, logger log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
+
+		topic := r.URL.Query().Get("topic")
+		if topic == "" {
+			logAndWriteJSONError(logger, w, "get topic query param", errors.New("missing required query parameter: topic"), http.StatusBadRequest)
+			return
+		}
+
+		cert, _, err := store.RetrievePushCert(r.Context(), topic)
+		if err != nil {
+			logAndWriteJSONError(logger, w, "retrieve push cert", err, 0)
+			return
+		}
+
+		leaf, err := x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			logAndWriteJSONError(logger, w, "parse push cert", err, 0)
+			return
+		}
+
+		logger.Debug("msg", "retrieved push cert", "topic", topic)
+
+		out := &PushCertResponseJson{
+			Topic:    topic,
+			NotAfter: leaf.NotAfter,
+		}
+
+		writeJSON(w, out, http.StatusOK, logger)
+	}
+}
+
 // readPEMCertAndKey reads a PEM-encoded certificate and non-encrypted
 // private key from input bytes and returns the separate PEM certificate
 // and private key in cert and key respectively.
