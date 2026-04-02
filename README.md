@@ -6,8 +6,11 @@ NanoMDM is a minimalist [Apple MDM](https://developer.apple.com/documentation/de
 
 ## Getting started & Documentation
 
-- [Quickstart](docs/quickstart.md)  
-A quick guide to get NanoMDM up and running using ngrok.
+- [Quickstart (SCEP)](docs/quickstart.md)  
+A quick guide to get NanoMDM up and running with [SCEP](https://github.com/micromdm/scep) using ngrok.
+
+- [Quickstart (ACME)](docs/quickstart-acme.md)  
+A guide to using NanoMDM with [NanoCA](https://github.com/brandonweeks/nanoca) for ACME-based enrollment instead of SCEP.
 
 - [Operations Guide](docs/operations-guide.md)  
 A brief overview of the various command-line switches and HTTP endpoints and APIs available to NanoMDM.
@@ -36,8 +39,8 @@ A brief overview of the various command-line switches and HTTP endpoints and API
 
 NanoMDM is but one component for a functioning MDM server. At a minimum you need a SCEP server and TLS termination, for example. If you've used [MicroMDM](https://github.com/micromdm/micromdm) before you might be interested to know what NanoMDM does *not* include, by way of comparison.
 
-- SCEP.
-  - Spin up your own [scep](https://github.com/micromdm/scep) server. Or bring your own.
+- SCEP or ACME CA.
+  - Spin up your own [scep](https://github.com/micromdm/scep) server, or use [NanoCA](https://github.com/brandonweeks/nanoca) for ACME with device attestation. Or bring your own.
 - TLS.
   - You'll need to provide your own reverse proxy/load balancer that terminates TLS.
 - ADE (DEP) API access.
