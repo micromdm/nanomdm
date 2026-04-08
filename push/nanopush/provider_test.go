@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"golang.org/x/net/http2"
 )
 
 func TestPush(t *testing.T) {
@@ -107,4 +108,36 @@ func testPushDevices(t *testing.T, input [][]string) {
 		}
 	}
 
+}
+
+// goAwayDoer is a mock Doer that returns an http2.GoAwayError.
+type goAwayDoer struct{}
+
+func (d *goAwayDoer) Do(*http.Request) (*http.Response, error) {
+	return nil, http2.GoAwayError{
+		LastStreamID: 0,
+		ErrCode:      http2.ErrCodeNo,
+		DebugData:    "server shutting down",
+	}
+}
+
+func TestPanicOnGoAwayError(t *testing.T) {
+	prov := &Provider{
+		baseURL: "https://example.com",
+		client:  &goAwayDoer{},
+	}
+
+	pushInfo := &mdm.Push{
+		PushMagic: "47250C9C-1B37-4381-98A9-0B8315A441C7",
+		Topic:     "com.example.apns-topic",
+	}
+	pushInfo.SetTokenString("c2732227a1d8021cfaf781d71fb2f908c61f5861079a00954a5453f1d0281433")
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatal("code panicked on GoAwayError, but should not")
+		}
+	}()
+
+	prov.Push(context.Background(), []*mdm.Push{pushInfo})
 }
