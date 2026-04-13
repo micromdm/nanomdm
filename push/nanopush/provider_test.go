@@ -37,6 +37,26 @@ func TestPush(t *testing.T) {
 	t.Run("multiple-push", func(t *testing.T) {
 		testPushDevices(t, devicePushInfoStrings)
 	})
+
+	// test nil push info does not panic
+	t.Run("nil-concurrent-push-info", func(t *testing.T) {
+		prov := &Provider{
+			baseURL: "https://example.com",
+			client:  http.DefaultClient,
+			workers: 2,
+		}
+
+		resp, err := prov.Push(context.Background(), []*mdm.Push{nil, nil})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp == nil {
+			t.Fatal("expected non-nil response")
+		}
+		if len(resp) != 0 {
+			t.Fatalf("expected empty response, got %d", len(resp))
+		}
+	})
 }
 
 func testPushDevices(t *testing.T, input [][]string) {
@@ -91,6 +111,7 @@ func testPushDevices(t *testing.T, input [][]string) {
 	prov := &Provider{
 		baseURL: server.URL,
 		client:  http.DefaultClient,
+		workers: 2,
 	}
 
 	resp, err := prov.Push(context.Background(), pushInfos)

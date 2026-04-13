@@ -147,6 +147,10 @@ func (p *Provider) pushConcurrent(ctx context.Context, pushInfos []*mdm.Push) (m
 	// start the "feeder" (queue source)
 	go func() {
 		for _, pushInfo := range pushInfos {
+			if pushInfo == nil {
+				continue
+			}
+
 			jobs <- pushInfo
 		}
 		close(jobs)
