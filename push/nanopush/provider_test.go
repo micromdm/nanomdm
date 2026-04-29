@@ -3,6 +3,7 @@ package nanopush
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -42,7 +43,7 @@ func TestPush(t *testing.T) {
 	t.Run("nil-concurrent-push-info", func(t *testing.T) {
 		prov := &Provider{
 			baseURL: "https://example.com",
-			client:  http.DefaultClient,
+			client:  &errorDoer{},
 			workers: 2,
 		}
 
@@ -129,6 +130,12 @@ func testPushDevices(t *testing.T, input [][]string) {
 		}
 	}
 
+}
+
+type errorDoer struct{}
+
+func (d *errorDoer) Do(*http.Request) (*http.Response, error) {
+	return nil, errors.New("fake http error")
 }
 
 // goAwayDoer is a mock Doer that returns an http2.GoAwayError.
