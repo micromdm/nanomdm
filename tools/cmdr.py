@@ -32,12 +32,32 @@ def remove_profile(args):
     }
 
 
+# DeviceInformation requires a non-empty Queries array; devices reject the
+# command with CommandFormatError if it is missing.
+DEFAULT_DEVICE_INFO_QUERIES = [
+    "DeviceID",
+    "DeviceName",
+    "HostName",
+    "LocalHostName",
+    "MDMOptions",
+    "Model",
+    "ModelName",
+    "OSVersion",
+    "Productname",
+    "SerialNumber",
+    "UDID",
+    "WiFiMAC",
+]
+
+
 def dev_info(args):
     c = {
         "RequestType": "DeviceInformation",
     }
     if hasattr(args, "query") and args.query:
         c["Queries"] = args.query
+    else:
+        c["Queries"] = list(DEFAULT_DEVICE_INFO_QUERIES)
     return c
 
 
@@ -142,7 +162,8 @@ def dev_info_subparser(parser):
         "query",
         nargs="*",
         type=str,
-        help="optional DeviceInformation queries (ex. Model, OSVersion, etc.)",
+        help="optional DeviceInformation queries (ex. Model, OSVersion, "
+        "etc.); a default set is used when none are given",
     )
     dev_info_parser.set_defaults(func=dev_info)
     return dev_info_parser
