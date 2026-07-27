@@ -7,12 +7,25 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 	"github.com/micromdm/nanomdm/mdm"
 
 	"github.com/micromdm/nanolib/log"
 	"github.com/micromdm/nanolib/log/ctxlog"
+)
+
+// Default connection pool recycling. Pooled connections are recycled well
+// before the shortest idle timeout in the network path (the istio-proxy
+// sidecar reaps idle TCP connections at ~1h, Aurora's wait_timeout is longer).
+// Without this, database/sql hands out long-idle connections that the far end
+// has already closed, producing "broken pipe" writes and "closing bad idle
+// connection: EOF" errors. Override per-deployment with WithConnMaxLifetime /
+// WithConnMaxIdleTime when the path's idle timeout differs.
+const (
+	defaultConnMaxLifetime = 3 * time.Minute
+	defaultConnMaxIdleTime = 1 * time.Minute
 )
 
 // Schema holds the schema for the NanoMDM MySQL storage.
@@ -29,11 +42,13 @@ type MySQLStorage struct {
 }
 
 type config struct {
-	driver string
-	dsn    string
-	db     *sql.DB
-	logger log.Logger
-	rm     bool
+	driver          string
+	dsn             string
+	db              *sql.DB
+	logger          log.Logger
+	rm              bool
+	connMaxLifetime time.Duration
+	connMaxIdleTime time.Duration
 }
 
 type Option func(*config)
@@ -68,8 +83,31 @@ func WithDeleteCommands() Option {
 	}
 }
 
+// WithConnMaxLifetime sets the maximum amount of time a connection may be
+// reused. It should be shorter than the shortest idle timeout in the network
+// path to the database. A non-positive value keeps connections forever.
+func WithConnMaxLifetime(d time.Duration) Option {
+	return func(c *config) {
+		c.connMaxLifetime = d
+	}
+}
+
+// WithConnMaxIdleTime sets the maximum amount of time a connection may be idle
+// before it is closed. A non-positive value never closes connections due to
+// idle time.
+func WithConnMaxIdleTime(d time.Duration) Option {
+	return func(c *config) {
+		c.connMaxIdleTime = d
+	}
+}
+
 func New(opts ...Option) (*MySQLStorage, error) {
-	cfg := &config{logger: log.NopLogger, driver: "mysql"}
+	cfg := &config{
+		logger:          log.NopLogger,
+		driver:          "mysql",
+		connMaxLifetime: defaultConnMaxLifetime,
+		connMaxIdleTime: defaultConnMaxIdleTime,
+	}
 	for _, opt := range opts {
 		opt(cfg)
 	}
@@ -80,6 +118,8 @@ func New(opts ...Option) (*MySQLStorage, error) {
 			return nil, err
 		}
 	}
+	cfg.db.SetConnMaxLifetime(cfg.connMaxLifetime)
+	cfg.db.SetConnMaxIdleTime(cfg.connMaxIdleTime)
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
