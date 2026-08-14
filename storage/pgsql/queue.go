@@ -180,20 +180,20 @@ func (s *PgSQLStorage) ClearQueue(r *mdm.Request) error {
 	_, err := s.db.ExecContext(
 		r.Context(),
 		`
-UPDATE enrollment_queue
+UPDATE enrollment_queue AS q
 SET active = FALSE
-FROM enrollment_queue  AS q
-	INNER JOIN enrollments AS e
-		ON q.id = e.id
-	INNER JOIN commands AS c
-		ON q.command_uuid = c.command_uuid
-	LEFT JOIN command_results r
-		ON r.command_uuid = q.command_uuid AND r.id = q.id
+FROM enrollments AS e
 WHERE 
+    e.id = q.id AND
     e.device_id = $1 AND
-    enrollment_queue.active = TRUE AND
-    (r.status IS NULL OR r.status = 'NotNow') AND 
-    enrollment_queue.id = q.id;`,
+    q.active = TRUE AND
+    NOT EXISTS (
+        SELECT 1 FROM command_results AS r
+        WHERE
+            r.id = q.id AND
+            r.command_uuid = q.command_uuid AND
+            r.status <> 'NotNow'
+    );`,
 		r.ID)
 	return err
 }
