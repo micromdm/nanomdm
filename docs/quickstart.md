@@ -137,6 +137,27 @@ tunnels:
     addr: 9000
 ```
 
+<details>
+  <summary><b>Note about ngrok Free plan behavior</b></summary>
+  
+Recent versions of ngrok (v3) on the Free plan may multiplex multiple HTTP
+tunnels onto the same public hostname. In this situation both tunnels may
+appear under the same URL, for example:
+
+```
+Forwarding     https://abcd1234.ngrok-free.dev -> localhost:8080
+Forwarding     https://abcd1234.ngrok-free.dev -> localhost:9000
+```
+
+In this case, ngrok does not route requests between the tunnels based on the
+request path. As a result, exposing the SCEP server and the NanoMDM server
+through separate tunnels on the same hostname may not work as expected.
+
+If this happens, consider using a reverse proxy or another configuration
+that allows both services to be exposed through a single ngrok endpoint.
+
+</details>
+
 ### Upload Push Certificate
 
 To store the Push Certificate in NanoMDM we use the API:
