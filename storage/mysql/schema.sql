@@ -114,8 +114,8 @@ CREATE TABLE enrollments (
         REFERENCES devices (id)
         ON DELETE CASCADE ON UPDATE CASCADE,
 
-    FOREIGN KEY (user_id)
-        REFERENCES users (id)
+    FOREIGN KEY (user_id, device_id)
+        REFERENCES users (id, device_id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     UNIQUE (user_id),
 
