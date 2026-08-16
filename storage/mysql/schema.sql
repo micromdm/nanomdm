@@ -203,6 +203,7 @@ CREATE TABLE enrollment_queue (
     PRIMARY KEY (id, command_uuid),
 
     INDEX (priority DESC, created_at),
+    INDEX idx_queue_lookup (id, active, priority DESC, created_at),
 
     FOREIGN KEY (id)
         REFERENCES enrollments (id)
@@ -278,5 +279,6 @@ CREATE TABLE cert_auth_associations (
     PRIMARY KEY (id, sha256),
 
     CHECK (id != ''),
-    CHECK (sha256 != '')
+    CHECK (sha256 != ''),
+    INDEX idx_sha256 (sha256)
 );
