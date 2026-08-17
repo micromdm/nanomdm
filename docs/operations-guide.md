@@ -244,6 +244,12 @@ By default NanoMDM will respond to a `UserAuthenticate` message with an HTTP 410
 
 Note that the `UserAuthenticate` message is only for "directory" MDM users and not the "primary" MDM user enrollment. See also [Apple's discussion of UserAthenticate](https://developer.apple.com/documentation/devicemanagement/userauthenticate#discussion) for more information.
 
+### -push-url
+
+* Sets a custom APNs push server URL.
+
+By default nanomdm uses the production APNs push server URL. This flag allows you to specify a custom APNs push server URL (e.g. for development or testing). The URL must be a valid URL with a scheme and must not contain a path.
+
 ## HTTP endpoints & APIs
 
 ### MDM
