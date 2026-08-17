@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"crypto/tls"
 )
 
 // PushCertStore retrieves APNs push certificates.
@@ -12,7 +11,7 @@ type PushCertStore interface {
 	// and should turn stale (and return true) if the certificate has
 	// changed—such as being renewed.
 	IsPushCertStale(ctx context.Context, topic string, staleToken string) (bool, error)
-	RetrievePushCert(ctx context.Context, topic string) (cert *tls.Certificate, staleToken string, err error)
+	RetrievePushCert(ctx context.Context, topic string) (pemCert, pemKey []byte, staleToken string, err error)
 }
 
 // PushCertStorer stores APNs push certificates.

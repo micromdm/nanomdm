@@ -4,6 +4,7 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"sync"
@@ -62,7 +63,7 @@ func (s *PushService) getProvider(ctx context.Context, topic string) (push.PushP
 			return prov.provider, nil
 		}
 	}
-	cert, staleToken, err := s.certStore.RetrievePushCert(ctx, topic)
+	pemCert, pemKey, staleToken, err := s.certStore.RetrievePushCert(ctx, topic)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving push cert for topic %q: %w", topic, err)
 	}
@@ -70,7 +71,13 @@ func (s *PushService) getProvider(ctx context.Context, topic string) (push.PushP
 		"msg", "retrieved push cert",
 		"topic", topic,
 	)
-	newProvider, err := s.providerFactory.NewPushProvider(cert)
+
+	cert, err := tls.X509KeyPair(pemCert, pemKey)
+	if err != nil {
+		return nil, fmt.Errorf("parse key pair: %w", err)
+	}
+
+	newProvider, err := s.providerFactory.NewPushProvider(&cert)
 	if err != nil {
 		return nil, fmt.Errorf("creating new push provider: %w", err)
 	}
