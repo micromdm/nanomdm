@@ -26,19 +26,19 @@ func NewRetrievePushCertHandler(store storage.PushCertStore, logger log.Logger) 
 
 		topic := r.URL.Query().Get("topic")
 		if topic == "" {
-			logAndWriteJSONError(logger, w, "get topic query param", errors.New("missing required query parameter: topic"), http.StatusBadRequest)
+			logAndWriteJSONError(logger, w, "parse topic query param", errors.New("missing required query parameter: topic"), http.StatusBadRequest)
 			return
 		}
 
-		cert, _, err := store.RetrievePushCert(r.Context(), topic)
+		pemCert, _, _, err := store.RetrievePushCert(r.Context(), topic)
 		if err != nil {
 			logAndWriteJSONError(logger, w, "retrieve push cert", err, 0)
 			return
 		}
 
-		leaf, err := x509.ParseCertificate(cert.Certificate[0])
+		cert, err := cryptoutil.DecodePEMCertificate(pemCert)
 		if err != nil {
-			logAndWriteJSONError(logger, w, "parse push cert", err, 0)
+			logAndWriteJSONError(logger, w, "decode and parse push cert", err, 0)
 			return
 		}
 
@@ -46,7 +46,7 @@ func NewRetrievePushCertHandler(store storage.PushCertStore, logger log.Logger) 
 
 		out := &PushCertResponseJson{
 			Topic:    topic,
-			NotAfter: leaf.NotAfter,
+			NotAfter: cert.NotAfter,
 		}
 
 		writeJSON(w, out, http.StatusOK, logger)

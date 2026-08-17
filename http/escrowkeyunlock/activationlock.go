@@ -2,6 +2,7 @@ package escrowkeyunlock
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -26,12 +27,17 @@ func DoEscrowKeyUnlock(ctx context.Context, store storage.PushCertStore, topic s
 		panic("nil params")
 	}
 
-	cert, _, err := store.RetrievePushCert(ctx, topic)
+	pemCert, pemKey, _, err := store.RetrievePushCert(ctx, topic)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve push cert for topic: %s: %w", topic, err)
 	}
 
-	client, err = nanohttp.ClientWithCert(client, cert)
+	tlsCert, err := tls.X509KeyPair(pemCert, pemKey)
+	if err != nil {
+		return nil, fmt.Errorf("parse key pair: %w", err)
+	}
+
+	client, err = nanohttp.ClientWithCert(client, &tlsCert)
 	if err != nil {
 		return nil, fmt.Errorf("adapting client for mTLS: %w", err)
 	}

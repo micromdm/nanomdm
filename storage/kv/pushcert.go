@@ -2,7 +2,6 @@ package kv
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"strconv"
@@ -24,7 +23,7 @@ func (s *KV) IsPushCertStale(ctx context.Context, topic string, staleToken strin
 }
 
 // RetrievePushCert retrieves the TLS certificate and private key from the KV store.
-func (s *KV) RetrievePushCert(ctx context.Context, topic string) (cert *tls.Certificate, staleToken string, err error) {
+func (s *KV) RetrievePushCert(ctx context.Context, topic string) (pemCert, pemKey []byte, staleToken string, err error) {
 	getMap, err := kv.GetMap(
 		ctx,
 		s.pushCert,
@@ -35,15 +34,10 @@ func (s *KV) RetrievePushCert(ctx context.Context, topic string) (cert *tls.Cert
 		},
 	)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 
-	tlsCert, err := tls.X509KeyPair(getMap[join(topic, keyPushCertPEM)], getMap[join(topic, keyPushCertKey)])
-	if err != nil {
-		return nil, "", err
-	}
-
-	return &tlsCert, string(getMap[join(topic, keyPushCertStaleToken)]), nil
+	return getMap[join(topic, keyPushCertPEM)], getMap[join(topic, keyPushCertKey)], string(getMap[join(topic, keyPushCertStaleToken)]), nil
 }
 
 // StorePushCert stores pemCert and pemKey by APNs topic in the KV store.

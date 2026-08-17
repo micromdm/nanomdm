@@ -2,7 +2,6 @@ package file
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -12,7 +11,7 @@ import (
 )
 
 // RetrievePushCert is passed through to a new PushCertFileStorage
-func (s *FileStorage) RetrievePushCert(ctx context.Context, topic string) (*tls.Certificate, string, error) {
+func (s *FileStorage) RetrievePushCert(ctx context.Context, topic string) ([]byte, []byte, string, error) {
 	ps := &PushCertFileStorage{
 		certFilepath: path.Join(s.path, topic+".pem"),
 		keyFilepath:  path.Join(s.path, topic+".key"),
@@ -62,28 +61,24 @@ func (s *PushCertFileStorage) getPushCertStaleToken(filename string) (string, er
 }
 
 // RetrievePushCert reads the Push Certificate from disk
-func (s *PushCertFileStorage) RetrievePushCert(_ context.Context, topic string) (*tls.Certificate, string, error) {
+func (s *PushCertFileStorage) RetrievePushCert(_ context.Context, topic string) ([]byte, []byte, string, error) {
 	pemCert, err := ioutil.ReadFile(s.certFilepath)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 	certTopic, err := cryptoutil.TopicFromPEMCert(pemCert)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 	if certTopic != topic {
-		return nil, "", errors.New("certificate topic mismatch")
+		return nil, nil, "", errors.New("certificate topic mismatch")
 	}
 	pemKey, err := ioutil.ReadFile(s.keyFilepath)
 	if err != nil {
-		return nil, "", err
-	}
-	cert, err := tls.X509KeyPair(pemCert, pemKey)
-	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 	staleToken, err := s.getPushCertStaleToken(s.certFilepath)
-	return &cert, staleToken, err
+	return pemCert, pemKey, staleToken, err
 }
 
 // IsPushCertStale inspects staleToken to tell if our push certs are stale
