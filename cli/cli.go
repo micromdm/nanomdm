@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/micromdm/nanomdm/storage"
 	"github.com/micromdm/nanomdm/storage/allmulti"
@@ -139,6 +140,20 @@ func mysqlStorageConfig(dsn, options string, logger log.Logger) (*mysql.MySQLSto
 				} else if v != "0" {
 					return nil, fmt.Errorf("invalid value for delete option: %q", v)
 				}
+			case "conn_max_lifetime":
+				d, err := time.ParseDuration(v)
+				if err != nil {
+					return nil, fmt.Errorf("invalid value for conn_max_lifetime option: %w", err)
+				}
+				opts = append(opts, mysql.WithConnMaxLifetime(d))
+				logger.Debug("msg", "connection max lifetime", "duration", d.String())
+			case "conn_max_idle_time":
+				d, err := time.ParseDuration(v)
+				if err != nil {
+					return nil, fmt.Errorf("invalid value for conn_max_idle_time option: %w", err)
+				}
+				opts = append(opts, mysql.WithConnMaxIdleTime(d))
+				logger.Debug("msg", "connection max idle time", "duration", d.String())
 			default:
 				return nil, fmt.Errorf("invalid option: %q", k)
 			}
