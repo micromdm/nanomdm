@@ -119,8 +119,14 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
 
 * `delete=1`, `delete=0`
   * This option turns on or off the command and response deleter. It is disabled by default. When enabled (with `delete=1`) command responses, queued commands, and commands themeselves will be deleted from the database after enrollments have responded to a command.
+* `conn_max_lifetime=duration`
+  * This option sets the maximum amount of time a pooled connection may be reused. The value is a [Go duration string](https://pkg.go.dev/time#ParseDuration) such as `30s`, `3m`, or `1h`. When unset, connection lifetime is left at database/sql's default (connections are reused indefinitely). A value of `0` keeps connections forever.
+* `conn_max_idle_time=duration`
+  * This option sets the maximum amount of time a pooled connection may sit idle before it is closed. The value is a duration string, as above. When unset, idle time is left at database/sql's default (idle connections are not closed by age). A value of `0` never closes connections due to idle time.
 
 *Example:* `-storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb -storage-options delete=1`
+
+*Example:* `-storage mysql -storage-dsn nanomdm:nanomdm/mymdmdb -storage-options conn_max_lifetime=30s,conn_max_idle_time=15s`
 
 #### pgsql storage backend
 
