@@ -1,0 +1,62 @@
+-- name: DisableEnrollment :exec
+UPDATE
+  enrollments
+SET
+  enabled = 0,
+  token_update_tally = 0,
+  last_seen_at = CURRENT_TIMESTAMP
+WHERE
+  device_id = ? AND
+  enabled = 1;
+
+-- name: UpdateLastSeen :exec
+UPDATE enrollments SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?;
+
+-- name: RetrieveTokenUpdateTally :one
+SELECT token_update_tally FROM enrollments WHERE id = ?;
+
+-- name: StoreDeviceTokenUpdateWithoutUnlock :exec
+UPDATE devices
+SET
+    token_update = ?,
+    token_update_at = CURRENT_TIMESTAMP
+WHERE id = ? LIMIT 1;
+
+-- name: StoreDeviceTokenUpdateWithUnlock :exec
+UPDATE devices
+SET
+    token_update = ?,
+    token_update_at = CURRENT_TIMESTAMP,
+    unlock_token = ?,
+    unlock_token_at = CURRENT_TIMESTAMP
+WHERE id = ? LIMIT 1;
+
+-- name: RetrieveMigrationCheckinsDevices :many
+SELECT authenticate, token_update FROM devices;
+
+-- name: RetrieveMigrationCheckinsUsers :many
+SELECT token_update FROM users;
+
+-- name: StoreBootstrapToken :exec
+UPDATE devices SET bootstrap_token_b64 = ?, bootstrap_token_at = CURRENT_TIMESTAMP WHERE id = ? LIMIT 1;
+
+-- name: RetrieveBootstrapToken :one
+SELECT bootstrap_token_b64 FROM devices WHERE id = ?;
+
+-- name: EnrollmentHasCertHash :one
+SELECT COUNT(*) FROM cert_auth_associations WHERE id = ?;
+
+-- name: HasCertHash :one
+SELECT COUNT(*) FROM cert_auth_associations WHERE sha256 = ?;
+
+-- name: IsCertHashAssociated :one
+SELECT COUNT(*) FROM cert_auth_associations WHERE id = ? AND sha256 = ?;
+
+-- name: EnrollmentFromHash :one
+SELECT id FROM cert_auth_associations WHERE sha256 = ? LIMIT 1;
+
+-- name: RetrievePushCert :one
+SELECT cert_pem, key_pem, stale_token FROM push_certs WHERE topic = ?;
+
+-- name: IsPushCertStale :one
+SELECT stale_token FROM push_certs WHERE topic = ?;
