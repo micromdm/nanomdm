@@ -83,7 +83,7 @@ The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure th
 > [!NOTE]
 > NanoMDM **versions v0.5 and below** used the `-dsn` flag while later versions now use the `-storage-dsn` flag.
 
-##### filekv storage backend
+#### filekv storage backend
 
 * `-storage filekv`
 
