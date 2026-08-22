@@ -152,15 +152,21 @@ SET
 }
 
 func (s *PgSQLStorage) RetrieveNextCommand(r *mdm.Request, skipNotNow bool) (*mdm.Command, error) {
-	statusWhere := "status IS NULL"
-	if !skipNotNow {
-		statusWhere = `(` + statusWhere + ` OR status = 'NotNow')`
-	}
 	command := new(mdm.Command)
 	err := s.db.QueryRowContext(
-		r.Context(),
-		`SELECT command_uuid, request_type, command FROM view_queue WHERE id = $1 AND active = TRUE AND `+statusWhere+` LIMIT 1;`,
-		r.ID,
+		r.Context(), `
+SELECT c.command_uuid, c.request_type, c.command
+FROM enrollment_queue AS q
+    INNER JOIN commands AS c
+        ON q.command_uuid = c.command_uuid
+    LEFT JOIN command_results r
+        ON r.command_uuid = q.command_uuid AND r.id = q.id
+WHERE q.id = $1
+    AND q.active = TRUE
+    AND (r.status IS NULL OR (r.status = 'NotNow' AND NOT $2))
+ORDER BY q.priority DESC, q.created_at
+LIMIT 1;`,
+		r.ID, skipNotNow,
 	).Scan(&command.CommandUUID, &command.Command.RequestType, &command.Raw)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
