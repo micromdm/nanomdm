@@ -1,0 +1,54 @@
+version: 2
+sql:
+  - engine: "mysql"
+    queries:
+      - "bstoken.sql"
+      - "certauth.sql"
+      - "mdm.sql"
+      - "mysql.sql"
+      - "push.sql"
+      - "pushcert.sql"
+      - "queue.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "sqlc"
+        out: "sqlc"
+        overrides:
+          # type overrides
+          # raw XML/plist columns are []byte so they round-trip losslessly
+          # regardless of the connection charset
+          - db_type: "text"
+            go_type:
+              type: "byte"
+              slice: true
+          - db_type: "text"
+            nullable: true
+            go_type:
+              type: "byte"
+              slice: true
+          - db_type: "mediumblob"
+            nullable: true
+            go_type:
+              type: "byte"
+              slice: true
+          - db_type: "mediumtext"
+            go_type:
+              type: "byte"
+              slice: true
+          # parseTime=true is assumed to not be set on the MySQL driver DSN.
+          # timestamp and datetime columns arrive as strings.
+          - db_type: "timestamp"
+            go_type:
+              type: "string"
+          - db_type: "timestamp"
+            nullable: true
+            go_type:
+              type: "sql.NullString"
+          - db_type: "datetime"
+            go_type:
+              type: "string"
+          - db_type: "datetime"
+            nullable: true
+            go_type:
+              type: "sql.NullString"

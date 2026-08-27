@@ -3,12 +3,12 @@ package mysql
 import (
 	"context"
 	"errors"
-	"strings"
+	"fmt"
 
 	"github.com/micromdm/nanomdm/mdm"
 )
 
-// RetrievePushInfo retreives push info for identifiers ids.
+// RetrievePushInfo selects push info for identifiers ids.
 //
 // Note that we may return fewer results than input. The user of this
 // method needs to reconcile that with their requested ids.
@@ -16,32 +16,23 @@ func (s *MySQLStorage) RetrievePushInfo(ctx context.Context, ids []string) (map[
 	if len(ids) < 1 {
 		return nil, errors.New("no ids provided")
 	}
-	qs := "?" + strings.Repeat(", ?", len(ids)-1)
-	args := make([]interface{}, len(ids))
-	for i, v := range ids {
-		args[i] = v
-	}
-	rows, err := s.db.QueryContext(
-		ctx,
-		`SELECT id, topic, push_magic, token_hex FROM enrollments WHERE id IN (`+qs+`);`,
-		args...,
-	)
+
+	rows, err := s.q.SelectPushInfo(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	pushInfos := make(map[string]*mdm.Push)
-	for rows.Next() {
-		push := new(mdm.Push)
-		var id, token string
-		if err := rows.Scan(&id, &push.Topic, &push.PushMagic, &token); err != nil {
-			return nil, err
+
+	pushInfos := make(map[string]*mdm.Push, len(rows))
+	for _, row := range rows {
+		push := &mdm.Push{
+			PushMagic: row.PushMagic,
+			Topic:     row.Topic,
 		}
-		// convert from hex
-		if err := push.SetTokenString(token); err != nil {
-			return nil, err
+		if err := push.SetTokenString(row.TokenHex); err != nil {
+			return nil, fmt.Errorf("setting push token string for id: %s: %w", row.ID, err)
 		}
-		pushInfos[id] = push
+		pushInfos[row.ID] = push
 	}
-	return pushInfos, rows.Err()
+
+	return pushInfos, nil
 }
