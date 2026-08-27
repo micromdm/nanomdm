@@ -33,7 +33,7 @@ func (s *MySQLStorage) StoreAuthenticate(r *mdm.Request, msg *mdm.Authenticate) 
 func (s *MySQLStorage) StoreTokenUpdate(r *mdm.Request, msg *mdm.TokenUpdate) error {
 	// last seen is upserted within the enrollment record update
 
-	return tx(r.Context(), s.db, s.q, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
+	return s.txn.Exec(r.Context(), func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
 		var deviceID, userID string
 		if r.ParentID == "" {
 			deviceID = r.ID

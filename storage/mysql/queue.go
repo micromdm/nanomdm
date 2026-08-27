@@ -37,7 +37,7 @@ func (s *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 		return nil, errors.New("no id(s) supplied to queue command to")
 	}
 
-	return nil, tx(ctx, s.db, s.q, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
+	return nil, s.txn.Exec(ctx, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
 		params := sqlc.InsertCommandsParams{
 			CommandUuid: cmd.CommandUUID,
 			RequestType: cmd.Command.RequestType,
@@ -65,7 +65,7 @@ func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 		return nil
 	}
 
-	return tx(r.Context(), s.db, s.q, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
+	return s.txn.Exec(r.Context(), func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
 		if s.rm && result.Status != "NotNow" {
 			// first, place a record lock on the command so that multiple devices
 			// trying to each delete it do not race

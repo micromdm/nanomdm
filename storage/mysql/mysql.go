@@ -2,11 +2,9 @@
 package mysql
 
 import (
-	"context"
 	"database/sql"
 	_ "embed"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/micromdm/nanomdm/mdm"
@@ -36,6 +34,7 @@ type MySQLStorage struct {
 	logger log.Logger
 	db     *sql.DB
 	q      *sqlc.Queries
+	txn    *Txn
 	rm     bool
 }
 
@@ -47,6 +46,7 @@ type config struct {
 	rm              bool
 	connMaxLifetime time.Duration
 	connMaxIdleTime time.Duration
+	txnOpts         []TxnOption
 }
 
 type Option func(*config)
@@ -99,6 +99,14 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 	}
 }
 
+// WithTxnOptions configures the transactions this storage runs, overriding
+// the defaults documented on [NewTxn]. Options accumulate across calls.
+func WithTxnOptions(opts ...TxnOption) Option {
+	return func(c *config) {
+		c.txnOpts = append(c.txnOpts, opts...)
+	}
+}
+
 func New(opts ...Option) (*MySQLStorage, error) {
 	cfg := &config{
 		logger: log.NopLogger,
@@ -123,7 +131,14 @@ func New(opts ...Option) (*MySQLStorage, error) {
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
-	return &MySQLStorage{db: cfg.db, q: sqlc.New(cfg.db), logger: cfg.logger, rm: cfg.rm}, nil
+	q := sqlc.New(cfg.db)
+	return &MySQLStorage{
+		db:     cfg.db,
+		q:      q,
+		txn:    NewTxn(cfg.db, q, cfg.txnOpts...),
+		logger: cfg.logger,
+		rm:     cfg.rm,
+	}, nil
 }
 
 // nullEmptyString returns a NULL string if s is empty.
@@ -132,28 +147,6 @@ func nullEmptyString(s string) sql.NullString {
 		String: s,
 		Valid:  s != "",
 	}
-}
-
-// txcb executes SQL within transactions when wrapped in tx().
-type txcb func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error
-
-// tx wraps g in transactions using db.
-// If g returns an err the transaction will be rolled back; otherwise committed.
-func tx(ctx context.Context, db *sql.DB, q *sqlc.Queries, g txcb) error {
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("tx begin: %w", err)
-	}
-	if err = g(ctx, tx, q.WithTx(tx)); err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("tx rollback: %w; while trying to handle error: %v", rbErr, err)
-		}
-		return fmt.Errorf("tx rolled back: %w", err)
-	}
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("tx commit: %w", err)
-	}
-	return nil
 }
 
 // updateLastSeen updates the last seen timestamp for r.ID.
