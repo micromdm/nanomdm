@@ -2,13 +2,12 @@ package pgsql
 
 import (
 	"context"
-	"crypto/tls"
 	"strconv"
 
 	"github.com/micromdm/nanomdm/cryptoutil"
 )
 
-func (s *PgSQLStorage) RetrievePushCert(ctx context.Context, topic string) (*tls.Certificate, string, error) {
+func (s *PgSQLStorage) RetrievePushCert(ctx context.Context, topic string) ([]byte, []byte, string, error) {
 	var certPEM, keyPEM []byte
 	var staleToken int
 	err := s.db.QueryRowContext(
@@ -17,13 +16,9 @@ func (s *PgSQLStorage) RetrievePushCert(ctx context.Context, topic string) (*tls
 		topic,
 	).Scan(&certPEM, &keyPEM, &staleToken)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
-	cert, err := tls.X509KeyPair(certPEM, keyPEM)
-	if err != nil {
-		return nil, "", err
-	}
-	return &cert, strconv.Itoa(staleToken), err
+	return certPEM, keyPEM, strconv.Itoa(staleToken), err
 }
 
 func (s *PgSQLStorage) IsPushCertStale(ctx context.Context, topic, staleToken string) (bool, error) {

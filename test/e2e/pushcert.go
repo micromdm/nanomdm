@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"os"
@@ -55,7 +56,11 @@ func pushcert(t *testing.T, ctx context.Context, a pushCertUploader, store pushS
 		t.Fatal(err)
 	}
 
-	tlsCert, staleToken1, err := store.RetrievePushCert(ctx, topic)
+	pemCert, pemKey, staleToken1, err := store.RetrievePushCert(ctx, topic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tlsCert, err := tls.X509KeyPair(pemCert, pemKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +80,7 @@ func pushcert(t *testing.T, ctx context.Context, a pushCertUploader, store pushS
 		t.Fatal(err)
 	}
 
-	_, staleToken2, err := store.RetrievePushCert(ctx, topic)
+	_, _, staleToken2, err := store.RetrievePushCert(ctx, topic)
 	if err != nil {
 		t.Fatal(err)
 	}

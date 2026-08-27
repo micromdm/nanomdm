@@ -2,7 +2,6 @@ package allmulti
 
 import (
 	"context"
-	"crypto/tls"
 
 	"github.com/micromdm/nanomdm/storage"
 )
@@ -15,19 +14,19 @@ func (ms *MultiAllStorage) IsPushCertStale(ctx context.Context, topic string, st
 }
 
 type retrievePushCertReturns struct {
-	cert       *tls.Certificate
-	staleToken string
+	pemCert, pemKey []byte
+	staleToken      string
 }
 
-func (ms *MultiAllStorage) RetrievePushCert(ctx context.Context, topic string) (cert *tls.Certificate, staleToken string, err error) {
+func (ms *MultiAllStorage) RetrievePushCert(ctx context.Context, topic string) (pemCert, pemKey []byte, staleToken string, err error) {
 	val, err := ms.execStores(ctx, func(s storage.AllStorage) (interface{}, error) {
 		rets := new(retrievePushCertReturns)
 		var err error
-		rets.cert, rets.staleToken, err = s.RetrievePushCert(ctx, topic)
+		rets.pemCert, rets.pemKey, rets.staleToken, err = s.RetrievePushCert(ctx, topic)
 		return rets, err
 	})
 	rets := val.(*retrievePushCertReturns)
-	return rets.cert, rets.staleToken, err
+	return rets.pemCert, rets.pemKey, rets.staleToken, err
 }
 
 func (ms *MultiAllStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte) error {
