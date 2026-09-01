@@ -21,6 +21,7 @@ type AllStorage interface {
 	TokenUpdateTallyStore
 	PushCertStorer
 	EnrollmentsStore
+	CommandQueueAPIStore
 }
 
 // ServiceStore stores & retrieves both command and check-in data.
