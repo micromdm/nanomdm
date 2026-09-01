@@ -227,6 +227,72 @@ paths:
                     type: string
                 example:
                   version: "v0.1.0"
+  /v1/queue/{id}:
+    get:
+      description: Retrieve queued MDM commands for a specific enrollment ID.
+      security:
+        - basicAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Enrollment ID of a device- or user-channel enrollment.
+          required: true
+          schema:
+            type: string
+            example: '299BD49-1A0C-422C-B285-2E4FF087C673'
+        - name: limit
+          in: query
+          description: Maximum number of commands to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of commands to skip (for offset-based pagination)
+          schema:
+            type: integer
+        - name: cursor
+          in: query
+          description: Cursor for cursor-based pagination (mutually exclusive with offset)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful query response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueQueryResult'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/queue/{id*}:
+    delete:
+      description: Clear all queued MDM commands for one or more enrollment IDs.
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/idParam'
+      responses:
+        '204':
+          description: All queued commands were successfully cleared.
+        '207':
+          $ref: '#/components/responses/QueueAPIResultSomeFailed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/QueueAPIResultAllFailed'
   /v1/enrollments/query:
     post:
       description: Query MDM enrollments with filtering and pagination
@@ -321,6 +387,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/APIResult'
+    QueueAPIResultSomeFailed:
+      description: Some requests succeeded and some failed. Returns JSON queue API response object including errors.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QueueAPIResult'
+    QueueAPIResultAllFailed:
+      description: All requests failed. Returns JSON queue API response object including errors.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QueueAPIResult'
   schemas:
     APIResult:
       type: object
@@ -379,6 +457,55 @@ components:
           type: string
           description: Error response string.
           example: The sun is shining.
+    QueueQueryResult:
+      type: object
+      description: Result of a queue query.
+      required:
+        - commands
+      properties:
+        commands:
+          type: array
+          description: List of queued commands
+          items:
+            $ref: '#/components/schemas/QueueCommand'
+        next_cursor:
+          type: string
+          description: Cursor for the next page of results (if more results exist)
+        error:
+          type: string
+          description: Error message if the query failed
+    QueueCommand:
+      type: object
+      description: A queued MDM command.
+      required:
+        - command_uuid
+        - request_type
+      properties:
+        command_uuid:
+          type: string
+          description: Unique command identifier
+          format: uuid
+          example: 'fedd659e-fc3c-4e35-8bb1-c8f51ae542a5'
+        request_type:
+          type: string
+          description: The MDM command request type
+          example: 'ProfileList'
+        command:
+          type: string
+          format: byte
+          description: Base64-encoded raw command plist
+    QueueAPIResult:
+      type: object
+      description: Result of queue API operations.
+      properties:
+        status:
+          type: object
+          description: Per-enrollment ID results. Map key is the enrollment ID.
+          additionalProperties:
+            type: string
+        error:
+          type: string
+          description: General error message if the overall operation failed
     EnrollmentsQuery:
       type: object
       description: Query parameters for filtering enrollments.
