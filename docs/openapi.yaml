@@ -220,13 +220,63 @@ paths:
           description: Successful response
           content:
             application/json:
-              schema: 
+              schema:
                 type: object
-                properties: 
+                properties:
                   version:
                     type: string
                 example:
                   version: "v0.1.0"
+  /v1/enrollments/query:
+    post:
+      description: Query MDM enrollments with filtering and pagination
+      security:
+        - basicAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of enrollments to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of enrollments to skip (for offset-based pagination)
+          schema:
+            type: integer
+        - name: cursor
+          in: query
+          description: Cursor for cursor-based pagination (mutually exclusive with offset)
+          schema:
+            type: string
+      requestBody:
+        description: Query parameters for filtering enrollments
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollmentsQuery'
+      responses:
+        '200':
+          description: Successful query response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentsQueryResult'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
     idParam:
@@ -329,3 +379,134 @@ components:
           type: string
           description: Error response string.
           example: The sun is shining.
+    EnrollmentsQuery:
+      type: object
+      description: Query parameters for filtering enrollments.
+      properties:
+        filter:
+          $ref: '#/components/schemas/EnrollmentsQueryFilter'
+        options:
+          $ref: '#/components/schemas/EnrollmentQueryOptions'
+    EnrollmentsQueryFilter:
+      type: object
+      description: Filter criteria for enrollment queries.
+      properties:
+        ids:
+          type: array
+          description: Filter by enrollment IDs
+          items:
+            type: string
+          example: ['299BD49-1A0C-422C-B285-2E4FF087C673']
+        serials:
+          type: array
+          description: Filter by device serial numbers
+          items:
+            type: string
+          example: ['C8TJ500QF1MN']
+        user_short_names:
+          type: array
+          description: Filter by user short names (for user enrollments)
+          items:
+            type: string
+          example: ['jdoe']
+        types:
+          type: array
+          description: Filter by enrollment type strings
+          items:
+            type: string
+            enum: ['Device', 'User', 'User Enrollment (Device)', 'User Enrollment', 'Shared iPad']
+          example: ['Device']
+        enabled:
+          type: boolean
+          description: Filter by enrollment enabled status
+          example: true
+    EnrollmentQueryOptions:
+      type: object
+      description: Options for enrollment queries.
+      properties:
+        include_device_cert:
+          type: boolean
+          description: Include the device identity certificate in the response
+          default: false
+        include_unlock_token:
+          type: boolean
+          description: Include the unlock token in the response
+          default: false
+    EnrollmentsQueryResult:
+      type: object
+      description: Result of an enrollments query.
+      required:
+        - enrollments
+      properties:
+        enrollments:
+          type: array
+          description: List of enrollments matching the query
+          items:
+            $ref: '#/components/schemas/Enrollment'
+        next_cursor:
+          type: string
+          description: Cursor for the next page of results (if more results exist)
+          example: 'eyJpZCI6IjEyMyJ9'
+    Enrollment:
+      type: object
+      description: An MDM enrollment.
+      required:
+        - id
+        - type
+        - enabled
+        - token_update_tally
+        - last_seen
+      properties:
+        id:
+          type: string
+          description: Unique enrollment identifier
+          example: '299BD49-1A0C-422C-B285-2E4FF087C673'
+        type:
+          type: string
+          description: Enrollment type
+          enum: ['Device', 'User', 'User Enrollment (Device)', 'User Enrollment', 'Shared iPad']
+          example: 'Device'
+        device:
+          $ref: '#/components/schemas/DeviceEnrollment'
+        user:
+          $ref: '#/components/schemas/UserEnrollment'
+        enabled:
+          type: boolean
+          description: Whether the enrollment is currently enabled
+          example: true
+        token_update_tally:
+          type: integer
+          description: Count of TokenUpdate messages received
+          example: 5
+        last_seen:
+          type: string
+          format: date-time
+          description: Timestamp of last activity from this enrollment
+          example: '2024-01-15T10:30:00Z'
+    DeviceEnrollment:
+      type: object
+      description: Device-specific enrollment data.
+      properties:
+        serial_number:
+          type: string
+          description: Device serial number
+          example: 'C8TJ500QF1MN'
+        device_cert:
+          type: string
+          description: PEM-encoded device identity certificate (only if include_device_cert option is set)
+        unlock_token:
+          type: string
+          format: byte
+          description: Base64-encoded device unlock token (only if include_unlock_token option is set)
+    UserEnrollment:
+      type: object
+      description: User-specific enrollment data.
+      properties:
+        user_short_name:
+          type: string
+          description: User's short name
+          example: 'jdoe'
+        user_long_name:
+          type: string
+          description: User's display name
+          example: 'John Doe'
