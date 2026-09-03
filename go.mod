@@ -9,7 +9,7 @@ require (
 	github.com/micromdm/nanolib v0.5.1
 	github.com/micromdm/plist v0.3.0
 	github.com/peterbourgon/diskv/v3 v3.0.1
-	github.com/smallstep/pkcs7 v0.2.1
+	github.com/smallstep/pkcs7 v0.2.3
 	golang.org/x/net v0.34.0
 )
 
