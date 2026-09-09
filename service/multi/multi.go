@@ -3,6 +3,7 @@ package multi
 
 import (
 	"context"
+	"sync"
 
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/service"
@@ -17,8 +18,9 @@ import (
 // Enrollment ID) by waiting for it to finish then we run the remaining
 // services' calls in parallel.
 type MultiService struct {
-	logger log.Logger
-	svcs   []service.CheckinAndCommandService
+	logger  log.Logger
+	svcs    []service.CheckinAndCommandService
+	WaitAll bool
 }
 
 func New(logger log.Logger, svcs ...service.CheckinAndCommandService) *MultiService {
@@ -31,11 +33,25 @@ func New(logger log.Logger, svcs ...service.CheckinAndCommandService) *MultiServ
 	}
 }
 
+// WithWaitAll sets WaitAll to true, causing calls to wait for all secondary
+// services to finish before returning.
+func (ms *MultiService) WithWaitAll() *MultiService {
+	ms.WaitAll = true
+	return ms
+}
+
 type errorRunner func(service.CheckinAndCommandService) error
 
 func (ms *MultiService) runOthers(ctx context.Context, r errorRunner) {
+	var wg sync.WaitGroup
+	if ms.WaitAll {
+		wg.Add(len(ms.svcs) - 1)
+	}
 	for i, svc := range ms.svcs[1:] {
 		go func(n int, s service.CheckinAndCommandService) {
+			if ms.WaitAll {
+				defer wg.Done()
+			}
 			err := r(s)
 			if err != nil {
 				ctxlog.Logger(ctx, ms.logger).Info(
@@ -44,6 +60,9 @@ func (ms *MultiService) runOthers(ctx context.Context, r errorRunner) {
 				)
 			}
 		}(i+1, svc)
+	}
+	if ms.WaitAll {
+		wg.Wait()
 	}
 }
 
