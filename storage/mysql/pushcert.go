@@ -5,53 +5,43 @@ import (
 	"strconv"
 
 	"github.com/micromdm/nanomdm/cryptoutil"
+	"github.com/micromdm/nanomdm/storage/mysql/sqlc"
 )
 
+// RetrievePushCert selects the raw PEM cert and key for topic.
 func (s *MySQLStorage) RetrievePushCert(ctx context.Context, topic string) ([]byte, []byte, string, error) {
-	var certPEM, keyPEM []byte
-	var staleToken int
-	err := s.db.QueryRowContext(
-		ctx,
-		`SELECT cert_pem, key_pem, stale_token FROM push_certs WHERE topic = ?;`,
-		topic,
-	).Scan(&certPEM, &keyPEM, &staleToken)
+	row, err := s.q.SelectPushCert(ctx, topic)
 	if err != nil {
 		return nil, nil, "", err
 	}
-	return certPEM, keyPEM, strconv.Itoa(staleToken), err
+	return row.CertPem, row.KeyPem, strconv.Itoa(int(row.StaleToken)), nil
 }
 
+// IsPushCertStale compares the staleToken against the selected stale token for topic.
 func (s *MySQLStorage) IsPushCertStale(ctx context.Context, topic, staleToken string) (bool, error) {
-	var staleTokenInt, dbStaleToken int
+	dbStaleToken, err := s.q.SelectPushCertStaleToken(ctx, topic)
+	if err != nil {
+		return true, err
+	}
+
 	staleTokenInt, err := strconv.Atoi(staleToken)
 	if err != nil {
 		return true, err
 	}
-	err = s.db.QueryRowContext(
-		ctx,
-		`SELECT stale_token FROM push_certs WHERE topic = ?;`,
-		topic,
-	).Scan(&dbStaleToken)
-	return dbStaleToken != staleTokenInt, err
+
+	return int(dbStaleToken) != staleTokenInt, err
 }
 
+// StorePushCert upserts pemCert and pemKey for pemCert's extracted topic.
 func (s *MySQLStorage) StorePushCert(ctx context.Context, pemCert, pemKey []byte) error {
 	topic, err := cryptoutil.TopicFromPEMCert(pemCert)
 	if err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(
-		ctx, `
-INSERT INTO push_certs
-    (topic, cert_pem, key_pem, stale_token)
-VALUES
-    (?, ?, ?, 0) AS new
-ON DUPLICATE KEY
-UPDATE
-    cert_pem = new.cert_pem,
-    key_pem = new.key_pem,
-    push_certs.stale_token = push_certs.stale_token + 1;`,
-		topic, pemCert, pemKey,
-	)
-	return err
+
+	return s.q.UpsertPushCert(ctx, sqlc.UpsertPushCertParams{
+		Topic:   topic,
+		CertPem: pemCert,
+		KeyPem:  pemKey,
+	})
 }

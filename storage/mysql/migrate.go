@@ -6,7 +6,11 @@ import (
 	"github.com/micromdm/nanomdm/mdm"
 )
 
+// RetrieveMigrationCheckins streams device and user check-in messages into c.
 func (s *MySQLStorage) RetrieveMigrationCheckins(ctx context.Context, c chan<- interface{}) error {
+	// this uses raw db.QueryContext rather than sqlc because it streams rows into
+	// the channel; sqlc has no streaming mode (its :many buffers all rows).
+
 	// TODO: if a TokenUpdate does not include the latest UnlockToken
 	// then we should synthesize a TokenUpdate to transfer it over.
 	deviceRows, err := s.db.QueryContext(

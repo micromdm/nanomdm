@@ -1,38 +1,36 @@
 package mysql
 
 import (
-	"database/sql"
-
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/storage/mysql/sqlc"
 )
 
+// StoreBootstrapToken updates the enrollment last seen and updates the Bootstrap Token for r.ID.
 func (s *MySQLStorage) StoreBootstrapToken(r *mdm.Request, msg *mdm.SetBootstrapToken) error {
-	_, err := s.db.ExecContext(
-		r.Context(),
-		`UPDATE devices SET bootstrap_token_b64 = ?, bootstrap_token_at = CURRENT_TIMESTAMP WHERE id = ? LIMIT 1;`,
-		nullEmptyString(msg.BootstrapToken.BootstrapToken.String()),
-		r.ID,
-	)
-	if err != nil {
-		return err
+	defer s.updateLastSeen(r)
+
+	// store NULL rather than an empty string when the token is empty
+	bootstrapTokenB64 := []byte(msg.BootstrapToken.BootstrapToken.String())
+	if len(bootstrapTokenB64) < 1 {
+		bootstrapTokenB64 = nil
 	}
-	return s.updateLastSeen(r)
+	return s.q.UpdateBootstrapToken(r.Context(), sqlc.UpdateBootstrapTokenParams{
+		BootstrapTokenB64: bootstrapTokenB64,
+		ID:                r.ID,
+	})
 }
 
+// RetrieveBootstrapToken updates the enrollment last seen and selects the Bootstrap Token for r.ID.
 func (s *MySQLStorage) RetrieveBootstrapToken(r *mdm.Request, _ *mdm.GetBootstrapToken) (*mdm.BootstrapToken, error) {
-	var tokenB64 sql.NullString
-	err := s.db.QueryRowContext(
-		r.Context(),
-		`SELECT bootstrap_token_b64 FROM devices WHERE id = ?;`,
-		r.ID,
-	).Scan(&tokenB64)
-	if err != nil || !tokenB64.Valid {
+	defer s.updateLastSeen(r)
+
+	tokenB64, err := s.q.SelectBootstrapToken(r.Context(), r.ID)
+	if err != nil || len(tokenB64) < 1 {
+		// return an error or nothing if we have a NULL bootstrap token.
+		// this follows Apple spec for returning success if no bootstrap token.
 		return nil, err
 	}
+
 	bsToken := new(mdm.BootstrapToken)
-	err = bsToken.SetTokenString(tokenB64.String)
-	if err == nil {
-		err = s.updateLastSeen(r)
-	}
-	return bsToken, err
+	return bsToken, bsToken.SetTokenString(string(tokenB64))
 }
