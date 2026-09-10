@@ -78,6 +78,7 @@ func main() {
 		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
 		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
 		flWHHMACKey  = flag.String("webhook-hmac-key", "", "attaches an HMAC HTTP header to each webhook request using this key")
+		flPushURL    = flag.String("push-url", "", "custom APNs push server URL (e.g. https://api.development.push.apple.com:2197)")
 	)
 	envflag.Parse("NANOMDM_", []string{"version", "dsn"})
 
@@ -242,8 +243,14 @@ func main() {
 			return nlhttp.NewSimpleBasicAuthHandler(h, apiUsername, *flAPIKey, "nanomdm")
 		})
 
+		opts := []nanopush.Option{}
+		if *flPushURL != "" {
+			logger.Info("msg", "custom push server URL specified", "url", *flPushURL)
+			opts = append(opts, nanopush.WithPushServerURL(*flPushURL))
+		}
+
 		// create our push provider and push service
-		pushProviderFactory := nanopush.NewFactory()
+		pushProviderFactory := nanopush.NewFactory(opts...)
 		pushService := pushsvc.New(mdmStorage, mdmStorage, pushProviderFactory, logger.With("service", "push"))
 
 		// register API handlers

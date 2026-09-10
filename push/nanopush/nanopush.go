@@ -71,9 +71,10 @@ func defaultNewClient(cert *tls.Certificate) (*http.Client, error) {
 
 // Factory instantiates new PushProviders.
 type Factory struct {
-	newClient  NewClient
-	expiration time.Duration
-	workers    int
+	newClient     NewClient
+	expiration    time.Duration
+	workers       int
+	pushServerURL *string
 }
 
 type Option func(*Factory)
@@ -104,6 +105,13 @@ func WithWorkers(workers int) Option {
 	}
 }
 
+// WithPushServerURL sets the APNs server URL for the push notifications.
+func WithPushServerURL(pushServerURL string) Option {
+	return func(f *Factory) {
+		f.pushServerURL = &pushServerURL
+	}
+}
+
 // NewFactory creates a new Factory.
 func NewFactory(opts ...Option) *Factory {
 	f := &Factory{
@@ -118,10 +126,18 @@ func NewFactory(opts ...Option) *Factory {
 
 // NewPushProvider generates a new PushProvider given a tls keypair.
 func (f *Factory) NewPushProvider(cert *tls.Certificate) (push.PushProvider, error) {
+	pushServerURL := Production
+	if f.pushServerURL != nil {
+		pushServerURL = *f.pushServerURL
+		if err := push.ValidateCustomPushServerURL(pushServerURL); err != nil {
+			return nil, err
+		}
+	}
+
 	p := &Provider{
 		expiration: f.expiration,
 		workers:    f.workers,
-		baseURL:    Production,
+		baseURL:    pushServerURL,
 	}
 	var err error
 	p.client, err = f.newClient(cert)
