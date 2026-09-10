@@ -55,6 +55,58 @@ func (s *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 	})
 }
 
+// deleteCommand removes commandUUID from id's queue along with any result
+// stored for it, then removes the command itself once no enrollment refers to
+// it any longer.
+//
+// The two steps must stay in separate transactions: the reference check is
+// only correct once this enrollment's own deletes are visible to everyone, and
+// keeping it out of the first transaction is what stops enrollments contending
+// over the shared command row. A process dying in between leaves an
+// unreferenced command row behind, which is harmless but is not reclaimed.
+func (s *MySQLStorage) deleteCommand(ctx context.Context, id, commandUUID string) error {
+	err := s.txn.Exec(ctx, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
+		if err := qtx.DeleteEnrollmentQueueCommand(ctx, sqlc.DeleteEnrollmentQueueCommandParams{
+			ID: id, CommandUuid: commandUUID,
+		}); err != nil {
+			return fmt.Errorf("delete enrollment queue command: %w", err)
+		}
+
+		// delete any result stored for this enrollment (i.e. NotNows)
+		if err := qtx.DeleteCommandResult(ctx, sqlc.DeleteCommandResultParams{
+			ID: id, CommandUuid: commandUUID,
+		}); err != nil {
+			return fmt.Errorf("delete command result: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// The report has already committed, so this only collects the command row.
+	// Failing here leaks a row and nothing else: we could mask the error (log
+	// and return nil, as updateLastSeen does) rather than surface it.
+	return s.txn.Exec(ctx, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
+		referenced, err := qtx.SelectCommandReferenced(ctx, sqlc.SelectCommandReferencedParams{
+			CommandUuid: commandUUID, CommandUuid_2: commandUUID,
+		})
+		if err != nil {
+			return fmt.Errorf("select command referenced: %w", err)
+		}
+		if referenced != 0 {
+			return nil
+		}
+
+		if err = qtx.DeleteCommand(ctx, commandUUID); err != nil {
+			return fmt.Errorf("delete command: %w", err)
+		}
+
+		return nil
+	})
+}
+
 // StoreCommandReport upserts the command result for r.ID, or deletes the
 // command from the queue when DeleteCommands is enabled and the status is
 // not "NotNow". A status of "Idle" is not stored.
@@ -65,30 +117,11 @@ func (s *MySQLStorage) StoreCommandReport(r *mdm.Request, result *mdm.CommandRes
 		return nil
 	}
 
+	if s.rm && result.Status != "NotNow" {
+		return s.deleteCommand(r.Context(), r.ID, result.CommandUUID)
+	}
+
 	return s.txn.Exec(r.Context(), func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
-		if s.rm && result.Status != "NotNow" {
-			// first, place a record lock on the command so that multiple devices
-			// trying to each delete it do not race
-			if err := qtx.LockCommandsForDelete(ctx, result.CommandUUID); err != nil {
-				return fmt.Errorf("lock commands for delete: %w", err)
-			}
-
-			// delete command result (i.e. NotNows) and this queued command
-			if err := qtx.DeleteCommandResultForID(ctx, sqlc.DeleteCommandResultForIDParams{
-				ID: r.ID, CommandUuid: result.CommandUUID,
-			}); err != nil {
-				return fmt.Errorf("delete command result for id: %w", err)
-			}
-
-			// now delete the actual command if no enrollments have it queued
-			// nor are there any results for it.
-			if err := qtx.DeleteCommandWhereComplete(ctx, result.CommandUUID); err != nil {
-				return fmt.Errorf("delete command where complete: %w", err)
-			}
-
-			return nil
-		}
-
 		// note that due to the ON DUPLICATE KEY we don't UPDATE the
 		// not_now_at field. thus it will only represent the first NotNow.
 		if result.Status == "NotNow" {

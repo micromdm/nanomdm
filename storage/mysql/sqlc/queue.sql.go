@@ -9,42 +9,51 @@ import (
 	"context"
 )
 
-const deleteCommandResultForID = `-- name: DeleteCommandResultForID :exec
-DELETE q,
-r
-FROM
-    enrollment_queue AS q
-    LEFT JOIN command_results AS r ON q.command_uuid = r.command_uuid
-    AND r.id = q.id
+const deleteCommand = `-- name: DeleteCommand :exec
+DELETE FROM
+    commands
 WHERE
-    q.id = ?
-    AND q.command_uuid = ?
+    command_uuid = ?
 `
 
-type DeleteCommandResultForIDParams struct {
+func (q *Queries) DeleteCommand(ctx context.Context, commandUuid string) error {
+	_, err := q.db.ExecContext(ctx, deleteCommand, commandUuid)
+	return err
+}
+
+const deleteCommandResult = `-- name: DeleteCommandResult :exec
+DELETE FROM
+    command_results
+WHERE
+    id = ?
+    AND command_uuid = ?
+`
+
+type DeleteCommandResultParams struct {
 	ID          string
 	CommandUuid string
 }
 
-func (q *Queries) DeleteCommandResultForID(ctx context.Context, arg DeleteCommandResultForIDParams) error {
-	_, err := q.db.ExecContext(ctx, deleteCommandResultForID, arg.ID, arg.CommandUuid)
+func (q *Queries) DeleteCommandResult(ctx context.Context, arg DeleteCommandResultParams) error {
+	_, err := q.db.ExecContext(ctx, deleteCommandResult, arg.ID, arg.CommandUuid)
 	return err
 }
 
-const deleteCommandWhereComplete = `-- name: DeleteCommandWhereComplete :exec
-DELETE c
-FROM
-    commands AS c
-    LEFT JOIN enrollment_queue AS q ON q.command_uuid = c.command_uuid
-    LEFT JOIN command_results AS r ON r.command_uuid = c.command_uuid
+const deleteEnrollmentQueueCommand = `-- name: DeleteEnrollmentQueueCommand :exec
+DELETE FROM
+    enrollment_queue
 WHERE
-    c.command_uuid = ?
-    AND q.command_uuid IS NULL
-    AND r.command_uuid IS NULL
+    id = ?
+    AND command_uuid = ?
 `
 
-func (q *Queries) DeleteCommandWhereComplete(ctx context.Context, commandUuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteCommandWhereComplete, commandUuid)
+type DeleteEnrollmentQueueCommandParams struct {
+	ID          string
+	CommandUuid string
+}
+
+func (q *Queries) DeleteEnrollmentQueueCommand(ctx context.Context, arg DeleteEnrollmentQueueCommandParams) error {
+	_, err := q.db.ExecContext(ctx, deleteEnrollmentQueueCommand, arg.ID, arg.CommandUuid)
 	return err
 }
 
@@ -66,19 +75,39 @@ func (q *Queries) InsertCommands(ctx context.Context, arg InsertCommandsParams) 
 	return err
 }
 
-const lockCommandsForDelete = `-- name: LockCommandsForDelete :exec
+const selectCommandReferenced = `-- name: SelectCommandReferenced :one
 SELECT
-    command_uuid
-FROM
-    commands
-WHERE
-    command_uuid = ? FOR
-UPDATE
+    CAST(
+        EXISTS(
+            SELECT
+                1
+            FROM
+                enrollment_queue AS q
+            WHERE
+                q.command_uuid = ?
+        )
+        OR EXISTS(
+            SELECT
+                1
+            FROM
+                command_results AS r
+            WHERE
+                r.command_uuid = ?
+        ) AS SIGNED
+    ) AS referenced
 `
 
-func (q *Queries) LockCommandsForDelete(ctx context.Context, commandUuid string) error {
-	_, err := q.db.ExecContext(ctx, lockCommandsForDelete, commandUuid)
-	return err
+type SelectCommandReferencedParams struct {
+	CommandUuid   string
+	CommandUuid_2 string
+}
+
+// Reports if an enrollment still has command_uuid queued or has a result stored for it.
+func (q *Queries) SelectCommandReferenced(ctx context.Context, arg SelectCommandReferencedParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, selectCommandReferenced, arg.CommandUuid, arg.CommandUuid_2)
+	var referenced int64
+	err := row.Scan(&referenced)
+	return referenced, err
 }
 
 const selectNextCommand = `-- name: SelectNextCommand :one

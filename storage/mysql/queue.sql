@@ -4,37 +4,47 @@ INSERT INTO
 VALUES
     (?, ?, ?);
 
--- name: LockCommandsForDelete :exec
+-- name: DeleteEnrollmentQueueCommand :exec
+DELETE FROM
+    enrollment_queue
+WHERE
+    id = ?
+    AND command_uuid = ?;
+
+-- name: DeleteCommandResult :exec
+DELETE FROM
+    command_results
+WHERE
+    id = ?
+    AND command_uuid = ?;
+
+-- name: SelectCommandReferenced :one
+-- Reports if an enrollment still has command_uuid queued or has a result stored for it.
 SELECT
-    command_uuid
-FROM
+    CAST(
+        EXISTS(
+            SELECT
+                1
+            FROM
+                enrollment_queue AS q
+            WHERE
+                q.command_uuid = ?
+        )
+        OR EXISTS(
+            SELECT
+                1
+            FROM
+                command_results AS r
+            WHERE
+                r.command_uuid = ?
+        ) AS SIGNED
+    ) AS referenced;
+
+-- name: DeleteCommand :exec
+DELETE FROM
     commands
 WHERE
-    command_uuid = ? FOR
-UPDATE
-;
-
--- name: DeleteCommandResultForID :exec
-DELETE q,
-r
-FROM
-    enrollment_queue AS q
-    LEFT JOIN command_results AS r ON q.command_uuid = r.command_uuid
-    AND r.id = q.id
-WHERE
-    q.id = ?
-    AND q.command_uuid = ?;
-
--- name: DeleteCommandWhereComplete :exec
-DELETE c
-FROM
-    commands AS c
-    LEFT JOIN enrollment_queue AS q ON q.command_uuid = c.command_uuid
-    LEFT JOIN command_results AS r ON r.command_uuid = c.command_uuid
-WHERE
-    c.command_uuid = ?
-    AND q.command_uuid IS NULL
-    AND r.command_uuid IS NULL;
+    command_uuid = ?;
 
 -- name: UpsertCommandReport :exec
 INSERT INTO
