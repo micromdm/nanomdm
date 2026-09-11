@@ -75,6 +75,26 @@ func (q *Queries) InsertCommands(ctx context.Context, arg InsertCommandsParams) 
 	return err
 }
 
+const selectCommandForDelete = `-- name: SelectCommandForDelete :one
+SELECT
+    command_uuid
+FROM
+    commands
+WHERE
+    command_uuid = ? FOR
+UPDATE
+    SKIP LOCKED
+`
+
+// Claims the command row for collection. Returns no rows when another
+// enrollment already holds it, in which case that enrollment does the delete.
+func (q *Queries) SelectCommandForDelete(ctx context.Context, commandUuid string) (string, error) {
+	row := q.db.QueryRowContext(ctx, selectCommandForDelete, commandUuid)
+	var command_uuid string
+	err := row.Scan(&command_uuid)
+	return command_uuid, err
+}
+
 const selectCommandReferenced = `-- name: SelectCommandReferenced :one
 SELECT
     CAST(

@@ -40,6 +40,18 @@ SELECT
         ) AS SIGNED
     ) AS referenced;
 
+-- name: SelectCommandForDelete :one
+-- Claims the command row for collection. Returns no rows when another
+-- enrollment already holds it, in which case that enrollment does the delete.
+SELECT
+    command_uuid
+FROM
+    commands
+WHERE
+    command_uuid = ? FOR
+UPDATE
+    SKIP LOCKED;
+
 -- name: DeleteCommand :exec
 DELETE FROM
     commands

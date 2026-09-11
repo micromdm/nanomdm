@@ -59,11 +59,11 @@ func (s *MySQLStorage) EnqueueCommand(ctx context.Context, ids []string, cmd *md
 // stored for it, then removes the command itself once no enrollment refers to
 // it any longer.
 //
-// The two steps must stay in separate transactions: the reference check is
-// only correct once this enrollment's own deletes are visible to everyone, and
-// keeping it out of the first transaction is what stops enrollments contending
-// over the shared command row. A process dying in between leaves an
-// unreferenced command row behind, which is harmless but is not reclaimed.
+// The reference check must not share a transaction with the deletes above: it
+// is only correct once this enrollment's own deletes are visible to everyone,
+// and keeping it out is what stops enrollments contending over the shared
+// command row. A process dying in between leaves an unreferenced command row
+// behind, which is harmless but is not reclaimed.
 func (s *MySQLStorage) deleteCommand(ctx context.Context, id, commandUUID string) error {
 	err := s.txn.Exec(ctx, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
 		if err := qtx.DeleteEnrollmentQueueCommand(ctx, sqlc.DeleteEnrollmentQueueCommandParams{
@@ -85,21 +85,37 @@ func (s *MySQLStorage) deleteCommand(ctx context.Context, id, commandUUID string
 		return err
 	}
 
-	// The report has already committed, so this only collects the command row.
-	// Failing here leaks a row and nothing else: we could mask the error (log
-	// and return nil, as updateLastSeen does) rather than surface it.
+	// The report has already committed, so what follows only collects the
+	// command row.
+	//
+	// The check takes no locks and needs no transaction of its own, which
+	// spares every enrollment but the collector a BEGIN and COMMIT round trip.
+	referenced, err := s.q.SelectCommandReferenced(ctx, sqlc.SelectCommandReferencedParams{
+		CommandUuid: commandUUID, CommandUuid_2: commandUUID,
+	})
+	if err != nil {
+		return fmt.Errorf("select command referenced: %w", err)
+	}
+	if referenced != 0 {
+		return nil
+	}
+
+	// The claim has to hold its lock through the delete, so these two do want a
+	// transaction. Enrollments finishing together all see the command as
+	// unreferenced and would queue up on its row; SKIP LOCKED means whoever
+	// arrives first collects it and the rest move on rather than waiting.
+	//
+	// Failing here leaks a row and nothing else: we could mask the
+	// error (log and return nil, as updateLastSeen does) rather than surface it.
 	return s.txn.Exec(ctx, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
-		referenced, err := qtx.SelectCommandReferenced(ctx, sqlc.SelectCommandReferencedParams{
-			CommandUuid: commandUUID, CommandUuid_2: commandUUID,
-		})
-		if err != nil {
-			return fmt.Errorf("select command referenced: %w", err)
-		}
-		if referenced != 0 {
-			return nil
+		if _, err := qtx.SelectCommandForDelete(ctx, commandUUID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil
+			}
+			return fmt.Errorf("select command for delete: %w", err)
 		}
 
-		if err = qtx.DeleteCommand(ctx, commandUUID); err != nil {
+		if err := qtx.DeleteCommand(ctx, commandUUID); err != nil {
 			return fmt.Errorf("delete command: %w", err)
 		}
 
