@@ -36,6 +36,15 @@ type APIResult struct {
 	RequestType string `json:"request_type,omitempty"` // RequestType of the enqueued command.
 }
 
+// QueueAPIResult is the result of queue APIs.
+type QueueAPIResult struct {
+	// Status is the per-enrollment ID results of queue APIs.
+	// Map key is the enrollment ID.
+	Status map[string]*Error `json:"status,omitempty"`
+	// Error is present if there was a general error with the queue API call.
+	Error *Error `json:"error,omitempty"`
+}
+
 // Error distills the APIResult errors to a simple error or returns nil.
 // If there are more than one error for an enrollment ID the last error is returned.
 // Error tries to preserve at least one "real" error by way of wrapping.
