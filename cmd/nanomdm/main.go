@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/micromdm/nanomdm/admin"
 	"github.com/micromdm/nanomdm/certverify"
 	"github.com/micromdm/nanomdm/cli"
 	"github.com/micromdm/nanomdm/cryptoutil"
@@ -266,6 +267,10 @@ func main() {
 	}
 
 	mux.HandleFunc(endpointAPIVersion, nlhttp.NewJSONVersionHandler(version))
+	mux.Handle("/admin/", admin.Handler())
+	mux.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/admin/", http.StatusMovedPermanently)
+	})
 
 	rand.Seed(time.Now().UnixNano())
 

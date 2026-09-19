@@ -5,6 +5,51 @@ info:
 servers:
   - url: http://[::1]:9000/
 paths:
+  /v1/enrollments:
+    get:
+      description: List persisted enrollment metadata when supported by the configured storage backend. Push tokens and identity certificates are not returned.
+      security:
+        - basicAuth: []
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Search enrollment ID, device ID, user ID, or serial number.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Enrollment summaries.
+        '501':
+          description: Storage backend does not support enrollment listing.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /v1/enrollments/{id}:
+    get:
+      description: Get persisted metadata for one enrollment.
+      security:
+        - basicAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Enrollment summary.
+        '404':
+          description: Enrollment was not found.
+        '501':
+          description: Storage backend does not support enrollment details.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
   /v1/pushcert:
     get:
       description: Retrieve the topic and expiry of the stored APNs push certificate.

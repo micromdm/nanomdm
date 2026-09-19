@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="NanoMDM administration console">
+  <title>NanoMDM Console</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard" aria-label="NanoMDM Console home">
+        <span class="brand-mark">N</span>
+        <span><strong>NanoMDM</strong><small>Admin console</small></span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#dashboard" data-page="dashboard" class="nav-link active"><span>◈</span> Dashboard</a>
+        <a href="#devices" data-page="devices" class="nav-link"><span>⌘</span> Devices</a>
+        <a href="#commands" data-page="commands" class="nav-link"><span>↗</span> Commands</a>
+        <a href="#enrollment" data-page="enrollment" class="nav-link"><span>＋</span> Enrollment</a>
+        <a href="#settings" data-page="settings" class="nav-link"><span>⚙</span> Settings</a>
+      </nav>
+      <div class="sidebar-note">
+        <span class="status-dot"></span>
+        <span><strong>Local console</strong><small>API credentials stay in this browser session.</small></span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-button" id="menu-toggle" aria-label="Open navigation">☰</button>
+        <div><p class="eyebrow">APPLE DEVICE MANAGEMENT</p><h1 id="page-title">Dashboard</h1></div>
+        <div class="topbar-actions"><span id="connection-state" class="pill pill-muted">Not connected</span><button class="button button-secondary" id="refresh-button">Refresh</button></div>
+      </header>
+      <div id="alert" class="alert" role="status" hidden></div>
+      <div id="app-content"></div>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -15,6 +15,7 @@ const (
 	APIEndpointPush            = "/push/"    // note trailing slash
 	APIEndpointEnqueue         = "/enqueue/" // note trailing slash
 	APIEndpointEscrowKeyUnlock = "/escrowkeyunlock"
+	APIEndpointEnrollments     = "/enrollments"
 )
 
 // Mux can register HTTP handlers.
@@ -93,5 +94,18 @@ func HandleAPIv1(prefix string, mux Mux, logger log.Logger, store APIStorage, pu
 	mux.Handle(
 		prefix+APIEndpointEscrowKeyUnlock,
 		NewEscrowKeyUnlockHandler(store, nil, logger.With("handler", handlerName(APIEndpointEscrowKeyUnlock))),
+	)
+
+	// Enrollment inventory is optional because the file and in-memory
+	// backends do not retain queryable enrollment summaries.
+	mux.Handle(
+		prefix+APIEndpointEnrollments,
+		EnrollmentListHandler(store, logger.With("handler", handlerName(APIEndpointEnrollments))),
+	)
+	mux.Handle(
+		prefix+APIEndpointEnrollments+"/",
+		http.StripPrefix(prefix+APIEndpointEnrollments, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			EnrollmentDetailHandler(store, logger.With("handler", handlerName(APIEndpointEnrollments+"/detail"))).ServeHTTP(w, r)
+		})),
 	)
 }

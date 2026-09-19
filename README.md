@@ -12,6 +12,9 @@ A quick guide to get NanoMDM up and running using ngrok.
 - [Operations Guide](docs/operations-guide.md)  
 A brief overview of the various command-line switches and HTTP endpoints and APIs available to NanoMDM.
 
+- [Admin Console](docs/admin-console.md)
+A small embedded web console for health checks, saved enrollment targets, and real MDM commands.
+
 ## Getting the latest version
 
 * Release `.zip` files containing the server and supplementals should be attached to every [GitHub release](https://github.com/micromdm/nanomdm/releases).
@@ -51,8 +54,8 @@ NanoMDM is but one component for a functioning MDM server. At a minimum you need
   - The [micro2nano](https://github.com/micromdm/micro2nano) project provides an API translation server between MicroMDM's JSON command API and NanoMDM's raw Plist API.
 - VPP.
 - Enrollment (device) APIs.
-  - No ability, yet, to inspect enrollment details or state.
-  - This is partly mitigated by the fact that both the `file` and `mysql` storage backends are "easy" to inspect and query.
+  - The MySQL and PostgreSQL storage backends expose enrollment metadata through the authenticated `/v1/enrollments` API.
+  - Apple inventory details still require sending a `DeviceInformation` command and receiving the device result.
 
 ## Architecture Overview
 
