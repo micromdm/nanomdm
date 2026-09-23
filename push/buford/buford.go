@@ -72,6 +72,7 @@ func (f *bufordFactory) NewPushProvider(cert *tls.Certificate) (push.PushProvide
 	if err != nil {
 		return nil, err
 	}
+
 	prov := &bufordPushProvider{
 		service:    bufordpush.NewService(client, bufordpush.Production),
 		expiration: f.expiration,
