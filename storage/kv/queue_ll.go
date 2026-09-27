@@ -126,8 +126,17 @@ func (q *queue) unlink(ctx context.Context, id string) error {
 		return err
 	}
 	if prev == "" {
-		// a previous item is not recorded.
-		// presumed to be the first in the queue.
+		// a previous item is not recorded, so id is the first in the queue,
+		// or not in it at all: an id that was never enqueued, or was already
+		// unlinked, has no pointers either. Only the first item may touch the
+		// queue's head and tail; anything else is not in this queue.
+		first, err := q.getFirst(ctx)
+		if err != nil {
+			return err
+		}
+		if first != id {
+			return nil
+		}
 		if next == "" {
 			// prev and next are empty.
 			// presumed to be the only item in the queue
