@@ -37,6 +37,7 @@ func TestUnlink(t *testing.T) {
 		{"absent id, empty queue", nil, "x", nil},
 		{"only item", []string{"a"}, "a", nil},
 		{"first of two", []string{"a", "b"}, "a", []string{"b"}},
+		{"last of two", []string{"a", "b"}, "b", []string{"a"}},
 		{"middle of three", []string{"a", "b", "c"}, "b", []string{"a", "c"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

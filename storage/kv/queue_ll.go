@@ -168,6 +168,11 @@ func (q *queue) unlink(ctx context.Context, id string) error {
 			if err = q.setLast(ctx, prev); err != nil {
 				return err
 			}
+			// and the previous item no longer has a next: left in place, the
+			// queue walk would still reach this item after it was removed.
+			if err = q.b.Delete(ctx, q.itemKeyName(prev, keyQueueNext)); err != nil {
+				return err
+			}
 		} else {
 			// both a next and prev pointer exist
 			// this means we're in the middle somewhere
