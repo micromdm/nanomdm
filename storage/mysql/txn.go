@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -38,6 +39,10 @@ const (
 
 	// DefaultRetries is the default number of retry attempts.
 	DefaultRetries = 3
+
+	// DefaultJitter is the default proportional jitter applied to backoff
+	// delays: each delay lands within +/-50% of its nominal value.
+	DefaultJitter = 0.5
 )
 
 // TxFunc executes SQL within a transaction.
@@ -60,14 +65,15 @@ type Txn struct {
 }
 
 // NewTxn creates a [Txn] with the given options. Defaults are
-// [DefaultRetries], [InstantThenExponentialBackoff] (with [DefaultBackoff]),
-// and [WithDefaultRetryStrings]. Use opts to override.
+// [DefaultRetries], [InstantThenExponentialBackoff] (with [DefaultBackoff])
+// under [Jitter] (with [DefaultJitter]), and [WithDefaultRetryStrings].
+// Use opts to override.
 func NewTxn(db *sql.DB, q *sqlc.Queries, opts ...TxnOption) *Txn {
 	t := &Txn{
 		db:      db,
 		q:       q,
 		retries: DefaultRetries,
-		backoff: InstantThenExponentialBackoff(DefaultBackoff),
+		backoff: Jitter(InstantThenExponentialBackoff(DefaultBackoff), DefaultJitter),
 	}
 	WithDefaultRetryStrings()(t) // callers can override with WithRetryFuncs
 	for _, opt := range opts {
@@ -155,6 +161,28 @@ func InstantThenExponentialBackoff(base time.Duration) func(int) time.Duration {
 			return 0
 		}
 		return base << (attempt - 1)
+	}
+}
+
+// Jitter wraps a backoff function, spreading each delay uniformly over
+// [1-fraction, 1+fraction] of its nominal value so that transactions failing
+// together do not retry in lockstep. With fraction 0.5 a 100ms delay becomes
+// a random delay in [50ms, 150ms].
+//
+// A fraction <= 0 disables jitter, and a zero delay stays zero: an instant
+// first retry from [InstantThenExponentialBackoff] remains instant.
+func Jitter(fn func(attempt int) time.Duration, fraction float64) func(int) time.Duration {
+	return func(attempt int) time.Duration {
+		d := fn(attempt)
+		if d <= 0 || fraction <= 0 {
+			return d
+		}
+		// Spreading retries needs no unpredictability, only decorrelation.
+		d = time.Duration(float64(d) * (1 - fraction + 2*fraction*rand.Float64()))
+		if d < 0 {
+			return 0
+		}
+		return d
 	}
 }
 
