@@ -449,6 +449,40 @@ func TestExecRetriesExhaustedMessage(t *testing.T) {
 	}
 }
 
+func TestJitterStaysWithinBounds(t *testing.T) {
+	const base = 100 * time.Millisecond
+	backoff := Jitter(func(_ int) time.Duration { return base }, 0.5)
+
+	seen := make(map[time.Duration]bool)
+	for i := 0; i < 1000; i++ {
+		d := backoff(0)
+		if d < base/2 || d > base+base/2 {
+			t.Fatalf("got %v, want within [%v, %v]", d, base/2, base+base/2)
+		}
+		seen[d] = true
+	}
+	if len(seen) == 1 {
+		t.Fatal("expected varying delays, got a constant")
+	}
+}
+
+func TestJitterPreservesZeroDelay(t *testing.T) {
+	backoff := Jitter(InstantThenExponentialBackoff(DefaultBackoff), DefaultJitter)
+
+	if d := backoff(0); d != 0 {
+		t.Fatalf("got %v, want instant first retry", d)
+	}
+}
+
+func TestJitterDisabledByZeroFraction(t *testing.T) {
+	const base = 100 * time.Millisecond
+	backoff := Jitter(func(_ int) time.Duration { return base }, 0)
+
+	if d := backoff(1); d != base {
+		t.Fatalf("got %v, want %v", d, base)
+	}
+}
+
 func TestExecTxnConvenience(t *testing.T) {
 	db, mock := newTxnMock(t)
 	mock.ExpectBegin()
