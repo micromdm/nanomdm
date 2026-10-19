@@ -165,6 +165,15 @@ func TestStyles(t *testing.T) {
 			},
 		},
 		{
+			style: storage.StyleUnrecognizedDevice,
+			want: func(kind string) int {
+				if kind == "TokenUpdate" {
+					return 0
+				}
+				return http.StatusForbidden
+			},
+		},
+		{
 			style: storage.StyleCommandQueue,
 			want: func(kind string) int {
 				if kind == "CommandAndReportResults" {

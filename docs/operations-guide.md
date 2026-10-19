@@ -43,6 +43,7 @@ Blocks are keyed by the device channel enrollment ID: blocking a device also blo
 * `unenroll`: answers every request with an HTTP 401. Per the MDM protocol (see "Terminate management of a device" in Apple's [Managing connections](https://developer.apple.com/documentation/devicemanagement/managing-connections)) this causes the device to remove its MDM enrollment profile, i.e. a permanent unenrollment.
 * `service-unavailable`: answers every request with an HTTP 503. This status is *not* defined by the MDM protocol. It is an experimental temporary block: the device keeps its enrollment but makes no progress while blocked.
 * `command-queue`: answers only the command report and dequeue requests with an HTTP 503. All check-in messages proceed normally.
+* `unrecognized-device`: answers every request with an HTTP 403 and the JSON body `{"code":"com.apple.unrecognized.device"}` (see Apple's [ErrorUnrecognizedDevice](https://developer.apple.com/documentation/devicemanagement/errorunrecognizeddevice)). This causes the device to unenroll. Apple supports it from macOS 14, iOS 17, tvOS 17, watchOS 10 and visionOS 1.1, and says to use it instead of a 401. Older OS versions ignore it, so use `unenroll` for those.
 
 `TokenUpdate` check-ins are never blocked, regardless of style. They complete enrollment and refresh the APNs push token, so blocking them would degrade an otherwise-intact enrollment.
 

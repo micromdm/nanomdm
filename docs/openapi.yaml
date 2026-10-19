@@ -407,7 +407,8 @@ components:
             - unenroll
             - service-unavailable
             - command-queue
-          description: "How blocked requests are answered. unenroll: HTTP 401 to every request, which per the MDM protocol makes the device remove its enrollment profile. service-unavailable: HTTP 503 to every request (not defined by the MDM protocol; a temporary block). command-queue: HTTP 503 only to command report and dequeue requests. TokenUpdate check-ins are never blocked."
+            - unrecognized-device
+          description: "How blocked requests are answered. unenroll: HTTP 401 to every request, which per the MDM protocol makes the device remove its enrollment profile. service-unavailable: HTTP 503 to every request (not defined by the MDM protocol; a temporary block). command-queue: HTTP 503 only to command report and dequeue requests. unrecognized-device: HTTP 403 with the com.apple.unrecognized.device JSON error body to every request, which makes macOS 14+ / iOS 17+ devices unenroll. TokenUpdate check-ins are never blocked."
           example: unenroll
         clear_on_authenticate:
           type: boolean

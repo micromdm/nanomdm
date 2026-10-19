@@ -1,6 +1,7 @@
 package block
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -35,6 +36,20 @@ func serveIdle(t *testing.T, style storage.BlockStyle) *http.Response {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	return rec.Result()
+}
+
+func TestHTTPUnrecognizedDevice(t *testing.T) {
+	resp := serveIdle(t, storage.StyleUnrecognizedDevice)
+	if have, want := resp.StatusCode, http.StatusForbidden; have != want {
+		t.Errorf("status: have: %d, want: %d", have, want)
+	}
+	if have, want := resp.Header.Get("Content-Type"), "application/json"; have != want {
+		t.Errorf("content type: have: %q, want: %q", have, want)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if have, want := string(body), `{"code":"com.apple.unrecognized.device"}`; have != want {
+		t.Errorf("body: have: %q, want: %q", have, want)
+	}
 }
 
 func TestHTTPUnenroll(t *testing.T) {

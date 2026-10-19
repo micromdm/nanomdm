@@ -23,6 +23,12 @@ const (
 	// StyleCommandQueue returns HTTP 503 just for the command report and
 	// dequeue endpoints and allows all Check-In messages to proceed.
 	StyleCommandQueue BlockStyle = "command-queue"
+
+	// StyleUnrecognizedDevice returns HTTP 403 to any request with the
+	// "com.apple.unrecognized.device" error body, which causes the device
+	// to unenroll. Apple supports this from macOS 14 and iOS 17 and says
+	// to use it instead of a 401; older OS versions ignore it.
+	StyleUnrecognizedDevice BlockStyle = "unrecognized-device"
 )
 
 // ErrInvalidBlockStyle is returned when a block has an unknown style.
@@ -31,7 +37,7 @@ var ErrInvalidBlockStyle = errors.New("invalid block style")
 // Valid returns an error if s is not a known block style.
 func (s BlockStyle) Valid() error {
 	switch s {
-	case StyleUnenroll, StyleServiceUnavailable, StyleCommandQueue:
+	case StyleUnenroll, StyleServiceUnavailable, StyleCommandQueue, StyleUnrecognizedDevice:
 		return nil
 	}
 	return fmt.Errorf("%w: %q", ErrInvalidBlockStyle, string(s))
