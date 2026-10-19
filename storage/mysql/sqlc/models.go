@@ -8,6 +8,14 @@ import (
 	"database/sql"
 )
 
+type BlockedEnrollment struct {
+	ID                  string
+	Style               string
+	ClearOnAuthenticate bool
+	CreatedAt           sql.NullString
+	UpdatedAt           sql.NullString
+}
+
 type CertAuthAssociation struct {
 	ID        string
 	Sha256    string

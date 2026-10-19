@@ -32,6 +32,27 @@ Built-in flag that prints all other available flags, environment variables, and 
 
 API authorization in NanoMDM is simply HTTP Basic authentication using "nanomdm" as the username and the API key as the password. Omitting this flag turns off all API endpoints — NanoMDM in this mode will essentially just be for handling MDM client requests. It is not compatible with also specifying `-disable-mdm`.
 
+### -block
+
+* enable blocking MDM requests of blocked enrollments [NANOMDM_BLOCK]
+
+Turns on the block middleware service. MDM requests from a blocked enrollment get a canned HTTP response instead of normal handling. Blocks are managed with the block API endpoint (see below). Without this switch blocks can still be stored with the API but they have no effect.
+
+Blocks are keyed by the device channel enrollment ID: blocking a device also blocks all of its user channels. Each block has a style:
+
+* `unenroll`: answers every request with an HTTP 401. Per the MDM protocol (see "Terminate management of a device" in Apple's [Managing connections](https://developer.apple.com/documentation/devicemanagement/managing-connections)) this causes the device to remove its MDM enrollment profile, i.e. a permanent unenrollment.
+* `service-unavailable`: answers every request with an HTTP 503. This status is *not* defined by the MDM protocol. It is an experimental temporary block: the device keeps its enrollment but makes no progress while blocked.
+* `command-queue`: answers only the command report and dequeue requests with an HTTP 503. All check-in messages proceed normally.
+* `unrecognized-device`: answers every request with an HTTP 403 and the JSON body `{"code":"com.apple.unrecognized.device"}` (see Apple's [ErrorUnrecognizedDevice](https://developer.apple.com/documentation/devicemanagement/errorunrecognizeddevice)). This causes the device to unenroll. Apple supports it from macOS 14, iOS 17, tvOS 17, watchOS 10 and visionOS 1.1, and says to use it instead of a 401. Older OS versions ignore it, so use `unenroll` for those.
+
+`TokenUpdate` check-ins are never blocked, regardless of style. They complete enrollment and refresh the APNs push token, so blocking them would degrade an otherwise-intact enrollment.
+
+The block service fails open: if the block of an enrollment can't be looked up (for example the storage backend is unavailable), the error is logged and the request proceeds as if the enrollment were not blocked. Likewise, if a `clear_on_authenticate` block can't be removed, the `Authenticate` still proceeds. A storage outage therefore never rejects (or un-enrolls) devices.
+
+If a block has `clear_on_authenticate` set then an `Authenticate` check-in from the device removes the block and proceeds normally ("block until re-enrollment"). Otherwise the block stays until removed with the API. Note that a device that received an `unenroll` 401 stops checking in, so leaving its block in place is harmless.
+
+The SQL storage backends need the `blocked_enrollments` table before this switch is turned on. See the schema files (for MySQL, `schema.00012.sql` for existing databases).
+
 ### -ca string
 
 * path to PEM CA cert(s) [NANOMDM_CA]
@@ -409,6 +430,32 @@ $ ./cmdr.py -r | curl -v -T - -u nanomdm:nanomdm '[::1]:9000/v1/enqueue/99385AF6
 ```
 
 Of course the device won't check-in to retrieve this command, it will just sit in the queue until it is told to check-in using a push notification. This could be useful if you want to send a large number of commands and only want to push after the last command is sent.
+
+### Block
+
+* Endpoint: `/v1/block/`
+
+The block API endpoint retrieves (GET), stores (PUT), and removes (DELETE) the block of an enrollment. It takes a single device channel enrollment ID on the URL path. Blocks only take effect when the `-block` switch is turned on (see above). For example, to block a device until it re-enrolls:
+
+```bash
+$ curl -u nanomdm:nanomdm -X PUT -d '{"style":"unenroll","clear_on_authenticate":true}' 'http://127.0.0.1:9000/v1/block/99385AF6-44CB-5621-A678-A321F4D9A2C8'
+```
+
+A successful PUT or DELETE returns an HTTP 204 with no body. To retrieve the block:
+
+```bash
+$ curl -u nanomdm:nanomdm 'http://127.0.0.1:9000/v1/block/99385AF6-44CB-5621-A678-A321F4D9A2C8'
+{
+	"clear_on_authenticate": true,
+	"style": "unenroll"
+}
+```
+
+A GET for an enrollment that is not blocked returns an HTTP 404. To remove the block:
+
+```bash
+$ curl -u nanomdm:nanomdm -X DELETE 'http://127.0.0.1:9000/v1/block/99385AF6-44CB-5621-A678-A321F4D9A2C8'
+```
 
 ### Migration
 
