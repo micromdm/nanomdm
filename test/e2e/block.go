@@ -3,14 +3,17 @@ package e2e
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/micromdm/nanomdm/mdm"
+	"github.com/micromdm/nanomdm/service"
+	"github.com/micromdm/nanomdm/service/block"
 	"github.com/micromdm/nanomdm/storage"
 )
 
 func blockStore(t *testing.T, ctx context.Context, store storage.BlockStore) {
-	d, _, _, err := setupEnrollment()
+	d, auth, tok, err := setupEnrollment()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,10 +51,23 @@ func blockStore(t *testing.T, ctx context.Context, store storage.BlockStore) {
 	}
 	expectBlock(t, store, r, want)
 
-	// remove the block
-	if err = store.RemoveBlock(r); err != nil {
+	// the block service answers with the stored style
+	svc := block.New(&service.NopService{}, store)
+	err = svc.TokenUpdate(d.NewMDMRequest(ctx), tok)
+	expectErr(t, err, nil)
+	err = svc.Authenticate(d.NewMDMRequest(ctx), auth)
+	expectErr(t, err, block.ErrBlocked)
+	var httpErr *service.HTTPStatusError
+	if !errors.As(err, &httpErr) || httpErr.Status != http.StatusUnauthorized {
+		t.Errorf("expected HTTP 401 error, have: %v", err)
+	}
+
+	// clear on authenticate removes the block from storage
+	if err = store.StoreBlock(r, &storage.Block{Style: storage.StyleUnenroll, ClearOnAuthenticate: true}); err != nil {
 		t.Fatal(err)
 	}
+	err = svc.Authenticate(d.NewMDMRequest(ctx), auth)
+	expectErr(t, err, nil)
 	expectBlock(t, store, r, nil)
 }
 
