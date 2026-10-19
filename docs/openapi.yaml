@@ -212,6 +212,82 @@ paths:
           description: "Unexpected server error; try again later."
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+  /v1/block/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: Device channel enrollment ID. Blocking a device also blocks all of its user channels.
+        required: true
+        schema:
+          type: string
+          example: '299BD49-1A0C-422C-B285-2E4FF087C673'
+    get:
+      description: Retrieve the block of an enrollment.
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: The enrollment is blocked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Block'
+        '404':
+          description: The enrollment is not blocked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Server error retrieving the block.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      description: Block an enrollment, replacing any existing block. Blocks only take effect when NanoMDM runs with the `-block` switch.
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Block'
+      responses:
+        '204':
+          description: The block was stored.
+        '400':
+          description: Invalid JSON or block style.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Server error storing the block.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      description: Unblock an enrollment. It is not an error if the enrollment is not blocked.
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          description: The block was removed.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Server error removing the block.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /version:
     get:
       description: Returns the running NanoMDM version
@@ -319,6 +395,24 @@ components:
           format: date-time
           description: Expiration date of the uploaded APNs certificate.
           example: '2026-01-07T04:04:46Z'
+    Block:
+      type: object
+      description: Block of an enrollment.
+      required:
+        - style
+      properties:
+        style:
+          type: string
+          enum:
+            - unenroll
+            - service-unavailable
+            - command-queue
+          description: "How blocked requests are answered. unenroll: HTTP 401 to every request, which per the MDM protocol makes the device remove its enrollment profile. service-unavailable: HTTP 503 to every request (not defined by the MDM protocol; a temporary block). command-queue: HTTP 503 only to command report and dequeue requests. TokenUpdate check-ins are never blocked."
+          example: unenroll
+        clear_on_authenticate:
+          type: boolean
+          default: false
+          description: Remove the block when the device sends an Authenticate check-in, and let it proceed ("block until re-enrollment").
     ErrorResponse:
       type: object
       description: Error response.
