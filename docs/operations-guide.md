@@ -32,6 +32,26 @@ Built-in flag that prints all other available flags, environment variables, and 
 
 API authorization in NanoMDM is simply HTTP Basic authentication using "nanomdm" as the username and the API key as the password. Omitting this flag turns off all API endpoints — NanoMDM in this mode will essentially just be for handling MDM client requests. It is not compatible with also specifying `-disable-mdm`.
 
+### -block
+
+* enable blocking MDM requests of blocked enrollments [NANOMDM_BLOCK]
+
+Turns on the block middleware service. MDM requests from a blocked enrollment get a canned HTTP response instead of normal handling. Blocks are read from the storage backend.
+
+Blocks are keyed by the device channel enrollment ID: blocking a device also blocks all of its user channels. Each block has a style:
+
+* `unenroll`: answers every request with an HTTP 401. Per the MDM protocol (see "Terminate management of a device" in Apple's [Managing connections](https://developer.apple.com/documentation/devicemanagement/managing-connections)) this causes the device to remove its MDM enrollment profile, i.e. a permanent unenrollment.
+* `service-unavailable`: answers every request with an HTTP 503. This status is *not* defined by the MDM protocol. It is an experimental temporary block: the device keeps its enrollment but makes no progress while blocked.
+* `command-queue`: answers only the command report and dequeue requests with an HTTP 503. All check-in messages proceed normally.
+
+`TokenUpdate` check-ins are never blocked, regardless of style. They complete enrollment and refresh the APNs push token, so blocking them would degrade an otherwise-intact enrollment.
+
+The block service fails open: if the block of an enrollment can't be looked up (for example the storage backend is unavailable), the error is logged and the request proceeds as if the enrollment were not blocked. Likewise, if a `clear_on_authenticate` block can't be removed, the `Authenticate` still proceeds. A storage outage therefore never rejects (or un-enrolls) devices.
+
+If a block has `clear_on_authenticate` set then an `Authenticate` check-in from the device removes the block and proceeds normally ("block until re-enrollment"). Otherwise the block stays until it is removed. Note that a device that received an `unenroll` 401 stops checking in, so leaving its block in place is harmless.
+
+The SQL storage backends need the `blocked_enrollments` table before this switch is turned on. See the schema files (for MySQL, `schema.00012.sql` for existing databases).
+
 ### -ca string
 
 * path to PEM CA cert(s) [NANOMDM_CA]
