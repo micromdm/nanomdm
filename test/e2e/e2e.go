@@ -87,6 +87,7 @@ func TestE2E(t *testing.T, ctx context.Context, store storage.AllStorage) {
 	t.Run("certauth-retro", func(t *testing.T) { certAuthRetro(t, ctx, store) })
 
 	t.Run("block", func(t *testing.T) { blockStore(t, ctx, store) })
+	t.Run("block-api", func(t *testing.T) { blockAPI(t, ctx, c) })
 
 	// regression test for retrieving push info of missing devices.
 	t.Run("invalid-pushinfo", func(t *testing.T) {

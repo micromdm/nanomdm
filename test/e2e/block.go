@@ -1,7 +1,9 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"testing"
@@ -11,6 +13,8 @@ import (
 	"github.com/micromdm/nanomdm/service/block"
 	"github.com/micromdm/nanomdm/storage"
 )
+
+const blockURL = apiPrefix + "/block/"
 
 func blockStore(t *testing.T, ctx context.Context, store storage.BlockStore) {
 	d, auth, tok, err := setupEnrollment()
@@ -83,4 +87,47 @@ func expectBlock(t *testing.T, store storage.BlockStore, r *mdm.Request, want *s
 	if want != nil && *have != *want {
 		t.Errorf("block: have: %v, want: %v", *have, *want)
 	}
+}
+
+func blockAPI(t *testing.T, ctx context.Context, doer Doer) {
+	const id = "block-api-test-id"
+
+	do := func(method string, body []byte) *http.Response {
+		t.Helper()
+		req, err := http.NewRequestWithContext(ctx, method, blockURL+id, bytes.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := doer.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { resp.Body.Close() })
+		return resp
+	}
+	expectStatus := func(resp *http.Response, want int) {
+		t.Helper()
+		if resp.StatusCode != want {
+			t.Errorf("status: have: %d, want: %d", resp.StatusCode, want)
+		}
+	}
+
+	expectStatus(do(http.MethodGet, nil), http.StatusNotFound)
+	expectStatus(do(http.MethodPut, []byte(`{"style":"invalid"}`)), http.StatusBadRequest)
+	expectStatus(do(http.MethodPut, []byte(`not json`)), http.StatusBadRequest)
+
+	expectStatus(do(http.MethodPut, []byte(`{"style":"command-queue","clear_on_authenticate":true}`)), http.StatusNoContent)
+	resp := do(http.MethodGet, nil)
+	expectStatus(resp, http.StatusOK)
+	have := new(storage.Block)
+	if err := json.NewDecoder(resp.Body).Decode(have); err != nil {
+		t.Fatal(err)
+	}
+	if want := (storage.Block{Style: storage.StyleCommandQueue, ClearOnAuthenticate: true}); *have != want {
+		t.Errorf("block: have: %v, want: %v", *have, want)
+	}
+
+	expectStatus(do(http.MethodDelete, nil), http.StatusNoContent)
+	expectStatus(do(http.MethodGet, nil), http.StatusNotFound)
+	expectStatus(do(http.MethodPost, nil), http.StatusMethodNotAllowed)
 }
