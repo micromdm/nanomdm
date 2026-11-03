@@ -4,6 +4,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -154,6 +155,16 @@ func mysqlStorageConfig(dsn, options string, logger log.Logger) (*mysql.MySQLSto
 				}
 				opts = append(opts, mysql.WithConnMaxIdleTime(d))
 				logger.Debug("msg", "connection max idle time", "duration", d.String())
+			case "max_open_conns":
+				n, err := strconv.Atoi(v)
+				if err != nil {
+					return nil, fmt.Errorf("invalid value for max_open_conns option: %w", err)
+				}
+				if n < 0 {
+					return nil, fmt.Errorf("invalid value for max_open_conns option: %d is negative", n)
+				}
+				opts = append(opts, mysql.WithMaxOpenConns(n))
+				logger.Debug("msg", "max open connections", "count", n)
 			default:
 				return nil, fmt.Errorf("invalid option: %q", k)
 			}

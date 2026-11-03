@@ -22,6 +22,10 @@ import (
 // closed, producing "broken pipe" writes and "closing bad idle connection:
 // EOF" errors. Set WithConnMaxLifetime / WithConnMaxIdleTime per-deployment to
 // enable recycling for the path's idle timeout.
+//
+// The pool's size is likewise unbounded unless configured. Set
+// WithMaxOpenConns to bound it so that a burst of concurrent requests queues
+// on the pool rather than opening connections until the database refuses them.
 
 // Schema holds the schema for the NanoMDM MySQL storage.
 //
@@ -46,6 +50,7 @@ type config struct {
 	rm              bool
 	connMaxLifetime time.Duration
 	connMaxIdleTime time.Duration
+	maxOpenConns    int
 	txnOpts         []TxnOption
 }
 
@@ -99,6 +104,18 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 	}
 }
 
+// WithMaxOpenConns sets the maximum number of open connections to the
+// database. A non-positive value leaves database/sql's default of no limit,
+// under which a burst of concurrent requests opens a connection per in-flight
+// request until the server refuses them. Bounding the pool turns that into
+// callers waiting on a connection, which is visible as the wait count and wait
+// duration in [database/sql.DB.Stats].
+func WithMaxOpenConns(n int) Option {
+	return func(c *config) {
+		c.maxOpenConns = n
+	}
+}
+
 // WithTxnOptions configures the transactions this storage runs, overriding
 // the defaults documented on [NewTxn]. Options accumulate across calls.
 func WithTxnOptions(opts ...TxnOption) Option {
@@ -127,6 +144,9 @@ func New(opts ...Option) (*MySQLStorage, error) {
 	}
 	if cfg.connMaxIdleTime != 0 {
 		cfg.db.SetConnMaxIdleTime(cfg.connMaxIdleTime)
+	}
+	if cfg.maxOpenConns > 0 {
+		cfg.db.SetMaxOpenConns(cfg.maxOpenConns)
 	}
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
