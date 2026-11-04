@@ -3,6 +3,7 @@ package nanopush
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -168,4 +169,47 @@ func TestPanicOnGoAwayError(t *testing.T) {
 	}()
 
 	prov.Push(context.Background(), []*mdm.Push{pushInfo})
+}
+
+func TestMDMPayload(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		magic   string
+		wantErr bool
+	}{
+		{"uuid", "47250C9C-1B37-4381-98A9-0B8315A441C7", false},
+		{"utf8", "magic-\u00e9\u65e5\U0001F600", false},
+		{"quote", `47250C9C"`, true},
+		{"backslash", `47250C9C\`, true},
+		{"newline", "47250C9C\n", true},
+		{"nul", "47250C9C\x00", true},
+		{"invalid-utf8", "47250C9C\xff", true},
+		{"utf8-then-quote", "\u00e947250C9C\"", true},
+		{"utf8-then-invalid-utf8", "\u00e947250C9C\xff", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			payload, err := mdmPayload(tc.magic)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got payload %q", payload)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if have, want := string(payload), `{"mdm":"`+tc.magic+`"}`; have != want {
+				t.Errorf("payload: have %q, want %q", have, want)
+			}
+			var decoded struct {
+				MDM string `json:"mdm"`
+			}
+			if err := json.Unmarshal(payload, &decoded); err != nil {
+				t.Fatal(err)
+			}
+			if have, want := decoded.MDM, tc.magic; have != want {
+				t.Errorf("decoded: have %q, want %q", have, want)
+			}
+		})
+	}
 }
