@@ -187,7 +187,14 @@ This switch disables MDM client capability. This effecitvely turns this running 
 
 Specifies the "base" URL to send Declarative Management requests to. The full URL is constructed from this base URL appended with the type of Declarative Management ["Endpoint" request](https://developer.apple.com/documentation/devicemanagement/declarativemanagementrequest?language=objc) such as "status" or "declaration-items". Each HTTP request includes the NanoMDM enrollment ID as the HTTP header "X-Enrollment-ID". See [this blog post](https://micromdm.io/blog/wwdc21-declarative-management/) for more details.
 
-Note that the URL should likely have a trailing slash. Otherwise path elements of the URL may be cut off by Golang's relative URL path resolver.
+The base URL should end with a slash: the Endpoint is appended after the last slash in its path. Any query string or fragment in the base URL is dropped. The Endpoint is treated as an unescaped path: characters such as "%", "?", and "#" are escaped, and Endpoints with empty, ".", or ".." path segments are rejected.
+
+For example, with a base URL of `https://ddm.example.com/v1/dm/`:
+
+* An Endpoint of `tokens` requests `https://ddm.example.com/v1/dm/tokens`
+* An Endpoint of `declaration/configuration/ABC` requests `https://ddm.example.com/v1/dm/declaration/configuration/ABC`
+
+See the [path tests](../service/dmhook/dmhook_test.go) for further examples.
 
 ### -dm-send-hmac-key string
 

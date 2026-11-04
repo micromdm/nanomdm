@@ -131,3 +131,87 @@ func TestDMHook(t *testing.T) {
 	}
 
 }
+
+func TestDMHookEndpoint(t *testing.T) {
+	for _, tc := range []struct {
+		prefix   string
+		endpoint string
+		want     string // empty if an error is expected
+	}{
+		{"http://dm.example.com/dm/", "tokens", "http://dm.example.com/dm/tokens"},
+		{"http://dm.example.com/dm/", "declaration-items", "http://dm.example.com/dm/declaration-items"},
+		{"http://dm.example.com/dm/", "status", "http://dm.example.com/dm/status"},
+		{"http://dm.example.com/dm/", "declaration/configuration/com.example.test", "http://dm.example.com/dm/declaration/configuration/com.example.test"},
+		{"http://dm.example.com/dm/", "declaration/asset/0A7E4B4C-5F1F-4A4E-9C1A-7F0F5D2B7B11", "http://dm.example.com/dm/declaration/asset/0A7E4B4C-5F1F-4A4E-9C1A-7F0F5D2B7B11"},
+		// slashes are passed through as path separators
+		{"http://dm.example.com/dm/", "declaration/foo/bar", "http://dm.example.com/dm/declaration/foo/bar"},
+		{"http://dm.example.com/dm/", "declaration/configuration/a/b", "http://dm.example.com/dm/declaration/configuration/a/b"},
+		// the endpoint is unescaped: other characters are escaped, not interpreted
+		{"http://dm.example.com/dm/", "tokens?a=b", "http://dm.example.com/dm/tokens%3Fa=b"},
+		{"http://dm.example.com/dm/", "declaration/configuration/a#b", "http://dm.example.com/dm/declaration/configuration/a%23b"},
+		{"http://dm.example.com/dm/", "?", "http://dm.example.com/dm/%3F"},
+		{"http://dm.example.com/dm/", "declaration/configuration/a b", "http://dm.example.com/dm/declaration/configuration/a%20b"},
+		{"http://dm.example.com/dm/", "declaration/configuration/caf\u00e9", "http://dm.example.com/dm/declaration/configuration/caf%C3%A9"},
+		{"http://dm.example.com/dm/", "declaration/configuration/50%off", "http://dm.example.com/dm/declaration/configuration/50%25off"},
+		{"http://dm.example.com/dm/", "declaration/configuration/a%20b", "http://dm.example.com/dm/declaration/configuration/a%2520b"},
+		{"http://dm.example.com/dm/", "declaration/configuration/a%2Fb", "http://dm.example.com/dm/declaration/configuration/a%252Fb"},
+		{"http://dm.example.com/dm/", "..%2f..%2fx", "http://dm.example.com/dm/..%252f..%252fx"},
+		{"http://dm.example.com/dm/", "declaration/%2e%2e/%2e%2e/x", "http://dm.example.com/dm/declaration/%252e%252e/%252e%252e/x"},
+		{"http://dm.example.com/dm/", "..%2f..%2fadmin?", "http://dm.example.com/dm/..%252f..%252fadmin%3F"},
+		// URL-looking endpoints are just path segments
+		{"http://dm.example.com/dm/", "http:x", "http://dm.example.com/dm/http:x"},
+		{"http://dm.example.com/dm/", "mailto:a@example.com", "http://dm.example.com/dm/mailto:a@example.com"},
+		{"http://dm.example.com/dm/", "http://internal.example.com/x", ""},
+		{"http://dm.example.com/dm/", "//internal.example.com/x", ""},
+		{"http://dm.example.com/dm/", "//user@internal.example.com/x", ""},
+		{"http://dm.example.com/dm/", "///x", ""},
+		// empty, ".", and ".." segments are rejected
+		{"http://dm.example.com/dm/", "/abs", ""},
+		{"http://dm.example.com/dm/", "/dm/tokens", ""},
+		{"http://dm.example.com/dm/", "", ""},
+		{"http://dm.example.com/dm/", "tokens/", ""},
+		{"http://dm.example.com/dm/", "declaration//x", ""},
+		{"http://dm.example.com/dm/", "./tokens", ""},
+		{"http://dm.example.com/dm/", "../outside-prefix", ""},
+		{"http://dm.example.com/dm/", "declaration/../../x", ""},
+		// the prefix query and fragment are dropped
+		{"http://dm.example.com/dm/?k=v#f", "tokens", "http://dm.example.com/dm/tokens"},
+		// the prefix userinfo is kept
+		{"http://u:p@dm.example.com/d%20m/", "tokens", "http://u:p@dm.example.com/d%20m/tokens"},
+		// without a trailing slash the last path element is replaced
+		{"http://dm.example.com/dm", "tokens", "http://dm.example.com/tokens"},
+		{"http://dm.example.com/a/dm", "tokens", "http://dm.example.com/a/tokens"},
+		{"http://dm.example.com/a/dm", "../tokens", ""},
+		{"http://dm.example.com", "tokens", "http://dm.example.com/tokens"},
+		{"http://dm.example.com", "//internal.example.com/x", ""},
+	} {
+		t.Run(tc.prefix+" "+tc.endpoint, func(t *testing.T) {
+			c := &mockDoer{nextResponse: makeResp(nil, nil, "", 200)}
+
+			s, err := New(tc.prefix, WithClient(c))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			r := mdm.NewRequestWithContext(context.Background(), nil)
+			r.EnrollID = &mdm.EnrollID{ID: "ID", Type: mdm.Device}
+
+			_, err = s.DeclarativeManagement(r, &mdm.DeclarativeManagement{Endpoint: tc.endpoint})
+			if tc.want == "" {
+				if err == nil {
+					t.Fatalf("expected error, request sent to: %s", c.lastRequest.URL)
+				}
+				if c.lastRequest != nil {
+					t.Errorf("request should not have been sent: %s", c.lastRequest.URL)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if have, want := c.lastRequest.URL.String(), tc.want; have != want {
+				t.Errorf("URL mismatch: have: %q, want: %q", have, want)
+			}
+		})
+	}
+}

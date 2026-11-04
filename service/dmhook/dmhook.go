@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/micromdm/nanomdm/http/hashbody"
 	"github.com/micromdm/nanomdm/mdm"
@@ -97,6 +98,30 @@ func New(urlPrefix string, opts ...Option) (*DMHook, error) {
 	return s, err
 }
 
+// endpointURL appends endpoint to the path of prefix up to and
+// including its last slash. The endpoint is treated as an unescaped
+// path: any "%", "?", or "#" is escaped rather than interpreted.
+// Its path segments may not be empty, ".", or "..". The query and
+// fragment of prefix are dropped.
+func endpointURL(prefix *url.URL, endpoint string) (*url.URL, error) {
+	for _, seg := range strings.Split(endpoint, "/") {
+		if seg == "" || seg == "." || seg == ".." {
+			return nil, fmt.Errorf("invalid endpoint path segment: %q", seg)
+		}
+	}
+
+	dir := prefix.Path[:strings.LastIndex(prefix.Path, "/")+1]
+	if dir == "" {
+		dir = "/"
+	}
+
+	u := *prefix
+	u.Path, u.RawPath = dir+endpoint, "" // net/url escapes Path
+	u.ForceQuery, u.RawQuery = false, ""
+	u.Fragment, u.RawFragment = "", ""
+	return &u, nil
+}
+
 // DeclarativeManagement calls out to an HTTP endpoint for the Declarative Management protocol.
 func (c *DMHook) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeManagement) ([]byte, error) {
 	if c.urlPrefix == nil {
@@ -106,14 +131,11 @@ func (c *DMHook) DeclarativeManagement(r *mdm.Request, message *mdm.DeclarativeM
 		return nil, errors.New("nil HTTP client")
 	}
 
-	// turn the DM Endpoint into a URL
-	endpointURL, err := url.Parse(message.Endpoint)
+	// assemble the prefix URL and the (device-supplied) DM Endpoint together
+	targetURL, err := endpointURL(c.urlPrefix, message.Endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("URL parsing endpoint: %w", err)
+		return nil, fmt.Errorf("endpoint URL: %w", err)
 	}
-
-	// assemble the prefix URL and endpoint URL together
-	targetURL := c.urlPrefix.ResolveReference(endpointURL)
 
 	method := http.MethodGet
 	if len(message.Data) > 0 {
