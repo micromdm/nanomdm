@@ -20,11 +20,18 @@ type Diskv struct {
 
 // Split2X2Transform splits key into a path like /00/01 for a key of "0001".
 // The key will be prefixed with zeros if its length is less than 4.
+// A part of ".." is replaced with "__" to keep the path within the base path.
 func Split2X2Transform(key string) []string {
 	if len(key) < 4 {
 		key = strings.Repeat("0", 4-len(key)) + key
 	}
-	return []string{key[0:2], key[2:4]}
+	parts := []string{key[0:2], key[2:4]}
+	for i, part := range parts {
+		if part == ".." {
+			parts[i] = "__"
+		}
+	}
+	return parts
 }
 
 // StripPrefixTransform wraps next in a function that trims prefix from the key.
