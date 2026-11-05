@@ -31,6 +31,7 @@ func WithLogger(logger log.Logger) Option {
 }
 
 // WithHeaderFunc configures fn to be called and added as an HTTP header to the proxy target request.
+// If fn returns an empty string any client-supplied value of header is passed through as-is.
 func WithHeaderFunc(header string, fn HeaderFunc) Option {
 	return func(c *config) {
 		c.headerFuncs[header] = fn
