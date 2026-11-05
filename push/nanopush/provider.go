@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/micromdm/nanomdm/mdm"
 	"github.com/micromdm/nanomdm/push"
@@ -66,9 +67,33 @@ func newError(body io.Reader, statusCode int) error {
 	return fmt.Errorf("push HTTP status: %d: %w", statusCode, err)
 }
 
+// mdmPayload builds the JSON APNs payload for an MDM push.
+// An error is returned if magic can't be used as-is in a JSON string.
+func mdmPayload(magic string) ([]byte, error) {
+	var checkedUTF8 bool
+	for i := 0; i < len(magic); i++ {
+		c := magic[i]
+		// JSON strings can't contain unescaped quotes, backslashes, or control characters
+		if c < 0x20 || c == '"' || c == '\\' {
+			return nil, fmt.Errorf("invalid PushMagic byte at position %d: 0x%02x", i, c)
+		}
+		// JSON must be UTF-8: only validate the rest once we see a non-ASCII byte
+		if c >= 0x80 && !checkedUTF8 {
+			if !utf8.ValidString(magic[i:]) {
+				return nil, errors.New("invalid PushMagic: not UTF-8")
+			}
+			checkedUTF8 = true
+		}
+	}
+	return []byte(`{"mdm":"` + magic + `"}`), nil
+}
+
 // do performs the HTTP push request
 func (p *Provider) do(ctx context.Context, pushInfo *mdm.Push) *push.Response {
-	jsonPayload := []byte(`{"mdm":"` + pushInfo.PushMagic + `"}`)
+	jsonPayload, err := mdmPayload(pushInfo.PushMagic)
+	if err != nil {
+		return &push.Response{Err: err}
+	}
 
 	url := p.baseURL + "/3/device/" + pushInfo.Token.String()
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonPayload))
