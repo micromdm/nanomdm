@@ -43,6 +43,8 @@ func newBucketWithTransform(path, name string, transform diskv.TransformFunction
 		BasePath:     filepath.Join(path, name),
 		Transform:    transform,
 		CacheSizeMax: 1024 * 1024,
+		FilePerm:     0660,
+		PathPerm:     0770,
 	})))
 }
 
