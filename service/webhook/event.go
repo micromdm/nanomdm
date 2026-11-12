@@ -8,13 +8,13 @@ import "time"
 // Represents the MDM command report from MDM enrollments.
 type AcknowledgeEvent struct {
 	// The command UUID parsed from the command report, if available.
-	CommandUuid *string `json:"command_uuid,omitempty"`
+	CommandUUID *string `json:"command_uuid,omitempty"`
 
 	// The `EnrollmentID` of the MDM enrollment.
-	EnrollmentId *EnrollmentID `json:"enrollment_id,omitempty"`
+	EnrollmentID *EnrollmentID `json:"enrollment_id,omitempty"`
 
 	// NanoMDM enrollment IDs.
-	Ids *IDs `json:"ids,omitempty"`
+	IDs *IDs `json:"ids,omitempty"`
 
 	// The raw HTTP body of the MDM command report.
 	RawPayload RawPayload `json:"raw_payload"`
@@ -23,20 +23,20 @@ type AcknowledgeEvent struct {
 	Status string `json:"status"`
 
 	// The `UDID` of the MDM device.
-	Udid *UDID `json:"udid,omitempty"`
+	UDID *UDID `json:"udid,omitempty"`
 
 	// Query paramters of the command report MDM HTTP request.
-	UrlParams map[string]string `json:"url_params,omitempty"`
+	URLParams URLParams `json:"url_params,omitempty"`
 }
 
 // The MDM check-in event. The specific check-in type will be indicated in the
 // event topic name as well as the `MessageType` key in the raw payload.
 type CheckinEvent struct {
 	// The `EnrollmentID` of the MDM enrollment.
-	EnrollmentId *EnrollmentID `json:"enrollment_id,omitempty"`
+	EnrollmentID *EnrollmentID `json:"enrollment_id,omitempty"`
 
 	// NanoMDM enrollment IDs.
-	Ids *IDs `json:"ids,omitempty"`
+	IDs *IDs `json:"ids,omitempty"`
 
 	// The raw HTTP body of the MDM command report.
 	RawPayload RawPayload `json:"raw_payload"`
@@ -47,10 +47,10 @@ type CheckinEvent struct {
 	TokenUpdateTally *int `json:"token_update_tally,omitempty"`
 
 	// The `UDID` of the MDM device.
-	Udid *UDID `json:"udid,omitempty"`
+	UDID *UDID `json:"udid,omitempty"`
 
 	// Query paramters of the command report MDM HTTP request.
-	UrlParams map[string]string `json:"url_params,omitempty"`
+	URLParams URLParams `json:"url_params,omitempty"`
 }
 
 // An `EnrollmentID` of the MDM enrollment.
@@ -69,7 +69,7 @@ type EventJson struct {
 	CreatedAt time.Time `json:"created_at"`
 
 	// The unique identifier of the event.
-	EventId *string `json:"event_id,omitempty"`
+	EventID *string `json:"event_id,omitempty"`
 
 	// The topic name of the event.
 	Topic EventJsonTopic `json:"topic"`
@@ -92,11 +92,11 @@ type IDs struct {
 	// NanoMDM enrollment ID. See
 	// https://github.com/micromdm/nanomdm/blob/main/docs/operations-guide.md#enrollment-ids
 	// for details.
-	Id string `json:"id"`
+	ID string `json:"id"`
 
 	// Parent Enrollment ID. In the case of a user channel enrollment the Parent ID
 	// will be the device channel enrollment ID for the user user.
-	ParentId *string `json:"parent_id,omitempty"`
+	ParentID *string `json:"parent_id,omitempty"`
 
 	// Type of enrollment.
 	Type IDsType `json:"type"`
@@ -115,3 +115,6 @@ type RawPayload string
 
 // A `UDID` identifier of the MDM enrollment.
 type UDID string
+
+// Query paramters of an MDM HTTP request.
+type URLParams map[string]string
