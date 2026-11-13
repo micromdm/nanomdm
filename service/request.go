@@ -13,6 +13,11 @@ import (
 type HTTPStatusError struct {
 	Status int
 	Err    error
+
+	// Body, if not nil, is written as the HTTP response body with
+	// the ContentType header instead of the status text.
+	Body        []byte
+	ContentType string
 }
 
 func (e *HTTPStatusError) Error() string {
@@ -25,6 +30,12 @@ func (e *HTTPStatusError) Unwrap() error {
 
 func NewHTTPStatusError(status int, err error) *HTTPStatusError {
 	return &HTTPStatusError{Status: status, Err: err}
+}
+
+// NewHTTPStatusErrorWithBody creates an HTTP status error that is answered
+// with body and a Content-Type header of contentType.
+func NewHTTPStatusErrorWithBody(status int, err error, contentType string, body []byte) *HTTPStatusError {
+	return &HTTPStatusError{Status: status, Err: err, Body: body, ContentType: contentType}
 }
 
 // CheckinRequest is a simple adapter that takes the raw check-in bodyBytes

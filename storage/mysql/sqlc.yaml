@@ -2,6 +2,7 @@ version: 2
 sql:
   - engine: "mysql"
     queries:
+      - "block.sql"
       - "bstoken.sql"
       - "certauth.sql"
       - "mdm.sql"

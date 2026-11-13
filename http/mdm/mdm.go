@@ -26,6 +26,20 @@ func RequestFromHTTP(r *http.Request) *mdm.Request {
 	return m
 }
 
+// writeError writes the HTTP status error response. If statusErr has a
+// body then it is written with its content type, otherwise the status text.
+func writeError(w http.ResponseWriter, httpStatus int, statusErr *service.HTTPStatusError) {
+	if statusErr != nil && statusErr.Body != nil {
+		if statusErr.ContentType != "" {
+			w.Header().Set("Content-Type", statusErr.ContentType)
+		}
+		w.WriteHeader(httpStatus)
+		w.Write(statusErr.Body)
+		return
+	}
+	http.Error(w, http.StatusText(httpStatus), httpStatus)
+}
+
 // CheckinHandler decodes an MDM check-in request and adapts it to service.
 func CheckinHandler(svc service.Checkin, logger log.Logger) http.HandlerFunc {
 	if svc == nil {
@@ -59,7 +73,7 @@ func CheckinHandler(svc service.Checkin, logger log.Logger) http.HandlerFunc {
 			}
 			logs = append(logs, "http_status", httpStatus, "err", err)
 			logger.Info(logs...)
-			http.Error(w, http.StatusText(httpStatus), httpStatus)
+			writeError(w, httpStatus, statusErr)
 		}
 		w.Write(respBytes)
 	}
@@ -91,7 +105,7 @@ func CommandAndReportResultsHandler(svc service.CommandAndReportResults, logger 
 			}
 			logs = append(logs, "http_status", httpStatus, "err", err)
 			logger.Info(logs...)
-			http.Error(w, http.StatusText(httpStatus), httpStatus)
+			writeError(w, httpStatus, statusErr)
 		}
 		w.Write(respBytes)
 	}
