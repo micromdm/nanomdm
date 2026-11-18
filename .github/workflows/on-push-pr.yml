@@ -6,6 +6,11 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
 jobs:
+  commit-policy:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: micromdm/github-actions/commit-policy@d0c1f758894bd40f015c54ae1716740c50fda9a8  # v0.1.0
   format-build-test:
     strategy:
       matrix:
