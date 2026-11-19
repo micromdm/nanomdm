@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/micromdm/nanolib/storage/kv"
+	"github.com/micromdm/nanolib/storage/kv/kvtxn"
 	"github.com/micromdm/nanomdm/mdm"
 )
 
@@ -25,6 +26,10 @@ func join(s ...string) string {
 type KV struct {
 	certAuth, queue, pushCert, users kv.TxnCRUDBucket
 	devices, enrollments             kv.TxnBucketWithCRUD
+
+	// queueLocks serializes the operations on each enrollment's queue
+	// linked list. See lockQueue.
+	queueLocks kvtxn.KeyLockManager
 }
 
 // New creates a new NanoMDM storage backend that uses key-value stores.
@@ -39,6 +44,7 @@ func New(users, certAuth, queue, pushCert kv.TxnCRUDBucket, devices, enrollments
 		certAuth:    certAuth,
 		queue:       queue,
 		pushCert:    pushCert,
+		queueLocks:  kvtxn.NewInmemLockManager(),
 	}
 }
 
