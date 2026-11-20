@@ -21,6 +21,7 @@ import (
 	"github.com/micromdm/nanomdm/push/nanopush"
 	pushsvc "github.com/micromdm/nanomdm/push/service"
 	"github.com/micromdm/nanomdm/service"
+	"github.com/micromdm/nanomdm/service/block"
 	"github.com/micromdm/nanomdm/service/certauth"
 	"github.com/micromdm/nanomdm/service/dmhook"
 	"github.com/micromdm/nanomdm/service/dump"
@@ -72,6 +73,7 @@ func main() {
 		flCheckin    = flag.Bool("checkin", false, "enable separate HTTP endpoint for MDM check-ins")
 		flMigration  = flag.Bool("migration", false, "enable HTTP endpoint for enrollment migrations")
 		flRetro      = flag.Bool("retro", false, "Allow retroactive certificate-authorization association")
+		flBlock      = flag.Bool("block", false, "enable blocking MDM requests of blocked enrollments")
 		flDMURLPfx   = flag.String("dm", "", "URL to send Declarative Management requests to")
 		flDMSendKey  = flag.String("dm-send-hmac-key", "", "attaches an HMAC HTTP header to each DM request using this key")
 		flDMRecvKey  = flag.String("dm-recv-hmac-key", "", "verifies an HMAC HTTP header from each DM request using this key")
@@ -190,6 +192,10 @@ func main() {
 			certAuthOpts = append(certAuthOpts, certauth.WithAllowRetroactive())
 		}
 		mdmService = certauth.New(mdmService, mdmStorage, certAuthOpts...)
+		if *flBlock {
+			// block before cert-auth so a blocked device is answered regardless of cert-auth state
+			mdmService = block.New(mdmService, mdmStorage, block.WithLogger(logger.With("service", "block")))
+		}
 		if *flDump {
 			mdmService = dump.New(mdmService, os.Stdout)
 		}

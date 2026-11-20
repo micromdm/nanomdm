@@ -15,6 +15,7 @@ const (
 	APIEndpointPush            = "/push/"    // note trailing slash
 	APIEndpointEnqueue         = "/enqueue/" // note trailing slash
 	APIEndpointEscrowKeyUnlock = "/escrowkeyunlock"
+	APIEndpointBlock           = "/block/" // note trailing slash
 )
 
 // Mux can register HTTP handlers.
@@ -30,6 +31,7 @@ type APIStorage interface {
 	storage.PushCertStore
 	storage.PushCertStorer
 	storage.CommandEnqueuer
+	storage.BlockStore
 }
 
 func handlerName(endpoint string) string {
@@ -93,5 +95,14 @@ func HandleAPIv1(prefix string, mux Mux, logger log.Logger, store APIStorage, pu
 	mux.Handle(
 		prefix+APIEndpointEscrowKeyUnlock,
 		NewEscrowKeyUnlockHandler(store, nil, logger.With("handler", handlerName(APIEndpointEscrowKeyUnlock))),
+	)
+
+	// register API handler for enrollment block retrieval (GET), storage (PUT), and removal (DELETE)
+	mux.Handle(
+		prefix+APIEndpointBlock,
+		http.StripPrefix( // we strip the prefix to use the path as an id
+			prefix+APIEndpointBlock,
+			BlockHandler(store, logger.With("handler", handlerName(APIEndpointBlock))),
+		),
 	)
 }

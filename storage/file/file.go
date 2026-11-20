@@ -30,6 +30,8 @@ const (
 	CertAuthFilename             = "CertAuth.sha256.txt"
 	CertAuthAssociationsFilename = "CertAuth.txt"
 
+	BlockFilename = "Block.json"
+
 	// The associations for "sub"-enrollments (that is: user-channel
 	// enrollments to device-channel enrollments) are stored in this
 	// directory under the device's directory.
