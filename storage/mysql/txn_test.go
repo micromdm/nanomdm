@@ -240,7 +240,17 @@ func TestExecNoRetryOnCancelledContext(t *testing.T) {
 	if calls != 1 {
 		t.Fatalf("got %d calls, want 1", calls)
 	}
-	if err := mock.ExpectationsWereMet(); err != nil {
+	// database/sql rolls back a cancelled transaction from its own
+	// goroutine, which may not have reached the driver yet.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		err = mock.ExpectationsWereMet()
+		if err == nil || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if err != nil {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
